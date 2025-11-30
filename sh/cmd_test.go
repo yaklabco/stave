@@ -2,6 +2,7 @@ package sh
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"testing"
 )
@@ -69,4 +70,171 @@ func TestAutoExpand(t *testing.T) {
 		t.Fatalf(`Expected "baz" but got %q`, s)
 	}
 
+}
+
+func TestRun(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		cmd     string
+		args    []string
+		wantErr bool
+	}{
+		{
+			name:    "successful command",
+			cmd:     "go",
+			args:    []string{"version"},
+			wantErr: false,
+		},
+		{
+			name:    "failing command",
+			cmd:     "go",
+			args:    []string{"build", "nonexistent-package-xyz123"},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := Run(tt.cmd, tt.args...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Run() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestRunV(t *testing.T) {
+	// Don't run in parallel - modifies global os.Stdout
+
+	// Capture stdout
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	defer func() {
+		os.Stdout = oldStdout
+	}()
+
+	// Run a command
+	err := RunV("go", "version")
+	w.Close()
+
+	if err != nil {
+		t.Fatalf("RunV() error = %v", err)
+	}
+
+	// Read captured output
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	output := buf.String()
+
+	if !bytes.Contains([]byte(output), []byte("go version")) {
+		t.Errorf("RunV() did not write to stdout, got: %q", output)
+	}
+}
+
+func TestRunWith(t *testing.T) {
+	t.Parallel()
+
+	env := map[string]string{"GOOS": "linux"}
+	err := RunWith(env, "go", "version")
+	if err != nil {
+		t.Errorf("RunWith() error = %v", err)
+	}
+}
+
+func TestRunWithV(t *testing.T) {
+	// Don't run in parallel - modifies global os.Stdout
+
+	env := map[string]string{"GOOS": "linux"}
+	err := RunWithV(env, "go", "version")
+	if err != nil {
+		t.Errorf("RunWithV() error = %v", err)
+	}
+}
+
+func TestRunCmd(t *testing.T) {
+	t.Parallel()
+
+	// Test curried args
+	goVersion := RunCmd("go", "version")
+	err := goVersion()
+	if err != nil {
+		t.Errorf("RunCmd()() error = %v", err)
+	}
+
+	// Test additional args appended
+	goBuild := RunCmd("go", "build")
+	err = goBuild("-n", ".")
+	if err != nil {
+		t.Errorf("RunCmd() with additional args error = %v", err)
+	}
+}
+
+func TestOutput(t *testing.T) {
+	t.Parallel()
+
+	// Test capture stdout
+	out, err := Output("go", "version")
+	if err != nil {
+		t.Fatalf("Output() error = %v", err)
+	}
+	if !bytes.Contains([]byte(out), []byte("go version")) {
+		t.Errorf("Output() = %q, expected to contain 'go version'", out)
+	}
+
+	// Test newline trimmed
+	if bytes.HasSuffix([]byte(out), []byte("\n")) {
+		t.Errorf("Output() = %q, should not end with newline", out)
+	}
+}
+
+func TestOutputWith(t *testing.T) {
+	t.Parallel()
+
+	env := map[string]string{"GOOS": "linux"}
+	out, err := OutputWith(env, "go", "version")
+	if err != nil {
+		t.Fatalf("OutputWith() error = %v", err)
+	}
+	if !bytes.Contains([]byte(out), []byte("go version")) {
+		t.Errorf("OutputWith() = %q, want to contain 'go version'", out)
+	}
+}
+
+func TestCmdRan(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{
+			name: "nil error returns true",
+			err:  nil,
+			want: true,
+		},
+		{
+			name: "regular error returns false",
+			err:  fmt.Errorf("regular error"),
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := CmdRan(tt.err)
+			if got != tt.want {
+				t.Errorf("CmdRan() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

@@ -118,3 +118,118 @@ func TestHelpers(t *testing.T) {
 	})
 
 }
+
+func TestCopyToNonExistentDir(t *testing.T) {
+	mytmpdir, err := os.MkdirTemp("", "stave")
+	if err != nil {
+		t.Fatalf("can't create test directory: %v", err)
+	}
+	defer os.RemoveAll(mytmpdir)
+
+	srcname := filepath.Join(mytmpdir, "test.txt")
+	err = os.WriteFile(srcname, []byte("test"), 0644)
+	if err != nil {
+		t.Fatalf("can't create test file %s: %v", srcname, err)
+	}
+
+	// Try to copy to a file in a non-existent directory
+	destname := filepath.Join(mytmpdir, "nonexistent", "test.txt")
+	err = sh.Copy(destname, srcname)
+	if err == nil {
+		t.Error("Copy() to non-existent parent dir should fail, but succeeded")
+	}
+}
+
+func TestCopyPreservesMode(t *testing.T) {
+	mytmpdir, err := os.MkdirTemp("", "stave")
+	if err != nil {
+		t.Fatalf("can't create test directory: %v", err)
+	}
+	defer os.RemoveAll(mytmpdir)
+
+	srcname := filepath.Join(mytmpdir, "test.txt")
+	// Create file with specific permissions
+	err = os.WriteFile(srcname, []byte("test"), 0755)
+	if err != nil {
+		t.Fatalf("can't create test file %s: %v", srcname, err)
+	}
+
+	destname := filepath.Join(mytmpdir, "test2.txt")
+	err = sh.Copy(destname, srcname)
+	if err != nil {
+		t.Fatalf("Copy() error = %v", err)
+	}
+
+	// Check that mode is preserved
+	srcInfo, err := os.Stat(srcname)
+	if err != nil {
+		t.Fatalf("can't stat source: %v", err)
+	}
+
+	destInfo, err := os.Stat(destname)
+	if err != nil {
+		t.Fatalf("can't stat dest: %v", err)
+	}
+
+	if srcInfo.Mode() != destInfo.Mode() {
+		t.Errorf("Copy() did not preserve mode: src=%v, dest=%v", srcInfo.Mode(), destInfo.Mode())
+	}
+}
+
+func TestRmFile(t *testing.T) {
+	mytmpdir, err := os.MkdirTemp("", "stave")
+	if err != nil {
+		t.Fatalf("can't create test directory: %v", err)
+	}
+	defer os.RemoveAll(mytmpdir)
+
+	filename := filepath.Join(mytmpdir, "test.txt")
+	err = os.WriteFile(filename, []byte("test"), 0644)
+	if err != nil {
+		t.Fatalf("can't create test file: %v", err)
+	}
+
+	err = sh.Rm(filename)
+	if err != nil {
+		t.Errorf("Rm() on file error = %v", err)
+	}
+
+	// Verify file is gone
+	if _, err := os.Stat(filename); !os.IsNotExist(err) {
+		t.Error("Rm() did not remove file")
+	}
+}
+
+func TestRmDir(t *testing.T) {
+	mytmpdir, err := os.MkdirTemp("", "stave")
+	if err != nil {
+		t.Fatalf("can't create test directory: %v", err)
+	}
+	defer os.RemoveAll(mytmpdir)
+
+	// Create a non-empty directory
+	dirname := filepath.Join(mytmpdir, "testdir")
+	err = os.Mkdir(dirname, 0755)
+	if err != nil {
+		t.Fatalf("can't create test dir: %v", err)
+	}
+
+	// Add files to it
+	for i := 0; i < 3; i++ {
+		filename := filepath.Join(dirname, fmt.Sprintf("file%d.txt", i))
+		err = os.WriteFile(filename, []byte("test"), 0644)
+		if err != nil {
+			t.Fatalf("can't create test file: %v", err)
+		}
+	}
+
+	err = sh.Rm(dirname)
+	if err != nil {
+		t.Errorf("Rm() on non-empty dir error = %v", err)
+	}
+
+	// Verify directory is gone
+	if _, err := os.Stat(dirname); !os.IsNotExist(err) {
+		t.Error("Rm() did not remove directory")
+	}
+}
