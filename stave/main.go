@@ -1,7 +1,6 @@
 package stave
 
 import (
-	"bytes"
 	"crypto/sha1"
 	"errors"
 	"flag"
@@ -137,15 +136,16 @@ func ParseAndRun(stdout, stderr io.Writer, stdin io.Reader, args []string) int {
 	errlog := log.New(stderr, "", 0)
 	out := log.New(stdout, "", 0)
 	inv, cmd, err := Parse(stderr, stdout, args)
-	inv.Stderr = stderr
-	inv.Stdin = stdin
-	if err == flag.ErrHelp {
+	if errors.Is(err, flag.ErrHelp) {
 		return 0
 	}
 	if err != nil {
 		errlog.Println("Error:", err)
 		return 2
 	}
+
+	inv.Stderr = stderr
+	inv.Stdin = stdin
 
 	switch cmd {
 	case Version:
@@ -248,7 +248,7 @@ Options:
 `[1:])
 	}
 	err = fs.Parse(args)
-	if err == flag.ErrHelp {
+	if errors.Is(err, flag.ErrHelp) {
 		// parse will have already called fs.Usage()
 		return inv, cmd, err
 	}
@@ -333,11 +333,10 @@ func Invoke(inv Invocation) int {
 	mfSt, err := os.Stat(stavefilesDir)
 	if err == nil {
 		if mfSt.IsDir() {
-			stderrBuf := &bytes.Buffer{}
 			originalDir := inv.Dir
 			inv.Dir = stavefilesDir // preemptive assignment
 			// TODO: Remove this fallback and the above Stavefiles invocation when the bw compatibility is removed.
-			files, err := Stavefiles(originalDir, inv.GOOS, inv.GOARCH, inv.GoCmd, stderrBuf, false, inv.Debug)
+			files, err := Stavefiles(originalDir, inv.GOOS, inv.GOARCH, false)
 			if err == nil {
 				if len(files) != 0 {
 					errlog.Println("[WARNING] You have both a stavefiles directory and stave files in the " +
@@ -352,7 +351,7 @@ func Invoke(inv Invocation) int {
 		inv.CacheDir = st.CacheDir()
 	}
 
-	files, err := Stavefiles(inv.Dir, inv.GOOS, inv.GOARCH, inv.GoCmd, inv.Stderr, inv.UsesStavefiles(), inv.Debug)
+	files, err := Stavefiles(inv.Dir, inv.GOOS, inv.GOARCH, inv.UsesStavefiles())
 	if err != nil {
 		errlog.Println("Error determining list of stavefiles:", err)
 		return 1
@@ -474,7 +473,7 @@ type mainfileTemplateData struct {
 
 // listGoFiles returns a list of all .go files in a given directory,
 // matching the provided tag
-func listGoFiles(stavePath, goCmd, tag string, envStr []string) ([]string, error) {
+func listGoFiles(stavePath, tag string, envStr []string) ([]string, error) {
 	origStavePath := stavePath
 	if !filepath.IsAbs(stavePath) {
 		cwd, err := os.Getwd()
@@ -502,14 +501,20 @@ func listGoFiles(stavePath, goCmd, tag string, envStr []string) ([]string, error
 
 	pkg, err := bctx.Import(".", stavePath, 0)
 	if err != nil {
-		if _, ok := err.(*build.NoGoError); ok {
+		var noGoError *build.NoGoError
+		if errors.As(err, &noGoError) {
 			return []string{}, nil
 		}
 
 		// Allow multiple packages in the same directory
-		if _, ok := err.(*build.MultiplePackageError); !ok {
+		var multiplePackageError *build.MultiplePackageError
+		if !errors.As(err, &multiplePackageError) {
 			return nil, fmt.Errorf("failed to parse go source files: %v", err)
 		}
+	}
+
+	if pkg == nil {
+		return []string{}, errors.New("unexpected nil return-value from bctx.Import")
 	}
 
 	goFiles := make([]string, len(pkg.GoFiles))
@@ -522,7 +527,7 @@ func listGoFiles(stavePath, goCmd, tag string, envStr []string) ([]string, error
 }
 
 // Stavefiles returns the list of stavefiles in dir.
-func Stavefiles(stavePath, goos, goarch, goCmd string, stderr io.Writer, isStavefilesDirectory, isDebug bool) ([]string, error) {
+func Stavefiles(stavePath, goos, goarch string, isStavefilesDirectory bool) ([]string, error) {
 	start := time.Now()
 	defer func() {
 		debug.Println("time to scan for Stavefiles:", time.Since(start))
@@ -534,7 +539,7 @@ func Stavefiles(stavePath, goos, goarch, goCmd string, stderr io.Writer, isStave
 	}
 
 	debug.Println("getting all files including those with stave tag in", stavePath)
-	staveFiles, err := listGoFiles(stavePath, goCmd, "stave", env)
+	staveFiles, err := listGoFiles(stavePath, "stave", env)
 	if err != nil {
 		return nil, fmt.Errorf("listing stave files: %v", err)
 	}
@@ -550,7 +555,7 @@ func Stavefiles(stavePath, goos, goarch, goCmd string, stderr io.Writer, isStave
 	// that have the stave build tag and ignore those that don't.
 
 	debug.Println("getting all files without stave tag in", stavePath)
-	nonStaveFiles, err := listGoFiles(stavePath, goCmd, "", env)
+	nonStaveFiles, err := listGoFiles(stavePath, "", env)
 	if err != nil {
 		return nil, fmt.Errorf("listing non-stave files: %v", err)
 	}

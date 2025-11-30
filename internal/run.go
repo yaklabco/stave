@@ -12,7 +12,7 @@ import (
 	"github.com/yaklabco/stave/internal/dryrun"
 )
 
-var debug *log.Logger = log.New(io.Discard, "", 0)
+var debug = log.New(io.Discard, "", 0)
 
 func SetDebug(l *log.Logger) {
 	debug = l

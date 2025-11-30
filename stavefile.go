@@ -30,7 +30,7 @@ func Say(msg string, i int, b bool, d time.Duration) error {
 	return err
 }
 
-// Runs "go install" for stave. This generates the version info the binary.
+// Install runs "go install" for stave. This generates the version info the binary.
 func Install() error {
 	name := "stave"
 	if runtime.GOOS == "windows" {
@@ -68,7 +68,7 @@ func Install() error {
 
 var releaseTag = regexp.MustCompile(`^v1\.[0-9]+\.[0-9]+$`)
 
-// Generates a new release. Expects a version tag in v1.x.x format.
+// Release generates a new release. Expects a version tag in v1.x.x format.
 func Release(tag string) (err error) {
 	if _, err := exec.LookPath("goreleaser"); err != nil {
 		return fmt.Errorf("can't find goreleaser: %w", err)
@@ -85,14 +85,14 @@ func Release(tag string) (err error) {
 	}
 	defer func() {
 		if err != nil {
-			sh.RunV("git", "tag", "--delete", tag)
-			sh.RunV("git", "push", "--delete", "origin", tag)
+			_ = sh.RunV("git", "tag", "--delete", tag)
+			_ = sh.RunV("git", "push", "--delete", "origin", tag)
 		}
 	}()
 	return sh.RunV("goreleaser")
 }
 
-// Remove the temporarily generated files from Release.
+// Clean removes the temporarily generated files from Release.
 func Clean() error {
 	return sh.Rm("dist")
 }

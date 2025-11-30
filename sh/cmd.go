@@ -2,6 +2,7 @@ package sh
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -157,7 +158,8 @@ func CmdRan(err error) bool {
 	if err == nil {
 		return true
 	}
-	ee, ok := err.(*exec.ExitError)
+	var ee *exec.ExitError
+	ok := errors.As(err, &ee)
 	if ok {
 		return ee.Exited()
 	}
@@ -178,7 +180,8 @@ func ExitStatus(err error) int {
 	if e, ok := err.(exitStatus); ok {
 		return e.ExitStatus()
 	}
-	if e, ok := err.(*exec.ExitError); ok {
+	var e *exec.ExitError
+	if errors.As(err, &e) {
 		if ex, ok := e.Sys().(exitStatus); ok {
 			return ex.ExitStatus()
 		}

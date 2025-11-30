@@ -187,7 +187,7 @@ func TestTransitiveHashFast(t *testing.T) {
 
 func TestListStavefilesMain(t *testing.T) {
 	buf := &bytes.Buffer{}
-	files, err := Stavefiles("testdata/mixed_main_files", "", "", "go", buf, false, false)
+	files, err := Stavefiles("testdata/mixed_main_files", "", "", false)
 	if err != nil {
 		t.Errorf("error from stavefile list: %v: %s", err, buf)
 	}
@@ -207,7 +207,7 @@ func TestListStavefilesIgnoresGOOS(t *testing.T) {
 	} else {
 		t.Setenv("GOOS", "windows")
 	}
-	files, err := Stavefiles("testdata/goos_stavefiles", "", "", "go", buf, false, false)
+	files, err := Stavefiles("testdata/goos_stavefiles", "", "", false)
 	if err != nil {
 		t.Errorf("error from stavefile list: %v: %s", err, buf)
 	}
@@ -231,7 +231,7 @@ func TestListStavefilesIgnoresRespectsGOOSArg(t *testing.T) {
 		goos = "windows"
 	}
 	// Set GOARCH as amd64 because windows is not on all non-x86 architectures.
-	files, err := Stavefiles("testdata/goos_stavefiles", goos, "amd64", "go", buf, false, false)
+	files, err := Stavefiles("testdata/goos_stavefiles", goos, "amd64", false)
 	if err != nil {
 		t.Errorf("error from stavefile list: %v: %s", err, buf)
 	}
@@ -305,7 +305,7 @@ func TestCompileDiffGoosGoarch(t *testing.T) {
 
 func TestListStavefilesLib(t *testing.T) {
 	buf := &bytes.Buffer{}
-	files, err := Stavefiles("testdata/mixed_lib_files", "", "", "go", buf, false, false)
+	files, err := Stavefiles("testdata/mixed_lib_files", "", "", false)
 	if err != nil {
 		t.Errorf("error from stavefile list: %v: %s", err, buf)
 	}

@@ -401,8 +401,8 @@ func setNamespaces(pi *PkgInfo) {
 }
 
 func setImports(gocmd string, pi *PkgInfo) error {
+	var rootImports []string
 	importNames := map[string]string{}
-	rootImports := []string{}
 	for _, f := range pi.AstPkg.Files {
 		for _, d := range f.Decls {
 			gen, ok := d.(*ast.GenDecl)
