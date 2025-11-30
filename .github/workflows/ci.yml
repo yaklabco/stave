@@ -1,6 +1,10 @@
-name: ci
+name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   build:
@@ -10,27 +14,47 @@ jobs:
       matrix:
         go-version:
           - stable
-          - 1.21.x
-          - 1.20.x
-          - 1.19.x
-          - 1.18.x
-          - 1.17.x
-          - 1.16.x
-          - 1.15.x
-          - 1.14.x
-          - 1.13.x
-          - 1.12.x
-          - 1.11.x
+          - "1.22"
+          - "1.21"
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Go ${{ matrix.go-version }}
-      uses: actions/setup-go@v4
-      with:
-        go-version: ${{ matrix.go-version }}
+      - uses: actions/checkout@v4
 
-    - name: Test
-      run: |
-        go vet ./...
-        go test -tags CI -race ./...
-      env:
-        GOPATH: /home/runner/go
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -race -coverprofile=coverage.out ./...
+        env:
+          GOPATH: /home/runner/go
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        if: matrix.go-version == 'stable'
+        with:
+          files: coverage.out
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest

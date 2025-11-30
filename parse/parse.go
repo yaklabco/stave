@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/magefile/mage/internal"
+	"github.com/yaklabco/staff/internal"
 )
 
 const importTag = "mage:import"

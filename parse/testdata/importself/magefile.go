@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	//mage:import
-	_ "github.com/magefile/mage/parse/testdata/importself"
+	_ "github.com/yaklabco/staff/parse/testdata/importself"
 )
 
 func Build() {

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/magefile/mage/sh"
+	"github.com/yaklabco/staff/sh"
 )
 
 // compareFiles checks that two files are identical for testing purposes. That means they have the same length,

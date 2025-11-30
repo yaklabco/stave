@@ -1,3 +1,3 @@
-module github.com/magefile/mage
+module github.com/yaklabco/staff
 
-go 1.12
+go 1.21

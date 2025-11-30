@@ -1,7 +1,7 @@
 //go:build mage
 // +build mage
 
-// This is the build script for Mage. The install target is all you really need.
+// This is the build script for Staff. The install target is all you really need.
 // The release target is for generating official releases and is really only
 // useful to project admins.
 package main
@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/magefile/mage/mg"
-	"github.com/magefile/mage/sh"
+	"github.com/yaklabco/staff/mg"
+	"github.com/yaklabco/staff/sh"
 )
 
 var Aliases = map[string]interface{}{
@@ -31,9 +31,9 @@ func Say(msg string, i int, b bool, d time.Duration) error {
 	return err
 }
 
-// Runs "go install" for mage.  This generates the version info the binary.
+// Runs "go install" for staff. This generates the version info the binary.
 func Install() error {
-	name := "mage"
+	name := "staff"
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
@@ -64,7 +64,7 @@ func Install() error {
 	// install` turns into a no-op, and `go install -a` fails on people's
 	// machines that have go installed in a non-writeable directory (such as
 	// normal OS installs in /usr/bin)
-	return sh.RunV(gocmd, "build", "-o", path, "-ldflags="+flags(), "github.com/magefile/mage")
+	return sh.RunV(gocmd, "build", "-o", path, "-ldflags="+flags(), "github.com/yaklabco/staff")
 }
 
 var releaseTag = regexp.MustCompile(`^v1\.[0-9]+\.[0-9]+$`)
@@ -105,7 +105,7 @@ func flags() string {
 	if tag == "" {
 		tag = "dev"
 	}
-	return fmt.Sprintf(`-X "github.com/magefile/mage/mage.timestamp=%s" -X "github.com/magefile/mage/mage.commitHash=%s" -X "github.com/magefile/mage/mage.gitTag=%s"`, timestamp, hash, tag)
+	return fmt.Sprintf(`-X "github.com/yaklabco/staff/staff.timestamp=%s" -X "github.com/yaklabco/staff/staff.commitHash=%s" -X "github.com/yaklabco/staff/staff.gitTag=%s"`, timestamp, hash, tag)
 }
 
 // tag returns the git tag for the current branch or "" if none.

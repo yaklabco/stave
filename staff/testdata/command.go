@@ -4,8 +4,8 @@
 package main
 
 import (
-	"context"
 	"fmt"
+	"log"
 
 	"github.com/yaklabco/staff/mg"
 )
@@ -19,16 +19,12 @@ func ReturnsString() string {
 	return ""
 }
 
+func TestVerbose() {
+	log.Println("hi!")
+}
+
 func ReturnsVoid() {
 	mg.Deps(f)
 }
 
 func f() {}
-
-func TakesContextReturnsVoid(ctx context.Context) {
-
-}
-
-func TakesContextReturnsError(ctx context.Context) error {
-	return nil
-}

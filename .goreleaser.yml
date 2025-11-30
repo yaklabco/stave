@@ -1,13 +1,13 @@
-project_name: mage
+project_name: staff
 release:
   github:
-    owner: magefile
-    name: mage
+    owner: yaklabco
+    name: staff
   draft: true
 build:
-  binary: mage
+  binary: staff
   main: .
-  ldflags: -s -w -X github.com/magefile/mage/mage.timestamp={{.Date}} -X github.com/magefile/mage/mage.commitHash={{.Commit}} -X github.com/magefile/mage/mage.gitTag={{.Version}}
+  ldflags: -s -w -X github.com/yaklabco/staff/staff.timestamp={{.Date}} -X github.com/yaklabco/staff/staff.commitHash={{.Commit}} -X github.com/yaklabco/staff/staff.gitTag={{.Version}}
   goos:
     - darwin
     - linux
@@ -47,6 +47,7 @@ archives:
       format: zip
   files:
   - LICENSE
+  - NOTICE
 snapshot:
   name_template: SNAPSHOT-{{ .Commit }}
 checksum:

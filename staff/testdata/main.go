@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 package main
 
 import (
@@ -7,5 +10,5 @@ import (
 )
 
 func main() {
-	os.Exit(staff.Main())
+	os.Exit(mage.Main())
 }
