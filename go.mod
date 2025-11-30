@@ -1,3 +1,3 @@
-module github.com/yaklabco/staff
+module github.com/yaklabco/stave
 
-go 1.21
+go 1.25.4

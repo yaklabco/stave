@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/yaklabco/staff/sh"
+	"github.com/yaklabco/stave/sh"
 )
 
 // compareFiles checks that two files are identical for testing purposes. That means they have the same length,

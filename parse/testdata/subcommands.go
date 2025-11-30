@@ -3,7 +3,7 @@
 
 package main
 
-import "github.com/yaklabco/staff/mg"
+import "github.com/yaklabco/stave/mg"
 
 type Build mg.Namespace
 

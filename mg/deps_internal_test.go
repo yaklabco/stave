@@ -20,7 +20,7 @@ func TestDepsLogging(t *testing.T) {
 
 	foo()
 
-	if strings.Count(buf.String(), "Running dependency: github.com/yaklabco/staff/mg.baz") != 1 {
+	if strings.Count(buf.String(), "Running dependency: github.com/yaklabco/stave/mg.baz") != 1 {
 		t.Fatalf("expected one baz to be logged, but got\n%s", buf)
 	}
 }

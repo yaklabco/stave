@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yaklabco/staff/mg"
-	"github.com/yaklabco/staff/sh"
+	"github.com/yaklabco/stave/mg"
+	"github.com/yaklabco/stave/sh"
 )
 
 var Aliases = map[string]interface{}{
@@ -64,7 +64,7 @@ func Install() error {
 	// install` turns into a no-op, and `go install -a` fails on people's
 	// machines that have go installed in a non-writeable directory (such as
 	// normal OS installs in /usr/bin)
-	return sh.RunV(gocmd, "build", "-o", path, "-ldflags="+flags(), "github.com/yaklabco/staff")
+	return sh.RunV(gocmd, "build", "-o", path, "-ldflags="+flags(), "github.com/yaklabco/stave")
 }
 
 var releaseTag = regexp.MustCompile(`^v1\.[0-9]+\.[0-9]+$`)
@@ -105,7 +105,7 @@ func flags() string {
 	if tag == "" {
 		tag = "dev"
 	}
-	return fmt.Sprintf(`-X "github.com/yaklabco/staff/staff.timestamp=%s" -X "github.com/yaklabco/staff/staff.commitHash=%s" -X "github.com/yaklabco/staff/staff.gitTag=%s"`, timestamp, hash, tag)
+	return fmt.Sprintf(`-X "github.com/yaklabco/stave/stave.timestamp=%s" -X "github.com/yaklabco/stave/stave.commitHash=%s" -X "github.com/yaklabco/stave/stave.gitTag=%s"`, timestamp, hash, tag)
 }
 
 // tag returns the git tag for the current branch or "" if none.

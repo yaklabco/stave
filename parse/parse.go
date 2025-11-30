@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yaklabco/staff/internal"
+	"github.com/yaklabco/stave/internal"
 )
 
 const importTag = "stave:import"

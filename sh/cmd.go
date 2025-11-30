@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/yaklabco/staff/mg"
+	"github.com/yaklabco/stave/mg"
 )
 
 // RunCmd returns a function that will call Run with the given command. This is

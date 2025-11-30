@@ -3,7 +3,7 @@ package mg_test
 import (
 	"fmt"
 
-	"github.com/yaklabco/staff/mg"
+	"github.com/yaklabco/stave/mg"
 )
 
 func Example() {
