@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"go/build"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -67,7 +66,7 @@ const (
 	initFile = "stavefile.go"
 )
 
-var debug = log.New(ioutil.Discard, "DEBUG: ", log.Ltime|log.Lmicroseconds)
+var debug = log.New(io.Discard, "DEBUG: ", log.Ltime|log.Lmicroseconds)
 
 // set by ldflags when you "stave build"
 var (
@@ -173,7 +172,7 @@ func ParseAndRun(stdout, stderr io.Writer, stdin io.Reader, args []string) int {
 	case None:
 		return Invoke(inv)
 	default:
-		panic(fmt.Errorf("Unknown command type: %v", cmd))
+		panic(fmt.Errorf("unknown command type: %v", cmd))
 	}
 }
 
@@ -212,7 +211,7 @@ func Parse(stderr, stdout io.Writer, args []string) (inv Invocation, cmd Command
 	fs.StringVar(&compileOutPath, "compile", "", "output a static binary to the given path")
 
 	fs.Usage = func() {
-		fmt.Fprint(stdout, `
+		_, _ = fmt.Fprint(stdout, `
 stave [options] [target]
 
 Stave is a make-like command runner. Fork of Mage. See https://github.com/yaklabco/stave
@@ -434,7 +433,7 @@ func Invoke(inv Invocation) int {
 		return 1
 	}
 	if !inv.Keep {
-		defer os.RemoveAll(main)
+		defer func() { _ = os.RemoveAll(main) }()
 	}
 	files = append(files, main)
 	if err := Compile(inv.GOOS, inv.GOARCH, inv.Ldflags, inv.Dir, inv.GoCmd, exePath, files, inv.Debug, inv.Stderr, inv.Stdout); err != nil {
@@ -445,7 +444,7 @@ func Invoke(inv Invocation) int {
 		// move aside this file before we run the compiled version, in case the
 		// compiled file screws things up.  Yes this doubles up with the above
 		// defer, that's ok.
-		os.RemoveAll(main)
+		_ = os.RemoveAll(main)
 	} else {
 		debug.Print("keeping mainfile")
 	}
@@ -574,8 +573,8 @@ func Compile(goos, goarch, ldflags, stavePath, goCmd, compileTo string, gofiles 
 	debug.Println("compiling to", compileTo)
 	debug.Println("compiling using gocmd:", goCmd)
 	if isDebug {
-		internal.RunDebug(goCmd, "version")
-		internal.RunDebug(goCmd, "env")
+		_ = internal.RunDebug(goCmd, "version")
+		_ = internal.RunDebug(goCmd, "env")
 	}
 	environ, err := internal.EnvWithGOOS(goos, goarch)
 	if err != nil {
@@ -614,7 +613,7 @@ func GenerateMainfile(binaryName, path string, info *parse.PkgInfo) error {
 	if err != nil {
 		return fmt.Errorf("error creating generated mainfile: %v", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	data := mainfileTemplateData{
 		Description: info.Description,
 		Funcs:       info.Funcs,
@@ -677,7 +676,7 @@ func hashFile(fn string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("can't open input file for hashing: %#v", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	h := sha1.New()
 	if _, err := io.Copy(h, f); err != nil {
@@ -692,7 +691,7 @@ func generateInit(dir string) error {
 	if err != nil {
 		return fmt.Errorf("could not create stave template: %v", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	if err := initOutput.Execute(f, nil); err != nil {
 		return fmt.Errorf("can't execute stavefile template: %v", err)
@@ -759,18 +758,18 @@ func filter(list []string, prefix string) []string {
 // directory.
 func removeContents(dir string) error {
 	debug.Println("removing all files in", dir)
-	files, err := ioutil.ReadDir(dir)
+	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
 		}
 		return err
 	}
-	for _, f := range files {
-		if f.IsDir() {
+	for _, entry := range entries {
+		if entry.IsDir() {
 			continue
 		}
-		err = os.Remove(filepath.Join(dir, f.Name()))
+		err = os.Remove(filepath.Join(dir, entry.Name()))
 		if err != nil {
 			return err
 		}

@@ -7,7 +7,7 @@ import (
 	"go/doc"
 	"go/parser"
 	"go/token"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"sort"
@@ -19,7 +19,7 @@ import (
 
 const importTag = "stave:import"
 
-var debug = log.New(ioutil.Discard, "DEBUG: ", log.Ltime|log.Lmicroseconds)
+var debug = log.New(io.Discard, "DEBUG: ", log.Ltime|log.Lmicroseconds)
 
 // EnableDebug turns on debug logging.
 func EnableDebug() {
@@ -214,7 +214,7 @@ func checkDupes(info *PkgInfo, imports []*Import) error {
 			for _, f := range funcs[alias] {
 				ids = append(ids, f.ID())
 			}
-			return fmt.Errorf("alias %q duplicates existing target(s): %s\n", alias, strings.Join(ids, ", "))
+			return fmt.Errorf("alias %q duplicates existing target(s): %s", alias, strings.Join(ids, ", "))
 		}
 		funcs[alias] = append(funcs[alias], f)
 	}
@@ -554,7 +554,9 @@ func checkDupeTargets(info *PkgInfo) (hasDupes bool, names map[string][]string) 
 
 // sanitizeSynopsis sanitizes function Doc to create a summary.
 func sanitizeSynopsis(f *doc.Func) string {
-	synopsis := doc.Synopsis(f.Doc)
+	// Create a minimal Package to use the non-deprecated Synopsis method
+	pkg := &doc.Package{}
+	synopsis := pkg.Synopsis(f.Doc)
 
 	// If the synopsis begins with the function name, remove it. This is done to
 	// not repeat the text.
@@ -790,11 +792,6 @@ func hasContextParam(ft *ast.FuncType) (bool, error) {
 		return false, errors.New("ETOOMANYCONTEXTS")
 	}
 	return true, nil
-}
-
-func hasVoidReturn(ft *ast.FuncType) bool {
-	res := ft.Results
-	return res.NumFields() == 0
 }
 
 func hasErrorReturn(ft *ast.FuncType) (bool, error) {
