@@ -12,7 +12,7 @@ import (
 	"context"
 	_flag "flag"
 	_fmt "fmt"
-	_ioutil "io/ioutil"
+	_io "io"
 	_log "log"
 	"os"
 	"os/signal"
@@ -354,7 +354,7 @@ Options:
 
 	_log.SetFlags(0)
 	if !args.Verbose {
-		_log.SetOutput(_ioutil.Discard)
+		_log.SetOutput(_io.Discard)
 	}
 	logger := _log.New(os.Stderr, "", 0)
 	if args.List {

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"go/build"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -67,7 +66,7 @@ const (
 	initFile = "stavefile.go"
 )
 
-var debug = log.New(ioutil.Discard, "DEBUG: ", log.Ltime|log.Lmicroseconds)
+var debug = log.New(io.Discard, "DEBUG: ", log.Ltime|log.Lmicroseconds)
 
 // set by ldflags when you "stave build"
 var (
@@ -759,18 +758,18 @@ func filter(list []string, prefix string) []string {
 // directory.
 func removeContents(dir string) error {
 	debug.Println("removing all files in", dir)
-	files, err := ioutil.ReadDir(dir)
+	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
 		}
 		return err
 	}
-	for _, f := range files {
-		if f.IsDir() {
+	for _, entry := range entries {
+		if entry.IsDir() {
 			continue
 		}
-		err = os.Remove(filepath.Join(dir, f.Name()))
+		err = os.Remove(filepath.Join(dir, entry.Name()))
 		if err != nil {
 			return err
 		}

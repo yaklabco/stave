@@ -5,18 +5,18 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 )
 
 func TestCurrentDir() error {
-	files, err := ioutil.ReadDir(".")
+	entries, err := os.ReadDir(".")
 	if err != nil {
 		return err
 	}
 	var out []string
-	for _, f := range files {
-		out = append(out, f.Name())
+	for _, entry := range entries {
+		out = append(out, entry.Name())
 	}
 
 	fmt.Println(strings.Join(out, ", "))
