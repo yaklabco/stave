@@ -1,29 +1,29 @@
-# Staff
+# Stave
 
-A make-like build tool using Go. Write plain Go functions, Staff automatically uses them as runnable targets.
+A make-like build tool using Go. Write plain Go functions, Stave automatically uses them as runnable targets.
 
-Staff is a fork of [Mage](https://github.com/magefile/mage) by Nate Finch, with additional features and improvements.
+Stave is a fork of [Stave](https://github.com/stavefile/stave) by Nate Finch, with additional features and improvements.
 
 ## Installation
 
 ```bash
-go install github.com/yaklabco/staff@latest
+go install github.com/yaklabco/stave@latest
 ```
 
 Or build from source:
 
 ```bash
-git clone https://github.com/yaklabco/staff.git
-cd staff
+git clone https://github.com/yaklabco/stave.git
+cd stave
 go run bootstrap.go
 ```
 
 ## Quick Start
 
-Create a `magefile.go` in your project:
+Create a `stavefile.go` in your project:
 
 ```go
-//go:build mage
+//go:build stave
 
 package main
 
@@ -44,16 +44,16 @@ func Test() {
 Then run:
 
 ```bash
-staff build    # Run the Build target
-staff test     # Run the Test target
-staff -l       # List all targets
-staff -h build # Show help for Build target
+stave build    # Run the Build target
+stave test     # Run the Test target
+stave -l       # List all targets
+stave -h build # Show help for Build target
 ```
 
 ## Features
 
 - Write build tasks in Go - no new syntax to learn
-- Dependency management with `mg.Deps()`
+- Dependency management with `st.Deps()`
 - Parallel and serial dependency execution
 - Namespaced targets for organization
 - Cross-platform (Linux, macOS, Windows)
@@ -62,15 +62,15 @@ staff -h build # Show help for Build target
 ## Documentation
 
 ```bash
-staff -h              # Show help
-staff -l              # List targets
-staff -v <target>     # Verbose mode
-staff -t 5m <target>  # Set timeout
+stave -h              # Show help
+stave -l              # List targets
+stave -v <target>     # Verbose mode
+stave -t 5m <target>  # Set timeout
 ```
 
-## Differences from Mage
+## Differences from Stave
 
-Staff is built on top of Mage with the following goals:
+Stave is built on top of Stave with the following goals:
 
 - [ ] Modernized Go patterns (Go 1.21+)
 - [ ] Additional shell helpers
@@ -80,7 +80,7 @@ Staff is built on top of Mage with the following goals:
 
 ## Attribution
 
-This project is a fork of [Mage](https://github.com/magefile/mage), originally created by Nate Finch.
+This project is a fork of [Stave](https://github.com/stavefile/stave), originally created by Nate Finch.
 Licensed under the Apache License 2.0.
 
 ## License

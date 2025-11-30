@@ -18,7 +18,7 @@ Describe the steps to reproduce the behavior
 **What actually happened?**
 
 **Environment**
- - Mage Version: [run mage --version]
+ - Stave Version: [run stave --version]
  - OS: [e.g. windows/linux/mac]
 
 **Additional context**

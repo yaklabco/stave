@@ -1,5 +1,5 @@
-//go:build mage && go1.9
-// +build mage,go1.9
+//go:build stave && go1.9
+// +build stave,go1.9
 
 package main
 

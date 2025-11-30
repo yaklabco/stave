@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/yaklabco/staff/sh"
+	"github.com/yaklabco/stave/sh"
 )
 
 // compareFiles checks that two files are identical for testing purposes. That means they have the same length,
 // the same contents, and the same permissions. It does NOT mean they have the same timestamp, as that is expected
-// to change in normal Mage sh.Copy operation.
+// to change in normal Stave sh.Copy operation.
 func compareFiles(file1 string, file2 string) error {
 	s1, err := os.Stat(file1)
 	if err != nil {
@@ -45,7 +45,7 @@ func compareFiles(file1 string, file2 string) error {
 
 func TestHelpers(t *testing.T) {
 
-	mytmpdir, err := ioutil.TempDir("", "mage")
+	mytmpdir, err := ioutil.TempDir("", "stave")
 	if err != nil {
 		t.Fatalf("can't create test directory: %v", err)
 	}

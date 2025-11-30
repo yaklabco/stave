@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/yaklabco/staff/internal"
+	"github.com/yaklabco/stave/internal"
 )
 
 func init() {
@@ -104,7 +104,7 @@ func TestParse(t *testing.T) {
 }
 
 func TestGetImportSelf(t *testing.T) {
-	imp, err := getImport("go", "github.com/yaklabco/staff/parse/testdata/importself", "")
+	imp, err := getImport("go", "github.com/yaklabco/stave/parse/testdata/importself", "")
 	if err != nil {
 		t.Fatal(err)
 	}

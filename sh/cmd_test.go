@@ -33,7 +33,7 @@ func TestExitCode(t *testing.T) {
 }
 
 func TestEnv(t *testing.T) {
-	env := "SOME_REALLY_LONG_MAGEFILE_SPECIFIC_THING"
+	env := "SOME_REALLY_LONG_STAVEFILE_SPECIFIC_THING"
 	out := &bytes.Buffer{}
 	ran, err := Exec(map[string]string{env: "foobar"}, out, nil, os.Args[0], "-printVar", env)
 	if err != nil {
@@ -58,10 +58,10 @@ func TestNotRun(t *testing.T) {
 }
 
 func TestAutoExpand(t *testing.T) {
-	if err := os.Setenv("MAGE_FOOBAR", "baz"); err != nil {
+	if err := os.Setenv("STAVE_FOOBAR", "baz"); err != nil {
 		t.Fatal(err)
 	}
-	s, err := Output("echo", "$MAGE_FOOBAR")
+	s, err := Output("echo", "$STAVE_FOOBAR")
 	if err != nil {
 		t.Fatal(err)
 	}

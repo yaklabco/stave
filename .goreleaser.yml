@@ -1,13 +1,13 @@
-project_name: staff
+project_name: stave
 release:
   github:
     owner: yaklabco
-    name: staff
+    name: stave
   draft: true
 build:
-  binary: staff
+  binary: stave
   main: .
-  ldflags: -s -w -X github.com/yaklabco/staff/staff.timestamp={{.Date}} -X github.com/yaklabco/staff/staff.commitHash={{.Commit}} -X github.com/yaklabco/staff/staff.gitTag={{.Version}}
+  ldflags: -s -w -X github.com/yaklabco/stave/stave.timestamp={{.Date}} -X github.com/yaklabco/stave/stave.commitHash={{.Commit}} -X github.com/yaklabco/stave/stave.gitTag={{.Version}}
   goos:
     - darwin
     - linux

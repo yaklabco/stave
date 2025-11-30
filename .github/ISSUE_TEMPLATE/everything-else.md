@@ -7,4 +7,4 @@ assignees: ''
 
 ---
 
-If you have a question about how to use mage or any kind of discussion rather than something that is literally a bug report or feature request, consider heading on over to Mage's [Discussion](https://github.com/magefile/mage/discussions) area of github. That's your best bet for finding answers and helping other people who have the same question you have.
+If you have a question about how to use stave or any kind of discussion rather than something that is literally a bug report or feature request, consider heading on over to Stave's [Discussion](https://github.com/stavefile/stave/discussions) area of github. That's your best bet for finding answers and helping other people who have the same question you have.

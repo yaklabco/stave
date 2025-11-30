@@ -1,5 +1,4 @@
 //go:build CI
-// +build CI
 
 package main
 
@@ -23,7 +22,7 @@ func TestBootstrap(t *testing.T) {
 	if err != nil {
 		t.Fatal(s)
 	}
-	name := "mage"
+	name := "stave"
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}

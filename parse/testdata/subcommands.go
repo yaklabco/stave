@@ -1,11 +1,11 @@
-//go:build mage
-// +build mage
+//go:build stave
+// +build stave
 
 package main
 
-import "github.com/yaklabco/staff/mg"
+import "github.com/yaklabco/stave/st"
 
-type Build mg.Namespace
+type Build st.Namespace
 
 func (Build) Foobar() error {
 	// do your foobar build
@@ -16,7 +16,7 @@ func (Build) Baz() {
 	// do your baz build
 }
 
-type Init mg.Namespace
+type Init st.Namespace
 
 func (Init) Foobar() error {
 	// do your foobar defined in init namespace
