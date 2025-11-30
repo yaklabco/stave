@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -246,6 +247,147 @@ func TestFVariadic(t *testing.T) {
 		}()
 		F(func(a string, b ...string) {})
 	}()
+}
+
+func TestFnNameAndID(t *testing.T) {
+	t.Parallel()
+
+	testFunc := func(i int, s string) {}
+	fn := F(testFunc, 42, "test")
+
+	// Verify Name() returns the function name
+	name := fn.Name()
+	if name == "" {
+		t.Error("fn.Name() returned empty string")
+	}
+	if !strings.Contains(name, "mg") {
+		t.Errorf("fn.Name() = %q, expected to contain 'mg'", name)
+	}
+
+	// Verify ID() returns the JSON-encoded args
+	id := fn.ID()
+	if !strings.Contains(id, "42") || !strings.Contains(id, "test") {
+		t.Errorf("fn.ID() = %q, expected to contain '42' and 'test'", id)
+	}
+
+	// Verify different args produce different IDs
+	fn2 := F(testFunc, 99, "different")
+	if fn.ID() == fn2.ID() {
+		t.Error("fn.ID() should be different for different args")
+	}
+
+	// Verify same args produce same ID
+	fn3 := F(testFunc, 42, "test")
+	if fn.ID() != fn3.ID() {
+		t.Errorf("fn.ID() should be same for same args: %q != %q", fn.ID(), fn3.ID())
+	}
+}
+
+func TestFPanicOnNonFunction(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		target interface{}
+	}{
+		{"nil", nil},
+		{"int", 42},
+		{"string", "not a function"},
+		{"struct", struct{}{}},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			defer func() {
+				if r := recover(); r == nil {
+					t.Error("F() should panic on non-function, but didn't")
+				}
+			}()
+
+			F(tt.target)
+		})
+	}
+}
+
+func TestFPanicOnBadArgs(t *testing.T) {
+	t.Parallel()
+
+	// Channels are not valid argument types
+	ch := make(chan int)
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("F() should panic on invalid argument types, but didn't")
+		} else {
+			errMsg := fmt.Sprint(r)
+			// The error could be about type mismatch or JSON marshaling
+			if !strings.Contains(errMsg, "expected to be int") && !strings.Contains(errMsg, "json") && !strings.Contains(errMsg, "JSON") {
+				t.Errorf("expected error about type or JSON, got: %v", r)
+			}
+		}
+	}()
+
+	testFunc := func(i int) {}
+	F(testFunc, ch) // This should panic because chan is not a valid argument type
+}
+
+func TestCheckFErrors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		target    interface{}
+		args      []interface{}
+		wantPanic bool
+	}{
+		{
+			name:      "too many returns",
+			target:    func() (int, error) { return 0, nil },
+			wantPanic: true,
+		},
+		{
+			name:      "bad return type",
+			target:    func() int { return 0 },
+			wantPanic: true,
+		},
+		{
+			name:      "too many args",
+			target:    func(i int) {},
+			args:      []interface{}{1, 2},
+			wantPanic: true,
+		},
+		{
+			name:      "wrong arg type",
+			target:    func(i int) {},
+			args:      []interface{}{"not an int"},
+			wantPanic: true,
+		},
+		{
+			name:      "valid function",
+			target:    func(i int) error { return nil },
+			args:      []interface{}{42},
+			wantPanic: false,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			defer func() {
+				r := recover()
+				if (r != nil) != tt.wantPanic {
+					t.Errorf("F() panic = %v, wantPanic %v", r != nil, tt.wantPanic)
+				}
+			}()
+
+			F(tt.target, tt.args...)
+		})
+	}
 }
 
 type Foo Namespace
