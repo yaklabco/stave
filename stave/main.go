@@ -10,7 +10,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"regexp"
@@ -22,6 +21,7 @@ import (
 	"time"
 
 	"github.com/yaklabco/stave/internal"
+	"github.com/yaklabco/stave/internal/dryrun"
 	"github.com/yaklabco/stave/parse"
 	"github.com/yaklabco/stave/sh"
 	"github.com/yaklabco/stave/st"
@@ -106,6 +106,7 @@ type Invocation struct {
 	List       bool          // tells the stavefile to print out a list of targets
 	Help       bool          // tells the stavefile to print out help for a specific target
 	Keep       bool          // tells stave to keep the generated main file after compiling
+	DryRun     bool          // tells stave that all sh.Run* commands should print, but not execute
 	Timeout    time.Duration // tells stave to set a timeout to running the targets
 	CompileOut string        // tells stave to compile a static binary to this path, but not execute
 	GOOS       string        // sets the GOOS when producing a binary with -compileout
@@ -191,6 +192,7 @@ func Parse(stderr, stdout io.Writer, args []string) (inv Invocation, cmd Command
 	fs.BoolVar(&inv.Help, "h", false, "show this help")
 	fs.DurationVar(&inv.Timeout, "t", 0, "timeout in duration parsable format (e.g. 5m30s)")
 	fs.BoolVar(&inv.Keep, "keep", false, "keep intermediate stave files around after running")
+	fs.BoolVar(&inv.DryRun, "dryrun", false, "print commands instead of executing them")
 	fs.StringVar(&inv.Dir, "d", "", "directory to read stavefiles from")
 	fs.StringVar(&inv.WorkDir, "w", "", "working directory where stavefiles will run")
 	fs.StringVar(&inv.GoCmd, "gocmd", st.GoCmd(), "use the given go binary to compile the output")
@@ -229,6 +231,7 @@ Options:
   -d <string> 
             directory to read stavefiles from (default "." or "stavefiles" if exists)
   -debug    turn on debug messages
+  -dryrun   print commands instead of executing them
   -f        force recreation of compiled stavefile
   -goarch   sets the GOARCH for the binary created by -compile (default: current arch)
   -gocmd <string>
@@ -282,6 +285,10 @@ Options:
 
 	if inv.Debug {
 		debug.SetOutput(stderr)
+	}
+
+	if inv.DryRun {
+		dryrun.SetRequested(true)
 	}
 
 	inv.CacheDir = st.CacheDir()
@@ -591,7 +598,7 @@ func Compile(goos, goarch, ldflags, stavePath, goCmd, compileTo string, gofiles 
 	args := append(buildArgs, gofiles...)
 
 	debug.Printf("running %s %s", goCmd, strings.Join(args, " "))
-	c := exec.Command(goCmd, args...)
+	c := dryrun.Wrap(goCmd, args...)
 	c.Env = environ
 	c.Stderr = stderr
 	c.Stdout = stdout
@@ -703,7 +710,7 @@ func generateInit(dir string) error {
 // RunCompiled runs an already-compiled stave command with the given args,
 func RunCompiled(inv Invocation, exePath string, errlog *log.Logger) int {
 	debug.Println("running binary", exePath)
-	c := exec.Command(exePath, inv.Args...)
+	c := dryrun.Wrap(exePath, inv.Args...)
 	c.Stderr = inv.Stderr
 	c.Stdout = inv.Stdout
 	c.Stdin = inv.Stdin
@@ -711,9 +718,15 @@ func RunCompiled(inv Invocation, exePath string, errlog *log.Logger) int {
 	if inv.WorkDir != inv.Dir {
 		c.Dir = inv.WorkDir
 	}
+
 	// intentionally pass through unaltered os.Environ here.. your stavefile has
 	// to deal with it.
 	c.Env = os.Environ()
+
+	// We don't want to actually allow dryrun in the outermost invocation of stave, since that will inhibit the very compilation of the stavefile & the use of the resulting binary.
+	// But every situation that's within such an execution is one in which dryrun is supported, so we set this environment variable which will be carried over throughout all such situations.
+	c.Env = append(c.Env, "STAVEFILE_DRYRUN_POSSIBLE=1")
+
 	if inv.Verbose {
 		c.Env = append(c.Env, "STAVEFILE_VERBOSE=1")
 	}
@@ -731,6 +744,9 @@ func RunCompiled(inv Invocation, exePath string, errlog *log.Logger) int {
 	}
 	if inv.Timeout > 0 {
 		c.Env = append(c.Env, fmt.Sprintf("STAVEFILE_TIMEOUT=%s", inv.Timeout.String()))
+	}
+	if inv.DryRun {
+		c.Env = append(c.Env, "STAVEFILE_DRYRUN=1")
 	}
 	debug.Print("running stavefile with stave vars:\n", strings.Join(filter(c.Env, "STAVEFILE"), "\n"))
 	// catch SIGINT to allow stavefile to handle them
