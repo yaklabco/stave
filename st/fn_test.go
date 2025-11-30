@@ -51,7 +51,7 @@ func TestFuncCheck(t *testing.T) {
 		t.Error("func is not on a namespace")
 	}
 
-	hasContext, isNamespace, err = checkF(Foo.Bare, nil)
+	_, _, err = checkF(Foo.Bare, nil)
 	if err != nil {
 		t.Error(err)
 	}

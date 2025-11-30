@@ -12,14 +12,12 @@ import (
 	"go/parser"
 	"go/token"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
-	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -33,7 +31,7 @@ const testExeEnv = "STAVE_TEST_STRING"
 
 func TestMain(m *testing.M) {
 	if s := os.Getenv(testExeEnv); s != "" {
-		fmt.Fprint(os.Stdout, s)
+		_, _ = fmt.Fprint(os.Stdout, s)
 		os.Exit(0)
 	}
 	os.Exit(testmain(m))
@@ -42,11 +40,11 @@ func TestMain(m *testing.M) {
 func testmain(m *testing.M) int {
 	// ensure we write our temporary binaries to a directory that we'll delete
 	// after running tests.
-	dir, err := ioutil.TempDir("", "")
+	dir, err := os.MkdirTemp("", "")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 	if err := os.Setenv(st.CacheEnv, dir); err != nil {
 		log.Fatal(err)
 	}
@@ -81,7 +79,7 @@ func resetTerm() {
 			log.Fatal(err)
 		}
 	}
-	os.Setenv(st.EnableColorEnv, "false")
+	_ = os.Setenv(st.EnableColorEnv, "false")
 }
 
 func TestTransitiveDepCache(t *testing.T) {
@@ -115,11 +113,11 @@ func TestTransitiveDepCache(t *testing.T) {
 	if err := os.Rename("testdata/transitiveDeps/dep/dog.go", "testdata/transitiveDeps/dep/dog.notgo"); err != nil {
 		t.Fatal(err)
 	}
-	defer os.Rename("testdata/transitiveDeps/dep/dog.notgo", "testdata/transitiveDeps/dep/dog.go")
+	defer func() { _ = os.Rename("testdata/transitiveDeps/dep/dog.notgo", "testdata/transitiveDeps/dep/dog.go") }()
 	if err := os.Rename("testdata/transitiveDeps/dep/cat.notgo", "testdata/transitiveDeps/dep/cat.go"); err != nil {
 		t.Fatal(err)
 	}
-	defer os.Rename("testdata/transitiveDeps/dep/cat.go", "testdata/transitiveDeps/dep/cat.notgo")
+	defer func() { _ = os.Rename("testdata/transitiveDeps/dep/cat.go", "testdata/transitiveDeps/dep/cat.notgo") }()
 	stderr.Reset()
 	stdout.Reset()
 	code = Invoke(inv)
@@ -167,11 +165,11 @@ func TestTransitiveHashFast(t *testing.T) {
 	if err := os.Rename("testdata/transitiveDeps/dep/dog.go", "testdata/transitiveDeps/dep/dog.notgo"); err != nil {
 		t.Fatal(err)
 	}
-	defer os.Rename("testdata/transitiveDeps/dep/dog.notgo", "testdata/transitiveDeps/dep/dog.go")
+	defer func() { _ = os.Rename("testdata/transitiveDeps/dep/dog.notgo", "testdata/transitiveDeps/dep/dog.go") }()
 	if err := os.Rename("testdata/transitiveDeps/dep/cat.notgo", "testdata/transitiveDeps/dep/cat.go"); err != nil {
 		t.Fatal(err)
 	}
-	defer os.Rename("testdata/transitiveDeps/dep/cat.go", "testdata/transitiveDeps/dep/cat.notgo")
+	defer func() { _ = os.Rename("testdata/transitiveDeps/dep/cat.go", "testdata/transitiveDeps/dep/cat.notgo") }()
 	stderr.Reset()
 	stdout.Reset()
 	inv.HashFast = true
@@ -205,11 +203,10 @@ func TestListStavefilesMain(t *testing.T) {
 func TestListStavefilesIgnoresGOOS(t *testing.T) {
 	buf := &bytes.Buffer{}
 	if runtime.GOOS == "windows" {
-		os.Setenv("GOOS", "linux")
+		t.Setenv("GOOS", "linux")
 	} else {
-		os.Setenv("GOOS", "windows")
+		t.Setenv("GOOS", "windows")
 	}
-	defer os.Setenv("GOOS", runtime.GOOS)
 	files, err := Stavefiles("testdata/goos_stavefiles", "", "", "go", buf, false, false)
 	if err != nil {
 		t.Errorf("error from stavefile list: %v: %s", err, buf)
@@ -250,11 +247,11 @@ func TestListStavefilesIgnoresRespectsGOOSArg(t *testing.T) {
 }
 
 func TestCompileDiffGoosGoarch(t *testing.T) {
-	target, err := ioutil.TempDir("./testdata", "")
+	target, err := os.MkdirTemp("./testdata", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(target)
+	defer func() { _ = os.RemoveAll(target) }()
 
 	// intentionally choose an arch and os to build that are not our current one.
 
@@ -353,7 +350,7 @@ func TestStavefilesFolder(t *testing.T) {
 		t.Fatalf("changing to stavefolders tests data: %v", err)
 	}
 	// restore previous state
-	defer os.Chdir(wd)
+	defer func() { _ = os.Chdir(wd) }()
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
@@ -385,7 +382,7 @@ func TestStavefilesFolderMixedWithStavefiles(t *testing.T) {
 		t.Fatalf("changing to stavefolders tests data: %v", err)
 	}
 	// restore previous state
-	defer os.Chdir(wd)
+	defer func() { _ = os.Chdir(wd) }()
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
@@ -423,7 +420,7 @@ func TestUntaggedStavefilesFolder(t *testing.T) {
 		t.Fatalf("changing to stavefolders tests data: %v", err)
 	}
 	// restore previous state
-	defer os.Chdir(wd)
+	defer func() { _ = os.Chdir(wd) }()
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
@@ -455,7 +452,7 @@ func TestMixedTaggingStavefilesFolder(t *testing.T) {
 		t.Fatalf("changing to stavefolders tests data: %v", err)
 	}
 	// restore previous state
-	defer os.Chdir(wd)
+	defer func() { _ = os.Chdir(wd) }()
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
@@ -548,10 +545,9 @@ func TestVerbose(t *testing.T) {
 }
 
 func TestVerboseEnv(t *testing.T) {
-	os.Setenv("STAVEFILE_VERBOSE", "true")
-	defer os.Unsetenv("STAVEFILE_VERBOSE")
+	t.Setenv("STAVEFILE_VERBOSE", "true")
 	stdout := &bytes.Buffer{}
-	inv, _, err := Parse(ioutil.Discard, stdout, []string{})
+	inv, _, err := Parse(io.Discard, stdout, []string{})
 	if err != nil {
 		t.Fatal("unexpected error", err)
 	}
@@ -564,10 +560,9 @@ func TestVerboseEnv(t *testing.T) {
 }
 
 func TestVerboseFalseEnv(t *testing.T) {
-	os.Setenv("STAVEFILE_VERBOSE", "0")
-	defer os.Unsetenv("STAVEFILE_VERBOSE")
+	t.Setenv("STAVEFILE_VERBOSE", "0")
 	stdout := &bytes.Buffer{}
-	code := ParseAndRun(ioutil.Discard, stdout, nil, []string{"-d", "testdata", "testverbose"})
+	code := ParseAndRun(io.Discard, stdout, nil, []string{"-d", "testdata", "testverbose"})
 	if code != 0 {
 		t.Fatal("unexpected code", code)
 	}
@@ -582,7 +577,7 @@ func TestList(t *testing.T) {
 	inv := Invocation{
 		Dir:    "./testdata/list",
 		Stdout: stdout,
-		Stderr: ioutil.Discard,
+		Stderr: io.Discard,
 		List:   true,
 	}
 
@@ -624,8 +619,8 @@ var terminals = []struct {
 }
 
 func TestListWithColor(t *testing.T) {
-	os.Setenv(st.EnableColorEnv, "true")
-	os.Setenv(st.TargetColorEnv, st.Cyan.String())
+	t.Setenv(st.EnableColorEnv, "true")
+	t.Setenv(st.TargetColorEnv, st.Cyan.String())
 
 	expectedPlainText := `
 This is a comment on the package which should get turned into output with the list of targets.
@@ -651,13 +646,13 @@ Targets:
 
 	for _, terminal := range terminals {
 		t.Run(terminal.code, func(t *testing.T) {
-			os.Setenv("TERM", terminal.code)
+			t.Setenv("TERM", terminal.code)
 
 			stdout := &bytes.Buffer{}
 			inv := Invocation{
 				Dir:    "./testdata/list",
 				Stdout: stdout,
-				Stderr: ioutil.Discard,
+				Stderr: io.Discard,
 				List:   true,
 			}
 
@@ -717,10 +712,7 @@ func TestIgnoreDefault(t *testing.T) {
 		Stdout: stdout,
 		Stderr: stderr,
 	}
-	defer os.Unsetenv(st.IgnoreDefaultEnv)
-	if err := os.Setenv(st.IgnoreDefaultEnv, "1"); err != nil {
-		t.Fatal(err)
-	}
+	t.Setenv(st.IgnoreDefaultEnv, "1")
 	resetTerm()
 
 	code := Invoke(inv)
@@ -749,7 +741,7 @@ func TestTargetError(t *testing.T) {
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
 		Dir:    "./testdata",
-		Stdout: ioutil.Discard,
+		Stdout: io.Discard,
 		Stderr: stderr,
 		Args:   []string{"returnsnonnilerror"},
 	}
@@ -769,7 +761,7 @@ func TestStdinCopy(t *testing.T) {
 	stdin := strings.NewReader("hi!")
 	inv := Invocation{
 		Dir:    "./testdata",
-		Stderr: ioutil.Discard,
+		Stderr: io.Discard,
 		Stdout: stdout,
 		Stdin:  stdin,
 		Args:   []string{"CopyStdin"},
@@ -789,7 +781,7 @@ func TestTargetPanics(t *testing.T) {
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
 		Dir:    "./testdata",
-		Stdout: ioutil.Discard,
+		Stdout: io.Discard,
 		Stderr: stderr,
 		Args:   []string{"panics"},
 	}
@@ -808,7 +800,7 @@ func TestPanicsErr(t *testing.T) {
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
 		Dir:    "./testdata",
-		Stdout: ioutil.Discard,
+		Stdout: io.Discard,
 		Stderr: stderr,
 		Args:   []string{"panicserr"},
 	}
@@ -846,8 +838,8 @@ func TestHashTemplate(t *testing.T) {
 // Test if the -keep flag does keep the mainfile around after running
 func TestKeepFlag(t *testing.T) {
 	buildFile := fmt.Sprintf("./testdata/keep_flag/%s", mainfile)
-	os.Remove(buildFile)
-	defer os.Remove(buildFile)
+	_ = os.Remove(buildFile)
+	defer func() { _ = os.Remove(buildFile) }()
 	w := tLogWriter{t}
 
 	inv := Invocation{
@@ -880,8 +872,8 @@ func (t tLogWriter) Write(b []byte) (n int, err error) {
 // Test if generated mainfile references anything other than the stdlib
 func TestOnlyStdLib(t *testing.T) {
 	buildFile := fmt.Sprintf("./testdata/onlyStdLib/%s", mainfile)
-	os.Remove(buildFile)
-	defer os.Remove(buildFile)
+	_ = os.Remove(buildFile)
+	defer func() { _ = os.Remove(buildFile) }()
 
 	w := tLogWriter{t}
 
@@ -919,7 +911,9 @@ func TestOnlyStdLib(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !filepath.HasPrefix(pkg.Dir, build.Default.GOROOT) {
+		// Check if pkg.Dir is under GOROOT using filepath.Rel instead of deprecated filepath.HasPrefix
+		rel, err := filepath.Rel(build.Default.GOROOT, pkg.Dir)
+		if err != nil || strings.HasPrefix(rel, "..") {
 			t.Errorf("import of non-stdlib package: %s", s.Path.Value)
 		}
 	}
@@ -1001,7 +995,7 @@ func TestBadSecondTargets(t *testing.T) {
 
 func TestParse(t *testing.T) {
 	buf := &bytes.Buffer{}
-	inv, cmd, err := Parse(ioutil.Discard, buf, []string{"-v", "-debug", "-gocmd=foo", "-d", "dir", "build", "deploy"})
+	inv, cmd, err := Parse(io.Discard, buf, []string{"-v", "-debug", "-gocmd=foo", "-d", "dir", "build", "deploy"})
 	if err != nil {
 		t.Fatal("unexpected error", err)
 	}
@@ -1096,12 +1090,12 @@ func TestTimeout(t *testing.T) {
 
 func TestParseHelp(t *testing.T) {
 	buf := &bytes.Buffer{}
-	_, _, err := Parse(ioutil.Discard, buf, []string{"-h"})
+	_, _, err := Parse(io.Discard, buf, []string{"-h"})
 	if err != flag.ErrHelp {
 		t.Fatal("unexpected error", err)
 	}
 	buf2 := &bytes.Buffer{}
-	_, _, err = Parse(ioutil.Discard, buf2, []string{"--help"})
+	_, _, err = Parse(io.Discard, buf2, []string{"--help"})
 	if err != flag.ErrHelp {
 		t.Fatal("unexpected error", err)
 	}
@@ -1117,7 +1111,7 @@ func TestHelpTarget(t *testing.T) {
 	inv := Invocation{
 		Dir:    "./testdata",
 		Stdout: stdout,
-		Stderr: ioutil.Discard,
+		Stderr: io.Discard,
 		Args:   []string{"panics"},
 		Help:   true,
 	}
@@ -1137,7 +1131,7 @@ func TestHelpAlias(t *testing.T) {
 	inv := Invocation{
 		Dir:    "./testdata/alias",
 		Stdout: stdout,
-		Stderr: ioutil.Discard,
+		Stderr: io.Discard,
 		Args:   []string{"status"},
 		Help:   true,
 	}
@@ -1153,7 +1147,7 @@ func TestHelpAlias(t *testing.T) {
 	inv = Invocation{
 		Dir:    "./testdata/alias",
 		Stdout: stdout,
-		Stderr: ioutil.Discard,
+		Stderr: io.Discard,
 		Args:   []string{"checkout"},
 		Help:   true,
 	}
@@ -1176,7 +1170,7 @@ func TestAlias(t *testing.T) {
 	inv := Invocation{
 		Dir:    "testdata/alias",
 		Stdout: stdout,
-		Stderr: ioutil.Discard,
+		Stderr: io.Discard,
 		Args:   []string{"status"},
 		Debug:  true,
 	}
@@ -1203,10 +1197,10 @@ func TestAlias(t *testing.T) {
 
 func TestInvalidAlias(t *testing.T) {
 	stderr := &bytes.Buffer{}
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	inv := Invocation{
 		Dir:    "./testdata/invalid_alias",
-		Stdout: ioutil.Discard,
+		Stdout: io.Discard,
 		Stderr: stderr,
 		Args:   []string{"co"},
 	}
@@ -1238,7 +1232,7 @@ func TestCompiledFlags(t *testing.T) {
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	dir := "./testdata/compiled"
-	compileDir, err := ioutil.TempDir(dir, "")
+	compileDir, err := os.MkdirTemp(dir, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1249,7 +1243,7 @@ func TestCompiledFlags(t *testing.T) {
 	// The CompileOut directory is relative to the
 	// invocation directory, so chop off the invocation dir.
 	outName := "./" + name[len(dir)-1:]
-	defer os.RemoveAll(compileDir)
+	defer func() { _ = os.RemoveAll(compileDir) }()
 	inv := Invocation{
 		Dir:        dir,
 		Stdout:     stdout,
@@ -1325,7 +1319,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	dir := "./testdata/compiled"
-	compileDir, err := ioutil.TempDir(dir, "")
+	compileDir, err := os.MkdirTemp(dir, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1336,7 +1330,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 	// The CompileOut directory is relative to the
 	// invocation directory, so chop off the invocation dir.
 	outName := "./" + name[len(dir)-1:]
-	defer os.RemoveAll(compileDir)
+	defer func() { _ = os.RemoveAll(compileDir) }()
 	inv := Invocation{
 		Dir:        dir,
 		Stdout:     stdout,
@@ -1417,7 +1411,7 @@ func TestCompiledVerboseFlag(t *testing.T) {
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	dir := "./testdata/compiled"
-	compileDir, err := ioutil.TempDir(dir, "")
+	compileDir, err := os.MkdirTemp(dir, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1428,7 +1422,7 @@ func TestCompiledVerboseFlag(t *testing.T) {
 	// The CompileOut directory is relative to the
 	// invocation directory, so chop off the invocation dir.
 	outName := "./" + filename[len(dir)-1:]
-	defer os.RemoveAll(compileDir)
+	defer func() { _ = os.RemoveAll(compileDir) }()
 	inv := Invocation{
 		Dir:        dir,
 		Stdout:     stdout,
@@ -1483,7 +1477,7 @@ func TestSignals(t *testing.T) {
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	dir := "./testdata/signals"
-	compileDir, err := ioutil.TempDir(dir, "")
+	compileDir, err := os.MkdirTemp(dir, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1491,7 +1485,7 @@ func TestSignals(t *testing.T) {
 	// The CompileOut directory is relative to the
 	// invocation directory, so chop off the invocation dir.
 	outName := "./" + name[len(dir)-1:]
-	defer os.RemoveAll(compileDir)
+	defer func() { _ = os.RemoveAll(compileDir) }()
 	inv := Invocation{
 		Dir:        dir,
 		Stdout:     stdout,
@@ -1517,7 +1511,7 @@ func TestSignals(t *testing.T) {
 		go func() {
 			time.Sleep(time.Millisecond * 500)
 			for _, s := range signals {
-				syscall.Kill(pid, s)
+				_ = syscall.Kill(pid, s)
 				time.Sleep(time.Millisecond * 50)
 			}
 		}()
@@ -1586,7 +1580,7 @@ func TestSignals(t *testing.T) {
 
 func TestCompiledDeterministic(t *testing.T) {
 	dir := "./testdata/compiled"
-	compileDir, err := ioutil.TempDir(dir, "")
+	compileDir, err := os.MkdirTemp(dir, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1607,8 +1601,8 @@ func TestCompiledDeterministic(t *testing.T) {
 			// The CompileOut directory is relative to the
 			// invocation directory, so chop off the invocation dir.
 			outName := "./" + filename[len(dir)-1:]
-			defer os.RemoveAll(compileDir)
-			defer os.Remove(outFile)
+			defer func() { _ = os.RemoveAll(compileDir) }()
+			defer func() { _ = os.Remove(outFile) }()
 
 			inv := Invocation{
 				Stderr:     os.Stderr,
@@ -1628,7 +1622,7 @@ func TestCompiledDeterministic(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer f.Close()
+			defer func() { _ = f.Close() }()
 
 			hasher := sha256.New()
 			if _, err := io.Copy(hasher, f); err != nil {
@@ -1652,13 +1646,13 @@ func TestClean(t *testing.T) {
 	if err := os.RemoveAll(st.CacheDir()); err != nil {
 		t.Error("error removing cache dir:", err)
 	}
-	code := ParseAndRun(ioutil.Discard, ioutil.Discard, &bytes.Buffer{}, []string{"-clean"})
+	code := ParseAndRun(io.Discard, io.Discard, &bytes.Buffer{}, []string{"-clean"})
 	if code != 0 {
 		t.Errorf("expected 0, but got %v", code)
 	}
 
 	TestAlias(t) // make sure we've got something in the CACHE_DIR
-	files, err := ioutil.ReadDir(st.CacheDir())
+	files, err := os.ReadDir(st.CacheDir())
 	if err != nil {
 		t.Error("issue reading file:", err)
 	}
@@ -1667,7 +1661,7 @@ func TestClean(t *testing.T) {
 		t.Error("Need at least 1 cached binaries to test --clean")
 	}
 
-	_, cmd, err := Parse(ioutil.Discard, ioutil.Discard, []string{"-clean"})
+	_, cmd, err := Parse(io.Discard, io.Discard, []string{"-clean"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1675,12 +1669,12 @@ func TestClean(t *testing.T) {
 		t.Errorf("Expected 'clean' command but got %v", cmd)
 	}
 	buf := &bytes.Buffer{}
-	code = ParseAndRun(ioutil.Discard, buf, &bytes.Buffer{}, []string{"-clean"})
+	code = ParseAndRun(io.Discard, buf, &bytes.Buffer{}, []string{"-clean"})
 	if code != 0 {
 		t.Fatalf("expected 0, but got %v: %s", code, buf)
 	}
 
-	infos, err := ioutil.ReadDir(st.CacheDir())
+	infos, err := os.ReadDir(st.CacheDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1699,20 +1693,17 @@ func TestClean(t *testing.T) {
 
 func TestGoCmd(t *testing.T) {
 	textOutput := "TestGoCmd"
-	defer os.Unsetenv(testExeEnv)
-	if err := os.Setenv(testExeEnv, textOutput); err != nil {
-		t.Fatal(err)
-	}
+	t.Setenv(testExeEnv, textOutput)
 
 	// fake out the compiled file, since the code checks for it.
-	f, err := ioutil.TempFile("", "")
+	f, err := os.CreateTemp("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	name := f.Name()
 	dir := filepath.Dir(name)
-	defer os.Remove(name)
-	f.Close()
+	defer func() { _ = os.Remove(name) }()
+	_ = f.Close()
 
 	buf := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
@@ -1727,13 +1718,13 @@ func TestGoCmd(t *testing.T) {
 
 func TestGoModules(t *testing.T) {
 	resetTerm()
-	dir, err := ioutil.TempDir("", "")
+	dir, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 	// beware, stave builds in go versions older than 1.17 so both build tag formats need to be present
-	err = ioutil.WriteFile(filepath.Join(dir, "stavefile.go"), []byte(`//go:build stave
+	err = os.WriteFile(filepath.Join(dir, "stavefile.go"), []byte(`//go:build stave
 // +build stave
 
 package main
@@ -1787,14 +1778,6 @@ Targets:
 	}
 }
 
-func minorVer(t *testing.T, v string) int {
-	a, err := strconv.Atoi(v)
-	if err != nil {
-		t.Fatal("unexpected non-numeric version", v)
-	}
-	return a
-}
-
 func TestNamespaceDep(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
@@ -1818,7 +1801,7 @@ func TestNamespace(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
 		Dir:    "./testdata/namespaces",
-		Stderr: ioutil.Discard,
+		Stderr: io.Discard,
 		Stdout: stdout,
 		Args:   []string{"ns:error"},
 	}
@@ -1836,7 +1819,7 @@ func TestNamespaceDefault(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
 		Dir:    "./testdata/namespaces",
-		Stderr: ioutil.Discard,
+		Stderr: io.Discard,
 		Stdout: stdout,
 	}
 	code := Invoke(inv)
@@ -1857,7 +1840,7 @@ func TestWrongDependency(t *testing.T) {
 	inv := Invocation{
 		Dir:    "./testdata/wrong_dep",
 		Stderr: stderr,
-		Stdout: ioutil.Discard,
+		Stdout: io.Discard,
 	}
 	code := Invoke(inv)
 	if code != 1 {
@@ -1914,7 +1897,7 @@ func fileData(file string) (exeType, archSize, error) {
 	if err != nil {
 		return -1, -1, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	data := make([]byte, 16)
 	if _, err := io.ReadFull(f, data); err != nil {
 		return -1, -1, err
