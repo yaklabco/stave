@@ -10,11 +10,13 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/yaklabco/stave/internal"
+	"golang.org/x/tools/go/packages"
 )
 
 const importTag = "stave:import"
@@ -740,45 +742,112 @@ func getFunction(exp ast.Expr, pi *PkgInfo) (*Function, error) {
 // getPackage parses a directory of Go files and retrieves package information.
 // Returns the package name, parsed files, and an error if encountered.
 func getPackage(path string, files []string, fset *token.FileSet) (string, []*ast.File, error) {
-	var filter func(f os.FileInfo) bool
+	// If specific files are provided, parse just those files regardless of build tags.
 	if len(files) > 0 {
-		fm := make(map[string]bool, len(files))
-		for _, f := range files {
-			fm[f] = true
-		}
-
-		filter = func(f os.FileInfo) bool {
-			return fm[f.Name()]
-		}
-	}
-
-	pkgs, err := parser.ParseDir(fset, path, filter, parser.ParseComments)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to parse directory: %v", err)
-	}
-
-	switch len(pkgs) {
-	case 1:
-		var name string
-		var files []*ast.File
-		for n, p := range pkgs {
-			name = n
-			files = make([]*ast.File, 0, len(p.Files))
-			for _, f := range p.Files {
-				files = append(files, f)
+		var out []*ast.File
+		var pkgName string
+		for _, name := range files {
+			full := filepath.Join(path, name)
+			f, err := parser.ParseFile(fset, full, nil, parser.ParseComments)
+			if err != nil {
+				return "", nil, fmt.Errorf("failed to parse file %s: %v", name, err)
 			}
-			break
+			if pkgName == "" {
+				pkgName = f.Name.Name
+			} else if pkgName != f.Name.Name {
+				return "", nil, fmt.Errorf("multiple packages found in %s: %v", path, strings.Join([]string{pkgName, f.Name.Name}, ", "))
+			}
+			out = append(out, f)
 		}
-		return name, files, nil
-	case 0:
+		if pkgName == "" {
+			return "", nil, fmt.Errorf("no importable packages found in %s", path)
+		}
+		return pkgName, out, nil
+	}
+
+	// Otherwise, attempt to use go/packages to respect build tags.
+	cfg := &packages.Config{
+		Mode:  packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedSyntax,
+		Dir:   path,
+		Fset:  fset,
+		Tests: false,
+	}
+	pkgs, err := packages.Load(cfg, ".")
+	if err == nil && len(pkgs) > 0 && packages.PrintErrors(pkgs) == 0 {
+		// Collect unique, valid packages with syntax.
+		var outPkgs []*packages.Package
+		nameSet := map[string]struct{}{}
+		for _, p := range pkgs {
+			if p == nil || len(p.Syntax) == 0 {
+				continue
+			}
+			outPkgs = append(outPkgs, p)
+			nameSet[p.Name] = struct{}{}
+		}
+		if len(outPkgs) == 1 && len(nameSet) == 1 {
+			p := outPkgs[0]
+			astFiles := make([]*ast.File, 0, len(p.Syntax))
+			astFiles = append(astFiles, p.Syntax...)
+			return p.Name, astFiles, nil
+		}
+		if len(outPkgs) > 1 {
+			var names []string
+			for n := range nameSet {
+				names = append(names, n)
+			}
+			sort.Strings(names)
+			return "", nil, fmt.Errorf("multiple packages found in %s: %v", path, strings.Join(names, ", "))
+		}
+		// else fall through to manual parsing
+	}
+
+	// Fallback: manually parse all .go files in the directory (ignoring build tags),
+	// similar to previous behavior before removing parser.ParseDir.
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to read directory: %v", err)
+	}
+	var (
+		filesInDir []string
+		pkgName    string
+		out        []*ast.File
+		namesSet   = map[string]struct{}{}
+	)
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if !strings.HasSuffix(name, ".go") {
+			continue
+		}
+		filesInDir = append(filesInDir, name)
+	}
+	sort.Strings(filesInDir)
+	for _, name := range filesInDir {
+		full := filepath.Join(path, name)
+		f, err := parser.ParseFile(fset, full, nil, parser.ParseComments)
+		if err != nil {
+			return "", nil, fmt.Errorf("failed to parse file %s: %v", name, err)
+		}
+		namesSet[f.Name.Name] = struct{}{}
+		if pkgName == "" {
+			pkgName = f.Name.Name
+		}
+		out = append(out, f)
+	}
+	if len(out) == 0 {
 		return "", nil, fmt.Errorf("no importable packages found in %s", path)
-	default:
+	}
+	if len(namesSet) > 1 {
 		var names []string
-		for name := range pkgs {
-			names = append(names, name)
+		for n := range namesSet {
+			names = append(names, n)
 		}
+		sort.Strings(names)
 		return "", nil, fmt.Errorf("multiple packages found in %s: %v", path, strings.Join(names, ", "))
 	}
+	return pkgName, out, nil
 }
 
 // hasContextParams returns whether or not the first parameter is a context.Context. If it
