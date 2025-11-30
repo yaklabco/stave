@@ -3,7 +3,7 @@ package internal
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-var debug *log.Logger = log.New(ioutil.Discard, "", 0)
+var debug *log.Logger = log.New(io.Discard, "", 0)
 
 func SetDebug(l *log.Logger) {
 	debug = l

@@ -1,5 +1,5 @@
-//go:build mage
-// +build mage
+//go:build stave
+// +build stave
 
 package main
 
@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/yaklabco/staff/mg"
+	"github.com/yaklabco/stave/st"
 )
 
 // This should work as a default - even if it's in a different file
@@ -20,7 +20,7 @@ func ReturnsString() string {
 }
 
 func ReturnsVoid() {
-	mg.Deps(f)
+	st.Deps(f)
 }
 
 func f() {}

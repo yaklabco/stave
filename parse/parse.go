@@ -7,26 +7,26 @@ import (
 	"go/doc"
 	"go/parser"
 	"go/token"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/yaklabco/staff/internal"
+	"github.com/yaklabco/stave/internal"
 )
 
-const importTag = "mage:import"
+const importTag = "stave:import"
 
-var debug = log.New(ioutil.Discard, "DEBUG: ", log.Ltime|log.Lmicroseconds)
+var debug = log.New(io.Discard, "DEBUG: ", log.Ltime|log.Lmicroseconds)
 
 // EnableDebug turns on debug logging.
 func EnableDebug() {
 	debug.SetOutput(os.Stderr)
 }
 
-// PkgInfo contains inforamtion about a package of files according to mage's
+// PkgInfo contains inforamtion about a package of files according to stave's
 // parsing rules.
 type PkgInfo struct {
 	AstPkg      *ast.Package
@@ -38,7 +38,7 @@ type PkgInfo struct {
 	Imports     Imports
 }
 
-// Function represents a job function from a mage file
+// Function represents a job function from a stave file
 type Function struct {
 	PkgAlias   string
 	Package    string
@@ -89,7 +89,7 @@ func (f Function) ID() string {
 }
 
 // TargetName returns the name of the target as it should appear when used from
-// the mage cli.  It is always lowercase.
+// the stave cli.  It is always lowercase.
 func (f Function) TargetName() string {
 	var names []string
 
@@ -214,7 +214,7 @@ func checkDupes(info *PkgInfo, imports []*Import) error {
 			for _, f := range funcs[alias] {
 				ids = append(ids, f.ID())
 			}
-			return fmt.Errorf("alias %q duplicates existing target(s): %s\n", alias, strings.Join(ids, ", "))
+			return fmt.Errorf("alias %q duplicates existing target(s): %s", alias, strings.Join(ids, ", "))
 		}
 		funcs[alias] = append(funcs[alias], f)
 	}
@@ -240,11 +240,11 @@ func checkDupes(info *PkgInfo, imports []*Import) error {
 	return errors.New(strings.Join(errs, "\n"))
 }
 
-// Package compiles information about a mage package.
+// Package compiles information about a stave package.
 func Package(path string, files []string) (*PkgInfo, error) {
 	start := time.Now()
 	defer func() {
-		debug.Println("time parse Magefiles:", time.Since(start))
+		debug.Println("time parse Stavefiles:", time.Since(start))
 	}()
 	fset := token.NewFileSet()
 	pkg, err := getPackage(path, files, fset)
@@ -288,7 +288,7 @@ func getNamedImports(gocmd string, pkgs map[string]string) ([]*Import, error) {
 	return imports, nil
 }
 
-// getImport returns the metadata about a package that has been mage:import'ed.
+// getImport returns the metadata about a package that has been stave:import'ed.
 func getImport(gocmd, importpath, alias string) (*Import, error) {
 	out, err := internal.OutputDebug(gocmd, "list", "-f", "{{.Dir}}||{{.Name}}", importpath)
 	if err != nil {
@@ -322,7 +322,7 @@ func getImport(gocmd, importpath, alias string) (*Import, error) {
 	return &Import{Alias: alias, Name: name, Path: importpath, Info: *info}, nil
 }
 
-// Import represents the data about a mage:import package
+// Import represents the data about a stave:import package
 type Import struct {
 	Alias      string
 	Name       string
@@ -447,10 +447,10 @@ func setImports(gocmd string, pi *PkgInfo) error {
 	// have to set unique package names on imports
 	used := map[string]bool{}
 	for _, imp := range imports {
-		unique := imp.Name + "_mageimport"
+		unique := imp.Name + "_staveimport"
 		x := 1
 		for used[unique] {
-			unique = fmt.Sprintf("%s_mageimport%d", imp.Name, x)
+			unique = fmt.Sprintf("%s_staveimport%d", imp.Name, x)
 			x++
 		}
 		used[unique] = true
@@ -531,7 +531,7 @@ func isNamespace(t *doc.Type) bool {
 	if !ok {
 		return false
 	}
-	return ident.Name == "mg" && sel.Sel.Name == "Namespace"
+	return ident.Name == "st" && sel.Sel.Name == "Namespace"
 }
 
 // checkDupeTargets checks a package for duplicate target names.
@@ -554,7 +554,9 @@ func checkDupeTargets(info *PkgInfo) (hasDupes bool, names map[string][]string) 
 
 // sanitizeSynopsis sanitizes function Doc to create a summary.
 func sanitizeSynopsis(f *doc.Func) string {
-	synopsis := doc.Synopsis(f.Doc)
+	// Create a minimal Package to use the non-deprecated Synopsis method
+	pkg := &doc.Package{}
+	synopsis := pkg.Synopsis(f.Doc)
 
 	// If the synopsis begins with the function name, remove it. This is done to
 	// not repeat the text.
@@ -764,7 +766,7 @@ func getPackage(path string, files []string, fset *token.FileSet) (*ast.Package,
 }
 
 // hasContextParams returns whether or not the first parameter is a context.Context. If it
-// determines that hte first parameter makes this function invalid for mage, it'll return a non-nil
+// determines that hte first parameter makes this function invalid for stave, it'll return a non-nil
 // error.
 func hasContextParam(ft *ast.FuncType) (bool, error) {
 	if ft.Params.NumFields() < 1 {
@@ -790,11 +792,6 @@ func hasContextParam(ft *ast.FuncType) (bool, error) {
 		return false, errors.New("ETOOMANYCONTEXTS")
 	}
 	return true, nil
-}
-
-func hasVoidReturn(ft *ast.FuncType) bool {
-	res := ft.Results
-	return res.NumFields() == 0
 }
 
 func hasErrorReturn(ft *ast.FuncType) (bool, error) {
@@ -847,7 +844,7 @@ func funcType(ft *ast.FuncType) (*Function, error) {
 }
 
 func toOneLine(s string) string {
-	return strings.TrimSpace(strings.Replace(s, "\n", " ", -1))
+	return strings.TrimSpace(strings.ReplaceAll(s, "\n", " "))
 }
 
 var argTypes = map[string]string{

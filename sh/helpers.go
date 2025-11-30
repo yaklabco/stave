@@ -22,7 +22,7 @@ func Copy(dst string, src string) error {
 	if err != nil {
 		return fmt.Errorf(`can't copy %s: %v`, src, err)
 	}
-	defer from.Close()
+	defer func() { _ = from.Close() }()
 	finfo, err := from.Stat()
 	if err != nil {
 		return fmt.Errorf(`can't stat %s: %v`, src, err)
@@ -31,7 +31,7 @@ func Copy(dst string, src string) error {
 	if err != nil {
 		return fmt.Errorf(`can't copy to %s: %v`, dst, err)
 	}
-	defer to.Close()
+	defer func() { _ = to.Close() }()
 	_, err = io.Copy(to, from)
 	if err != nil {
 		return fmt.Errorf(`error copying %s to %s: %v`, src, dst, err)

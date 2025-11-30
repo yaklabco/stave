@@ -3,9 +3,9 @@ package main
 import (
 	"os"
 
-	"github.com/yaklabco/staff/staff"
+	"github.com/yaklabco/stave/stave"
 )
 
 func main() {
-	os.Exit(staff.Main())
+	os.Exit(stave.Main())
 }

@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest a new feature for Mage
+about: Suggest a new feature for Stave
 title: 'Enhancement: <description>'
 labels: ":sparkles: enhancement"
 assignees: ''
@@ -11,7 +11,7 @@ assignees: ''
 A clear and concise description of what the feature should do.  Focus more on behavior than specific names, flags, etc.
 
 **What problem does this feature address?**
-How does this benefit users of Mage?
+How does this benefit users of Stave?
 
 **Additional context**
 Add any other context or screenshots about the feature request here.

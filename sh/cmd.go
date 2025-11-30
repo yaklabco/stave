@@ -9,26 +9,26 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/yaklabco/staff/mg"
+	"github.com/yaklabco/stave/st"
 )
 
 // RunCmd returns a function that will call Run with the given command. This is
 // useful for creating command aliases to make your scripts easier to read, like
 // this:
 //
-//  // in a helper file somewhere
-//  var g0 = sh.RunCmd("go")  // go is a keyword :(
+//	 // in a helper file somewhere
+//	 var g0 = sh.RunCmd("go")  // go is a keyword :(
 //
-//  // somewhere in your main code
-//	if err := g0("install", "github.com/gohugo/hugo"); err != nil {
-//		return err
-//  }
+//	 // somewhere in your main code
+//		if err := g0("install", "github.com/gohugo/hugo"); err != nil {
+//			return err
+//	 }
 //
 // Args passed to command get baked in as args to the command when you run it.
 // Any args passed in when you run the returned function will be appended to the
 // original args.  For example, this is equivalent to the above:
 //
-//  var goInstall = sh.RunCmd("go", "install") goInstall("github.com/gohugo/hugo")
+//	var goInstall = sh.RunCmd("go", "install") goInstall("github.com/gohugo/hugo")
 //
 // RunCmd uses Exec underneath, so see those docs for more details.
 func RunCmd(cmd string, args ...string) func(args ...string) error {
@@ -57,12 +57,12 @@ func RunV(cmd string, args ...string) error {
 }
 
 // RunWith runs the given command, directing stderr to this program's stderr and
-// printing stdout to stdout if mage was run with -v.  It adds adds env to the
+// printing stdout to stdout if stave was run with -v.  It adds adds env to the
 // environment variables for the command being run. Environment variables should
 // be in the format name=value.
 func RunWith(env map[string]string, cmd string, args ...string) error {
 	var output io.Writer
-	if mg.Verbose() {
+	if st.Verbose() {
 		output = os.Stdout
 	}
 	_, err := Exec(env, output, os.Stderr, cmd, args...)
@@ -91,7 +91,7 @@ func OutputWith(env map[string]string, cmd string, args ...string) (string, erro
 
 // Exec executes the command, piping its stdout and stderr to the given
 // writers. If the command fails, it will return an error that, if returned
-// from a target or mg.Deps call, will cause mage to exit with the same code as
+// from a target or st.Deps call, will cause stave to exit with the same code as
 // the command failed with. Env is a list of environment variables to set when
 // running the command, these override the current environment variables set
 // (which are also passed to the command). cmd and args may include references
@@ -118,7 +118,7 @@ func Exec(env map[string]string, stdout, stderr io.Writer, cmd string, args ...s
 		return true, nil
 	}
 	if ran {
-		return ran, mg.Fatalf(code, `running "%s %s" failed with exit code %d`, cmd, strings.Join(args, " "), code)
+		return ran, st.Fatalf(code, `running "%s %s" failed with exit code %d`, cmd, strings.Join(args, " "), code)
 	}
 	return ran, fmt.Errorf(`failed to run "%s %s: %v"`, cmd, strings.Join(args, " "), err)
 }
@@ -133,17 +133,18 @@ func run(env map[string]string, stdout, stderr io.Writer, cmd string, args ...st
 	c.Stdout = stdout
 	c.Stdin = os.Stdin
 
-	var quoted []string 
+	var quoted []string
 	for i := range args {
-		quoted = append(quoted, fmt.Sprintf("%q", args[i]));
+		quoted = append(quoted, fmt.Sprintf("%q", args[i]))
 	}
 	// To protect against logging from doing exec in global variables
-	if mg.Verbose() {
+	if st.Verbose() {
 		log.Println("exec:", cmd, strings.Join(quoted, " "))
 	}
 	err = c.Run()
 	return CmdRan(err), ExitStatus(err), err
 }
+
 // CmdRan examines the error to determine if it was generated as a result of a
 // command running via os/exec.Command.  If the error is nil, or the command ran
 // (even if it exited with a non-zero exit code), CmdRan reports true.  If the
