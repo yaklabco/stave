@@ -2,7 +2,7 @@
 
 A make-like build tool using Go. Write plain Go functions, Stave automatically uses them as runnable targets.
 
-Stave is a fork of [Stave](https://github.com/stavefile/stave) by Nate Finch, with additional features and improvements.
+Stave is a fork of [Mage](https://github.com/magefile/mage) by Nate Finch, with additional features and improvements.
 
 ## Installation
 
@@ -80,7 +80,7 @@ Stave is built on top of Stave with the following goals:
 
 ## Attribution
 
-This project is a fork of [Stave](https://github.com/stavefile/stave), originally created by Nate Finch.
+This project is a fork of [Mage](https://github.com/magefile/mage), originally created by Nate Finch.
 Licensed under the Apache License 2.0.
 
 ## License

@@ -215,7 +215,7 @@ func Parse(stderr, stdout io.Writer, args []string) (inv Invocation, cmd Command
 		fmt.Fprint(stdout, `
 stave [options] [target]
 
-Stave is a make-like command runner. Fork of Stave. See https://github.com/yaklabco/stave
+Stave is a make-like command runner. Fork of Mage. See https://github.com/yaklabco/stave
 
 Commands:
   -clean    clean out old generated binaries from CACHE_DIR
