@@ -1,14 +1,13 @@
 package mg
 
 import (
-	"os"
-	"path/filepath"
-	"runtime"
-	"strconv"
+	"github.com/yaklabco/stave/config"
 )
 
 // Environment variable names for Stave configuration.
 // Stave checks for STAVEFILE_* first, then falls back to MAGEFILE_* for backward compatibility.
+// These constants are exported for backward compatibility but configuration should be
+// managed through the config package.
 const (
 	// CacheEnv is the environment variable that users may set to change the
 	// location where stave stores its compiled binaries.
@@ -81,88 +80,60 @@ const (
 	LegacyTargetColorEnv   = "MAGEFILE_TARGET_COLOR"
 )
 
-// getEnvWithFallback returns the value of the primary env var, or falls back to legacy.
-func getEnvWithFallback(primary, legacy string) string {
-	if v := os.Getenv(primary); v != "" {
-		return v
-	}
-	return os.Getenv(legacy)
-}
-
-// getBoolEnvWithFallback returns true if either the primary or legacy env var is set to a truthy value.
-func getBoolEnvWithFallback(primary, legacy string) bool {
-	if v := os.Getenv(primary); v != "" {
-		b, _ := strconv.ParseBool(v)
-		return b
-	}
-	b, _ := strconv.ParseBool(os.Getenv(legacy))
-	return b
-}
-
 // Verbose reports whether a stavefile was run with the verbose flag.
+// This delegates to the global config loaded by the config package.
 func Verbose() bool {
-	return getBoolEnvWithFallback(VerboseEnv, LegacyVerboseEnv)
+	return config.Global().Verbose
 }
 
 // Debug reports whether a stavefile was run with the debug flag.
+// This delegates to the global config loaded by the config package.
 func Debug() bool {
-	return getBoolEnvWithFallback(DebugEnv, LegacyDebugEnv)
+	return config.Global().Debug
 }
 
 // GoCmd reports the command that Stave will use to build go code. By default stave runs
 // the "go" binary in the PATH.
+// This delegates to the global config loaded by the config package.
 func GoCmd() string {
-	if cmd := getEnvWithFallback(GoCmdEnv, LegacyGoCmdEnv); cmd != "" {
-		return cmd
-	}
-	return "go"
+	return config.Global().GoCmd
 }
 
 // HashFast reports whether the user has requested to use the fast hashing
 // mechanism rather than rely on go's rebuilding mechanism.
+// This delegates to the global config loaded by the config package.
 func HashFast() bool {
-	return getBoolEnvWithFallback(HashFastEnv, LegacyHashFastEnv)
+	return config.Global().HashFast
 }
 
 // IgnoreDefault reports whether the user has requested to ignore the default target
 // in the stavefile.
+// This delegates to the global config loaded by the config package.
 func IgnoreDefault() bool {
-	return getBoolEnvWithFallback(IgnoreDefaultEnv, LegacyIgnoreDefaultEnv)
+	return config.Global().IgnoreDefault
 }
 
 // CacheDir returns the directory where stave caches compiled binaries. It
-// defaults to $HOME/.stavefile, but may be overridden by the STAVEFILE_CACHE
-// environment variable (or MAGEFILE_CACHE for backward compatibility).
+// defaults to the XDG cache directory, but may be overridden by the STAVEFILE_CACHE
+// environment variable (or MAGEFILE_CACHE for backward compatibility) or config file.
+// This delegates to the global config loaded by the config package.
 func CacheDir() string {
-	if d := getEnvWithFallback(CacheEnv, LegacyCacheEnv); d != "" {
-		return d
-	}
-	switch runtime.GOOS {
-	case "windows":
-		return filepath.Join(os.Getenv("HOMEDRIVE"), os.Getenv("HOMEPATH"), "stavefile")
-	default:
-		return filepath.Join(os.Getenv("HOME"), ".stavefile")
-	}
+	return config.Global().CacheDir
 }
 
 // EnableColor reports whether the user has requested to enable a color output.
+// This delegates to the global config loaded by the config package.
 func EnableColor() bool {
-	return getBoolEnvWithFallback(EnableColorEnv, LegacyEnableColorEnv)
+	return config.Global().EnableColor
 }
 
 // TargetColor returns the configured ANSI color name for color output.
+// This delegates to the global config loaded by the config package.
 func TargetColor() string {
-	// Check primary env var first
-	if s, exists := os.LookupEnv(TargetColorEnv); exists {
-		if c, ok := getAnsiColor(s); ok {
-			return c
-		}
-	}
-	// Fall back to legacy env var
-	if s, exists := os.LookupEnv(LegacyTargetColorEnv); exists {
-		if c, ok := getAnsiColor(s); ok {
-			return c
-		}
+	cfg := config.Global()
+	// Use the color helper to ensure we return a valid ANSI color
+	if c, ok := getAnsiColor(cfg.TargetColor); ok {
+		return c
 	}
 	return DefaultTargetAnsiColor
 }

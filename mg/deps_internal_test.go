@@ -8,11 +8,24 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/yaklabco/stave/config"
 )
 
 func TestDepsLogging(t *testing.T) {
+	// Reset config state before test
+	os.Unsetenv("STAVEFILE_VERBOSE")
+	os.Unsetenv("MAGEFILE_VERBOSE")
+	config.ResetGlobal()
+
 	os.Setenv("MAGEFILE_VERBOSE", "1")
-	defer os.Unsetenv("MAGEFILE_VERBOSE")
+	config.ResetGlobal() // Reload config with new env var
+
+	defer func() {
+		os.Unsetenv("MAGEFILE_VERBOSE")
+		config.ResetGlobal()
+	}()
+
 	buf := &bytes.Buffer{}
 
 	defaultLogger := logger

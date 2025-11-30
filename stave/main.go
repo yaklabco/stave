@@ -133,6 +133,11 @@ func (i Invocation) UsesStavefiles() bool {
 // files in the given directory with the given args (do not include the command
 // name in the args).
 func ParseAndRun(stdout, stderr io.Writer, stdin io.Reader, args []string) int {
+	// Check for config subcommand first
+	if len(args) > 0 && args[0] == "config" {
+		return RunConfigCommand(stdout, stderr, args[1:])
+	}
+
 	errlog := log.New(stderr, "", 0)
 	out := log.New(stdout, "", 0)
 	inv, cmd, err := Parse(stderr, stdout, args)
@@ -220,6 +225,7 @@ Commands:
   -clean    clean out old generated binaries from CACHE_DIR
   -compile <string>
             output a static binary to the given path
+  config    manage configuration (run 'stave config' for subcommands)
   -h        show this help
   -init     create a starting template if no stave files exist
   -l        list targets in this directory

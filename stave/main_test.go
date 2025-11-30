@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/yaklabco/stave/config"
 	"github.com/yaklabco/stave/internal"
 	"github.com/yaklabco/stave/mg"
 )
@@ -548,8 +549,19 @@ func TestVerbose(t *testing.T) {
 }
 
 func TestVerboseEnv(t *testing.T) {
+	// Reset global config state
+	os.Unsetenv("STAVEFILE_VERBOSE")
+	os.Unsetenv("MAGEFILE_VERBOSE")
+	config.ResetGlobal()
+
 	os.Setenv("MAGEFILE_VERBOSE", "true")
-	defer os.Unsetenv("MAGEFILE_VERBOSE")
+	config.ResetGlobal() // Reload config with new env var
+
+	defer func() {
+		os.Unsetenv("MAGEFILE_VERBOSE")
+		config.ResetGlobal()
+	}()
+
 	stdout := &bytes.Buffer{}
 	inv, _, err := Parse(io.Discard, stdout, []string{})
 	if err != nil {
@@ -564,8 +576,19 @@ func TestVerboseEnv(t *testing.T) {
 }
 
 func TestVerboseFalseEnv(t *testing.T) {
+	// Reset global config state
+	os.Unsetenv("STAVEFILE_VERBOSE")
+	os.Unsetenv("MAGEFILE_VERBOSE")
+	config.ResetGlobal()
+
 	os.Setenv("MAGEFILE_VERBOSE", "0")
-	defer os.Unsetenv("MAGEFILE_VERBOSE")
+	config.ResetGlobal() // Reload config with new env var
+
+	defer func() {
+		os.Unsetenv("MAGEFILE_VERBOSE")
+		config.ResetGlobal()
+	}()
+
 	stdout := &bytes.Buffer{}
 	code := ParseAndRun(io.Discard, stdout, nil, []string{"-d", "testdata", "testverbose"})
 	if code != 0 {
@@ -2044,14 +2067,24 @@ func TestParseInvalidFlags(t *testing.T) {
 }
 
 func TestParseEnvDefaults(t *testing.T) {
-	t.Parallel()
+	// Cannot run in parallel - modifies global env vars and config state
+
+	// Clean up any existing env vars and reset config
+	os.Unsetenv("STAVEFILE_VERBOSE")
+	os.Unsetenv("STAVEFILE_DEBUG")
+	os.Unsetenv("MAGEFILE_VERBOSE")
+	os.Unsetenv("MAGEFILE_DEBUG")
+	config.ResetGlobal()
 
 	// Set up environment variables
 	os.Setenv("STAVEFILE_VERBOSE", "1")
 	os.Setenv("STAVEFILE_DEBUG", "1")
+	config.ResetGlobal() // Reload config with new env vars
+
 	t.Cleanup(func() {
 		os.Unsetenv("STAVEFILE_VERBOSE")
 		os.Unsetenv("STAVEFILE_DEBUG")
+		config.ResetGlobal()
 	})
 
 	inv, _, err := Parse(io.Discard, io.Discard, []string{})

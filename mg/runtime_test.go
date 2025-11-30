@@ -2,11 +2,26 @@ package mg_test
 
 import (
 	"os"
-	"runtime"
 	"testing"
 
+	"github.com/yaklabco/stave/config"
 	"github.com/yaklabco/stave/mg"
 )
+
+// resetConfig clears env vars and resets the global config for a clean test.
+func resetConfig(t *testing.T, envVars ...string) {
+	t.Helper()
+	for _, env := range envVars {
+		os.Unsetenv(env)
+	}
+	config.ResetGlobal()
+	t.Cleanup(func() {
+		for _, env := range envVars {
+			os.Unsetenv(env)
+		}
+		config.ResetGlobal()
+	})
+}
 
 func TestVerbose(t *testing.T) {
 	tests := []struct {
@@ -26,15 +41,8 @@ func TestVerbose(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean env
-			os.Unsetenv("STAVEFILE_VERBOSE")
-			os.Unsetenv("MAGEFILE_VERBOSE")
-			t.Cleanup(func() {
-				os.Unsetenv("STAVEFILE_VERBOSE")
-				os.Unsetenv("MAGEFILE_VERBOSE")
-			})
+			resetConfig(t, "STAVEFILE_VERBOSE", "MAGEFILE_VERBOSE")
 
 			if tt.staveEnv != "" {
 				os.Setenv("STAVEFILE_VERBOSE", tt.staveEnv)
@@ -42,6 +50,7 @@ func TestVerbose(t *testing.T) {
 			if tt.mageEnv != "" {
 				os.Setenv("MAGEFILE_VERBOSE", tt.mageEnv)
 			}
+			config.ResetGlobal() // Reset after setting env vars
 
 			if got := mg.Verbose(); got != tt.want {
 				t.Errorf("Verbose() = %v, want %v", got, tt.want)
@@ -67,15 +76,8 @@ func TestDebug(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean env
-			os.Unsetenv("STAVEFILE_DEBUG")
-			os.Unsetenv("MAGEFILE_DEBUG")
-			t.Cleanup(func() {
-				os.Unsetenv("STAVEFILE_DEBUG")
-				os.Unsetenv("MAGEFILE_DEBUG")
-			})
+			resetConfig(t, "STAVEFILE_DEBUG", "MAGEFILE_DEBUG")
 
 			if tt.staveEnv != "" {
 				os.Setenv("STAVEFILE_DEBUG", tt.staveEnv)
@@ -83,6 +85,7 @@ func TestDebug(t *testing.T) {
 			if tt.mageEnv != "" {
 				os.Setenv("MAGEFILE_DEBUG", tt.mageEnv)
 			}
+			config.ResetGlobal()
 
 			if got := mg.Debug(); got != tt.want {
 				t.Errorf("Debug() = %v, want %v", got, tt.want)
@@ -105,15 +108,8 @@ func TestGoCmd(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean env
-			os.Unsetenv("STAVEFILE_GOCMD")
-			os.Unsetenv("MAGEFILE_GOCMD")
-			t.Cleanup(func() {
-				os.Unsetenv("STAVEFILE_GOCMD")
-				os.Unsetenv("MAGEFILE_GOCMD")
-			})
+			resetConfig(t, "STAVEFILE_GOCMD", "MAGEFILE_GOCMD")
 
 			if tt.staveEnv != "" {
 				os.Setenv("STAVEFILE_GOCMD", tt.staveEnv)
@@ -121,6 +117,7 @@ func TestGoCmd(t *testing.T) {
 			if tt.mageEnv != "" {
 				os.Setenv("MAGEFILE_GOCMD", tt.mageEnv)
 			}
+			config.ResetGlobal()
 
 			if got := mg.GoCmd(); got != tt.want {
 				t.Errorf("GoCmd() = %q, want %q", got, tt.want)
@@ -147,15 +144,8 @@ func TestHashFast(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean env
-			os.Unsetenv("STAVEFILE_HASHFAST")
-			os.Unsetenv("MAGEFILE_HASHFAST")
-			t.Cleanup(func() {
-				os.Unsetenv("STAVEFILE_HASHFAST")
-				os.Unsetenv("MAGEFILE_HASHFAST")
-			})
+			resetConfig(t, "STAVEFILE_HASHFAST", "MAGEFILE_HASHFAST")
 
 			if tt.staveEnv != "" {
 				os.Setenv("STAVEFILE_HASHFAST", tt.staveEnv)
@@ -163,6 +153,7 @@ func TestHashFast(t *testing.T) {
 			if tt.mageEnv != "" {
 				os.Setenv("MAGEFILE_HASHFAST", tt.mageEnv)
 			}
+			config.ResetGlobal()
 
 			if got := mg.HashFast(); got != tt.want {
 				t.Errorf("HashFast() = %v, want %v", got, tt.want)
@@ -188,15 +179,8 @@ func TestIgnoreDefault(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean env
-			os.Unsetenv("STAVEFILE_IGNOREDEFAULT")
-			os.Unsetenv("MAGEFILE_IGNOREDEFAULT")
-			t.Cleanup(func() {
-				os.Unsetenv("STAVEFILE_IGNOREDEFAULT")
-				os.Unsetenv("MAGEFILE_IGNOREDEFAULT")
-			})
+			resetConfig(t, "STAVEFILE_IGNOREDEFAULT", "MAGEFILE_IGNOREDEFAULT")
 
 			if tt.staveEnv != "" {
 				os.Setenv("STAVEFILE_IGNOREDEFAULT", tt.staveEnv)
@@ -204,6 +188,7 @@ func TestIgnoreDefault(t *testing.T) {
 			if tt.mageEnv != "" {
 				os.Setenv("MAGEFILE_IGNOREDEFAULT", tt.mageEnv)
 			}
+			config.ResetGlobal()
 
 			if got := mg.IgnoreDefault(); got != tt.want {
 				t.Errorf("IgnoreDefault() = %v, want %v", got, tt.want)
@@ -225,15 +210,8 @@ func TestCacheDir(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean env
-			os.Unsetenv("STAVEFILE_CACHE")
-			os.Unsetenv("MAGEFILE_CACHE")
-			t.Cleanup(func() {
-				os.Unsetenv("STAVEFILE_CACHE")
-				os.Unsetenv("MAGEFILE_CACHE")
-			})
+			resetConfig(t, "STAVEFILE_CACHE", "MAGEFILE_CACHE")
 
 			if tt.staveEnv != "" {
 				os.Setenv("STAVEFILE_CACHE", tt.staveEnv)
@@ -241,6 +219,7 @@ func TestCacheDir(t *testing.T) {
 			if tt.mageEnv != "" {
 				os.Setenv("MAGEFILE_CACHE", tt.mageEnv)
 			}
+			config.ResetGlobal()
 
 			got := mg.CacheDir()
 			if got != tt.wantPath {
@@ -249,26 +228,14 @@ func TestCacheDir(t *testing.T) {
 		})
 	}
 
-	// Test default path logic
-	t.Run("default path", func(t *testing.T) {
-		os.Unsetenv("STAVEFILE_CACHE")
-		os.Unsetenv("MAGEFILE_CACHE")
-		t.Cleanup(func() {
-			os.Unsetenv("STAVEFILE_CACHE")
-			os.Unsetenv("MAGEFILE_CACHE")
-		})
+	// Test default path logic - now uses XDG cache
+	t.Run("default path uses XDG", func(t *testing.T) {
+		resetConfig(t, "STAVEFILE_CACHE", "MAGEFILE_CACHE", "XDG_CACHE_HOME")
 
 		got := mg.CacheDir()
-		if runtime.GOOS == "windows" {
-			// Should contain "stavefile"
-			if len(got) == 0 || got[len(got)-9:] != "stavefile" {
-				t.Errorf("CacheDir() on Windows = %q, want to end with 'stavefile'", got)
-			}
-		} else {
-			// Should contain ".stavefile"
-			if len(got) == 0 || got[len(got)-10:] != ".stavefile" {
-				t.Errorf("CacheDir() on Unix = %q, want to end with '.stavefile'", got)
-			}
+		// Default cache dir should end with "stave" (XDG style)
+		if len(got) < 5 || got[len(got)-5:] != "stave" {
+			t.Errorf("CacheDir() = %q, want to end with 'stave'", got)
 		}
 	})
 }
@@ -290,15 +257,8 @@ func TestEnableColor(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean env
-			os.Unsetenv("STAVEFILE_ENABLE_COLOR")
-			os.Unsetenv("MAGEFILE_ENABLE_COLOR")
-			t.Cleanup(func() {
-				os.Unsetenv("STAVEFILE_ENABLE_COLOR")
-				os.Unsetenv("MAGEFILE_ENABLE_COLOR")
-			})
+			resetConfig(t, "STAVEFILE_ENABLE_COLOR", "MAGEFILE_ENABLE_COLOR")
 
 			if tt.staveEnv != "" {
 				os.Setenv("STAVEFILE_ENABLE_COLOR", tt.staveEnv)
@@ -306,6 +266,7 @@ func TestEnableColor(t *testing.T) {
 			if tt.mageEnv != "" {
 				os.Setenv("MAGEFILE_ENABLE_COLOR", tt.mageEnv)
 			}
+			config.ResetGlobal()
 
 			if got := mg.EnableColor(); got != tt.want {
 				t.Errorf("EnableColor() = %v, want %v", got, tt.want)
@@ -316,12 +277,10 @@ func TestEnableColor(t *testing.T) {
 
 func TestTargetColorFallback(t *testing.T) {
 	t.Run("stavefile takes precedence over magefile", func(t *testing.T) {
+		resetConfig(t, "STAVEFILE_TARGET_COLOR", "MAGEFILE_TARGET_COLOR")
 		os.Setenv("STAVEFILE_TARGET_COLOR", "Red")
 		os.Setenv("MAGEFILE_TARGET_COLOR", "Green")
-		t.Cleanup(func() {
-			os.Unsetenv("STAVEFILE_TARGET_COLOR")
-			os.Unsetenv("MAGEFILE_TARGET_COLOR")
-		})
+		config.ResetGlobal()
 
 		got := mg.TargetColor()
 		// Should be the red ANSI code
@@ -331,11 +290,9 @@ func TestTargetColorFallback(t *testing.T) {
 	})
 
 	t.Run("magefile fallback", func(t *testing.T) {
-		os.Unsetenv("STAVEFILE_TARGET_COLOR")
+		resetConfig(t, "STAVEFILE_TARGET_COLOR", "MAGEFILE_TARGET_COLOR")
 		os.Setenv("MAGEFILE_TARGET_COLOR", "Yellow")
-		t.Cleanup(func() {
-			os.Unsetenv("MAGEFILE_TARGET_COLOR")
-		})
+		config.ResetGlobal()
 
 		got := mg.TargetColor()
 		// Should be the yellow ANSI code
@@ -344,4 +301,3 @@ func TestTargetColorFallback(t *testing.T) {
 		}
 	})
 }
-
