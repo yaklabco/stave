@@ -108,7 +108,7 @@ func TestGetImportSelf(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if imp.Info.AstPkg.Name != "importself" {
-		t.Fatalf("expected package importself, got %v", imp.Info.AstPkg.Name)
+	if imp.Info.PkgName != "importself" {
+		t.Fatalf("expected package importself, got %v", imp.Info.PkgName)
 	}
 }

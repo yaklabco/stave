@@ -29,7 +29,10 @@ func EnableDebug() {
 // PkgInfo contains inforamtion about a package of files according to stave's
 // parsing rules.
 type PkgInfo struct {
-	AstPkg      *ast.Package
+	// PkgName is the package name (e.g., "main", "stavefile").
+	PkgName string
+	// Files are the parsed Go files that make up the package under analysis.
+	Files       []*ast.File
 	DocPkg      *doc.Package
 	Description string
 	Funcs       Functions
@@ -247,13 +250,18 @@ func Package(path string, files []string) (*PkgInfo, error) {
 		debug.Println("time parse Stavefiles:", time.Since(start))
 	}()
 	fset := token.NewFileSet()
-	pkg, err := getPackage(path, files, fset)
+	pkgName, pkgFiles, err := getPackage(path, files, fset)
 	if err != nil {
 		return nil, err
 	}
-	p := doc.New(pkg, "./", 0)
+	// Build documentation package from files to avoid relying on deprecated ast.Package
+	p, err := doc.NewFromFiles(fset, pkgFiles, "./")
+	if err != nil {
+		return nil, err
+	}
 	pi := &PkgInfo{
-		AstPkg:      pkg,
+		PkgName:     pkgName,
+		Files:       pkgFiles,
 		DocPkg:      p,
 		Description: toOneLine(p.Doc),
 	}
@@ -403,7 +411,7 @@ func setNamespaces(pi *PkgInfo) {
 func setImports(gocmd string, pi *PkgInfo) error {
 	var rootImports []string
 	importNames := map[string]string{}
-	for _, f := range pi.AstPkg.Files {
+	for _, f := range pi.Files {
 		for _, d := range f.Decls {
 			gen, ok := d.(*ast.GenDecl)
 			if !ok || gen.Tok != token.IMPORT {
@@ -729,8 +737,9 @@ func getFunction(exp ast.Expr, pi *PkgInfo) (*Function, error) {
 	return nil, fmt.Errorf("unknown package for function %q", exp)
 }
 
-// getPackage returns the importable package at the given path.
-func getPackage(path string, files []string, fset *token.FileSet) (*ast.Package, error) {
+// getPackage parses a directory of Go files and retrieves package information.
+// Returns the package name, parsed files, and an error if encountered.
+func getPackage(path string, files []string, fset *token.FileSet) (string, []*ast.File, error) {
 	var filter func(f os.FileInfo) bool
 	if len(files) > 0 {
 		fm := make(map[string]bool, len(files))
@@ -745,23 +754,30 @@ func getPackage(path string, files []string, fset *token.FileSet) (*ast.Package,
 
 	pkgs, err := parser.ParseDir(fset, path, filter, parser.ParseComments)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse directory: %v", err)
+		return "", nil, fmt.Errorf("failed to parse directory: %v", err)
 	}
 
 	switch len(pkgs) {
 	case 1:
-		var pkg *ast.Package
-		for _, pkg = range pkgs {
+		var name string
+		var files []*ast.File
+		for n, p := range pkgs {
+			name = n
+			files = make([]*ast.File, 0, len(p.Files))
+			for _, f := range p.Files {
+				files = append(files, f)
+			}
+			break
 		}
-		return pkg, nil
+		return name, files, nil
 	case 0:
-		return nil, fmt.Errorf("no importable packages found in %s", path)
+		return "", nil, fmt.Errorf("no importable packages found in %s", path)
 	default:
 		var names []string
 		for name := range pkgs {
 			names = append(names, name)
 		}
-		return nil, fmt.Errorf("multiple packages found in %s: %v", path, strings.Join(names, ", "))
+		return "", nil, fmt.Errorf("multiple packages found in %s: %v", path, strings.Join(names, ", "))
 	}
 }
 
