@@ -148,7 +148,7 @@ func ParseAndRun(stdout, stderr io.Writer, stdin io.Reader, args []string) int {
 
 	switch cmd {
 	case Version:
-		out.Println("Staff Build Tool", gitTag)
+		out.Println("Stave Build Tool", gitTag)
 		out.Println("Build Date:", timestamp)
 		out.Println("Commit:", commitHash)
 		out.Println("Built with:", runtime.Version())
