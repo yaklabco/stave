@@ -9,7 +9,7 @@ func TestMageImportsList(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
-		Dir:    "./testdata/mageimport",
+		Dir:    "./testdata/staveimport",
 		Stdout: stdout,
 		Stderr: stderr,
 		List:   true,
@@ -42,7 +42,7 @@ func TestMageImportsHelp(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
-		Dir:    "./testdata/mageimport",
+		Dir:    "./testdata/staveimport",
 		Stdout: stdout,
 		Stderr: stderr,
 		Help:   true,
@@ -59,7 +59,7 @@ BuildSubdir Builds stuff.
 
 Usage:
 
-	mage buildsubdir
+	staff buildsubdir
 
 `[1:]
 
@@ -74,7 +74,7 @@ func TestMageImportsHelpNamed(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
-		Dir:    "./testdata/mageimport",
+		Dir:    "./testdata/staveimport",
 		Stdout: stdout,
 		Stderr: stderr,
 		Help:   true,
@@ -91,7 +91,7 @@ BuildSubdir2 Builds stuff.
 
 Usage:
 
-	mage zz:buildsubdir2
+	staff zz:buildsubdir2
 
 `[1:]
 
@@ -106,7 +106,7 @@ func TestMageImportsHelpNamedNS(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
-		Dir:    "./testdata/mageimport",
+		Dir:    "./testdata/staveimport",
 		Stdout: stdout,
 		Stderr: stderr,
 		Help:   true,
@@ -123,7 +123,7 @@ Deploy2 deploys stuff.
 
 Usage:
 
-	mage zz:ns:deploy2
+	staff zz:ns:deploy2
 
 Aliases: nsd2
 
@@ -140,7 +140,7 @@ func TestMageImportsRoot(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
-		Dir:    "./testdata/mageimport",
+		Dir:    "./testdata/staveimport",
 		Stdout: stdout,
 		Stderr: stderr,
 		Args:   []string{"root"},
@@ -161,7 +161,7 @@ func TestMageImportsNamedNS(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
-		Dir:    "./testdata/mageimport",
+		Dir:    "./testdata/staveimport",
 		Stdout: stdout,
 		Stderr: stderr,
 		Args:   []string{"zz:nS:deploy2"},
@@ -182,7 +182,7 @@ func TestMageImportsNamedRoot(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
-		Dir:    "./testdata/mageimport",
+		Dir:    "./testdata/staveimport",
 		Stdout: stdout,
 		Stderr: stderr,
 		Args:   []string{"zz:buildSubdir2"},
@@ -206,7 +206,7 @@ func TestMageImportsRootImportNS(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
-		Dir:    "./testdata/mageimport",
+		Dir:    "./testdata/staveimport",
 		Stdout: stdout,
 		Stderr: stderr,
 		Args:   []string{"nS:deploy"},
@@ -227,7 +227,7 @@ func TestMageImportsRootImport(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
-		Dir:    "./testdata/mageimport",
+		Dir:    "./testdata/staveimport",
 		Stdout: stdout,
 		Stderr: stderr,
 		Args:   []string{"buildSubdir"},
@@ -248,7 +248,7 @@ func TestMageImportsAliasToNS(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
-		Dir:    "./testdata/mageimport",
+		Dir:    "./testdata/staveimport",
 		Stdout: stdout,
 		Stderr: stderr,
 		Args:   []string{"nsd2"},
@@ -269,7 +269,7 @@ func TestMageImportsOneLine(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
-		Dir:    "./testdata/mageimport/oneline",
+		Dir:    "./testdata/staveimport/oneline",
 		Stdout: stdout,
 		Stderr: stderr,
 		Args:   []string{"build"},
@@ -289,7 +289,7 @@ func TestMageImportsTrailing(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
-		Dir:    "./testdata/mageimport/trailing",
+		Dir:    "./testdata/staveimport/trailing",
 		Stdout: stdout,
 		Stderr: stderr,
 		Args:   []string{"build"},
@@ -310,7 +310,7 @@ func TestMageImportsTaggedPackage(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
-		Dir:    "./testdata/mageimport/tagged",
+		Dir:    "./testdata/staveimport/tagged",
 		Stdout: stdout,
 		Stderr: stderr,
 		List:   true,
@@ -324,7 +324,7 @@ func TestMageImportsTaggedPackage(t *testing.T) {
 	actual := stderr.String()
 	// Match a shorter version of the error message, since the output from go list differs between versions
 	expected := `
-Error parsing magefiles: error running "go list -f {{.Dir}}||{{.Name}} github.com/yaklabco/staff/staff/testdata/mageimport/tagged/pkg": exit status 1`[1:]
+Error parsing stavefiles: error running "go list -f {{.Dir}}||{{.Name}} github.com/yaklabco/staff/staff/testdata/staveimport/tagged/pkg": exit status 1`[1:]
 	actualShortened := actual[:len(expected)]
 	if actualShortened != expected {
 		t.Logf("expected: %q", expected)
@@ -337,7 +337,7 @@ func TestMageImportsSameNamespaceUniqueTargets(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
-		Dir:    "./testdata/mageimport/samenamespace/uniquetargets",
+		Dir:    "./testdata/staveimport/samenamespace/uniquetargets",
 		Stdout: stdout,
 		Stderr: stderr,
 		List:   true,
@@ -365,7 +365,7 @@ func TestMageImportsSameNamespaceDupTargets(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
-		Dir:    "./testdata/mageimport/samenamespace/duptargets",
+		Dir:    "./testdata/staveimport/samenamespace/duptargets",
 		Stdout: stdout,
 		Stderr: stderr,
 		List:   true,
@@ -377,7 +377,7 @@ func TestMageImportsSameNamespaceDupTargets(t *testing.T) {
 	}
 	actual := stderr.String()
 	expected := `
-Error parsing magefiles: "samenamespace:build" target has multiple definitions: github.com/yaklabco/staff/staff/testdata/mageimport/samenamespace/duptargets/package1.Build, github.com/yaklabco/staff/staff/testdata/mageimport/samenamespace/duptargets/package2.Build
+Error parsing stavefiles: "samenamespace:build" target has multiple definitions: github.com/yaklabco/staff/staff/testdata/staveimport/samenamespace/duptargets/package1.Build, github.com/yaklabco/staff/staff/testdata/staveimport/samenamespace/duptargets/package2.Build
 
 `[1:]
 	if actual != expected {

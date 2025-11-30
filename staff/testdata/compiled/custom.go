@@ -1,5 +1,5 @@
-//go:build mage
-// +build mage
+//go:build stave
+// +build stave
 
 // Compiled package description.
 package main

@@ -7,79 +7,112 @@ import (
 	"strconv"
 )
 
-// CacheEnv is the environment variable that users may set to change the
-// location where mage stores its compiled binaries.
-const CacheEnv = "MAGEFILE_CACHE"
+// Environment variable names for Stave configuration.
+// Stave checks for STAVEFILE_* first, then falls back to MAGEFILE_* for backward compatibility.
+const (
+	// CacheEnv is the environment variable that users may set to change the
+	// location where stave stores its compiled binaries.
+	CacheEnv = "STAVEFILE_CACHE"
 
-// VerboseEnv is the environment variable that indicates the user requested
-// verbose mode when running a magefile.
-const VerboseEnv = "MAGEFILE_VERBOSE"
+	// VerboseEnv is the environment variable that indicates the user requested
+	// verbose mode when running a stavefile.
+	VerboseEnv = "STAVEFILE_VERBOSE"
 
-// DebugEnv is the environment variable that indicates the user requested
-// debug mode when running mage.
-const DebugEnv = "MAGEFILE_DEBUG"
+	// DebugEnv is the environment variable that indicates the user requested
+	// debug mode when running stave.
+	DebugEnv = "STAVEFILE_DEBUG"
 
-// GoCmdEnv is the environment variable that indicates the go binary the user
-// desires to utilize for Magefile compilation.
-const GoCmdEnv = "MAGEFILE_GOCMD"
+	// GoCmdEnv is the environment variable that indicates the go binary the user
+	// desires to utilize for Stavefile compilation.
+	GoCmdEnv = "STAVEFILE_GOCMD"
 
-// IgnoreDefaultEnv is the environment variable that indicates the user requested
-// to ignore the default target specified in the magefile.
-const IgnoreDefaultEnv = "MAGEFILE_IGNOREDEFAULT"
+	// IgnoreDefaultEnv is the environment variable that indicates the user requested
+	// to ignore the default target specified in the stavefile.
+	IgnoreDefaultEnv = "STAVEFILE_IGNOREDEFAULT"
 
-// HashFastEnv is the environment variable that indicates the user requested to
-// use a quick hash of magefiles to determine whether or not the magefile binary
-// needs to be rebuilt. This results in faster runtimes, but means that mage
-// will fail to rebuild if a dependency has changed. To force a rebuild, run
-// mage with the -f flag.
-const HashFastEnv = "MAGEFILE_HASHFAST"
+	// HashFastEnv is the environment variable that indicates the user requested to
+	// use a quick hash of stavefiles to determine whether or not the stavefile binary
+	// needs to be rebuilt. This results in faster runtimes, but means that stave
+	// will fail to rebuild if a dependency has changed. To force a rebuild, run
+	// stave with the -f flag.
+	HashFastEnv = "STAVEFILE_HASHFAST"
 
-// EnableColorEnv is the environment variable that indicates the user is using
-// a terminal which supports a color output. The default is false for backwards
-// compatibility. When the value is true and the detected terminal does support colors
-// then the list of mage targets will be displayed in ANSI color. When the value
-// is true but the detected terminal does not support colors, then the list of
-// mage targets will be displayed in the default colors (e.g. black and white).
-const EnableColorEnv = "MAGEFILE_ENABLE_COLOR"
+	// EnableColorEnv is the environment variable that indicates the user is using
+	// a terminal which supports a color output. The default is false for backwards
+	// compatibility. When the value is true and the detected terminal does support colors
+	// then the list of stave targets will be displayed in ANSI color. When the value
+	// is true but the detected terminal does not support colors, then the list of
+	// stave targets will be displayed in the default colors (e.g. black and white).
+	EnableColorEnv = "STAVEFILE_ENABLE_COLOR"
 
-// TargetColorEnv is the environment variable that indicates which ANSI color
-// should be used to colorize mage targets. This is only applicable when
-// the MAGEFILE_ENABLE_COLOR environment variable is true.
-// The supported ANSI color names are any of these:
-// - Black
-// - Red
-// - Green
-// - Yellow
-// - Blue
-// - Magenta
-// - Cyan
-// - White
-// - BrightBlack
-// - BrightRed
-// - BrightGreen
-// - BrightYellow
-// - BrightBlue
-// - BrightMagenta
-// - BrightCyan
-// - BrightWhite
-const TargetColorEnv = "MAGEFILE_TARGET_COLOR"
+	// TargetColorEnv is the environment variable that indicates which ANSI color
+	// should be used to colorize stave targets. This is only applicable when
+	// the STAVEFILE_ENABLE_COLOR environment variable is true.
+	// The supported ANSI color names are any of these:
+	// - Black
+	// - Red
+	// - Green
+	// - Yellow
+	// - Blue
+	// - Magenta
+	// - Cyan
+	// - White
+	// - BrightBlack
+	// - BrightRed
+	// - BrightGreen
+	// - BrightYellow
+	// - BrightBlue
+	// - BrightMagenta
+	// - BrightCyan
+	// - BrightWhite
+	TargetColorEnv = "STAVEFILE_TARGET_COLOR"
+)
 
-// Verbose reports whether a magefile was run with the verbose flag.
+// Legacy environment variable names for backward compatibility with mage.
+// These are checked if the STAVEFILE_* equivalents are not set.
+const (
+	LegacyCacheEnv         = "MAGEFILE_CACHE"
+	LegacyVerboseEnv       = "MAGEFILE_VERBOSE"
+	LegacyDebugEnv         = "MAGEFILE_DEBUG"
+	LegacyGoCmdEnv         = "MAGEFILE_GOCMD"
+	LegacyIgnoreDefaultEnv = "MAGEFILE_IGNOREDEFAULT"
+	LegacyHashFastEnv      = "MAGEFILE_HASHFAST"
+	LegacyEnableColorEnv   = "MAGEFILE_ENABLE_COLOR"
+	LegacyTargetColorEnv   = "MAGEFILE_TARGET_COLOR"
+)
+
+// getEnvWithFallback returns the value of the primary env var, or falls back to legacy.
+func getEnvWithFallback(primary, legacy string) string {
+	if v := os.Getenv(primary); v != "" {
+		return v
+	}
+	return os.Getenv(legacy)
+}
+
+// getBoolEnvWithFallback returns true if either the primary or legacy env var is set to a truthy value.
+func getBoolEnvWithFallback(primary, legacy string) bool {
+	if v := os.Getenv(primary); v != "" {
+		b, _ := strconv.ParseBool(v)
+		return b
+	}
+	b, _ := strconv.ParseBool(os.Getenv(legacy))
+	return b
+}
+
+// Verbose reports whether a stavefile was run with the verbose flag.
 func Verbose() bool {
-	b, _ := strconv.ParseBool(os.Getenv(VerboseEnv))
-	return b
+	return getBoolEnvWithFallback(VerboseEnv, LegacyVerboseEnv)
 }
 
-// Debug reports whether a magefile was run with the debug flag.
+// Debug reports whether a stavefile was run with the debug flag.
 func Debug() bool {
-	b, _ := strconv.ParseBool(os.Getenv(DebugEnv))
-	return b
+	return getBoolEnvWithFallback(DebugEnv, LegacyDebugEnv)
 }
 
-// GoCmd reports the command that Mage will use to build go code.  By default mage runs
+// GoCmd reports the command that Stave will use to build go code. By default stave runs
 // the "go" binary in the PATH.
 func GoCmd() string {
-	if cmd := os.Getenv(GoCmdEnv); cmd != "" {
+	if cmd := getEnvWithFallback(GoCmdEnv, LegacyGoCmdEnv); cmd != "" {
 		return cmd
 	}
 	return "go"
@@ -88,43 +121,45 @@ func GoCmd() string {
 // HashFast reports whether the user has requested to use the fast hashing
 // mechanism rather than rely on go's rebuilding mechanism.
 func HashFast() bool {
-	b, _ := strconv.ParseBool(os.Getenv(HashFastEnv))
-	return b
+	return getBoolEnvWithFallback(HashFastEnv, LegacyHashFastEnv)
 }
 
 // IgnoreDefault reports whether the user has requested to ignore the default target
-// in the magefile.
+// in the stavefile.
 func IgnoreDefault() bool {
-	b, _ := strconv.ParseBool(os.Getenv(IgnoreDefaultEnv))
-	return b
+	return getBoolEnvWithFallback(IgnoreDefaultEnv, LegacyIgnoreDefaultEnv)
 }
 
-// CacheDir returns the directory where mage caches compiled binaries.  It
-// defaults to $HOME/.magefile, but may be overridden by the MAGEFILE_CACHE
-// environment variable.
+// CacheDir returns the directory where stave caches compiled binaries. It
+// defaults to $HOME/.stavefile, but may be overridden by the STAVEFILE_CACHE
+// environment variable (or MAGEFILE_CACHE for backward compatibility).
 func CacheDir() string {
-	d := os.Getenv(CacheEnv)
-	if d != "" {
+	if d := getEnvWithFallback(CacheEnv, LegacyCacheEnv); d != "" {
 		return d
 	}
 	switch runtime.GOOS {
 	case "windows":
-		return filepath.Join(os.Getenv("HOMEDRIVE"), os.Getenv("HOMEPATH"), "magefile")
+		return filepath.Join(os.Getenv("HOMEDRIVE"), os.Getenv("HOMEPATH"), "stavefile")
 	default:
-		return filepath.Join(os.Getenv("HOME"), ".magefile")
+		return filepath.Join(os.Getenv("HOME"), ".stavefile")
 	}
 }
 
 // EnableColor reports whether the user has requested to enable a color output.
 func EnableColor() bool {
-	b, _ := strconv.ParseBool(os.Getenv(EnableColorEnv))
-	return b
+	return getBoolEnvWithFallback(EnableColorEnv, LegacyEnableColorEnv)
 }
 
-// TargetColor returns the configured ANSI color name a color output.
+// TargetColor returns the configured ANSI color name for color output.
 func TargetColor() string {
-	s, exists := os.LookupEnv(TargetColorEnv)
-	if exists {
+	// Check primary env var first
+	if s, exists := os.LookupEnv(TargetColorEnv); exists {
+		if c, ok := getAnsiColor(s); ok {
+			return c
+		}
+	}
+	// Fall back to legacy env var
+	if s, exists := os.LookupEnv(LegacyTargetColorEnv); exists {
 		if c, ok := getAnsiColor(s); ok {
 			return c
 		}

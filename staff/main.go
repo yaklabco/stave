@@ -59,17 +59,17 @@ var mainfileTemplate = template.Must(template.New("").Funcs(map[string]interface
 		}
 		return strings.Join(parts, ":")
 	},
-}).Parse(mageMainfileTplString))
-var initOutput = template.Must(template.New("").Parse(mageTpl))
+}).Parse(staveMainfileTplString))
+var initOutput = template.Must(template.New("").Parse(staveTpl))
 
 const (
-	mainfile = "mage_output_file.go"
-	initFile = "magefile.go"
+	mainfile = "stave_output_file.go"
+	initFile = "stavefile.go"
 )
 
 var debug = log.New(ioutil.Discard, "DEBUG: ", log.Ltime|log.Lmicroseconds)
 
-// set by ldflags when you "mage build"
+// set by ldflags when you "stave build"
 var (
 	commitHash = "<not set>"
 	timestamp  = "<not set>"
@@ -78,37 +78,37 @@ var (
 
 //go:generate stringer -type=Command
 
-// Command tracks invocations of mage that run without targets or other flags.
+// Command tracks invocations of stave that run without targets or other flags.
 type Command int
 
 // The various command types
 const (
 	None          Command = iota
-	Version               // report the current version of mage
-	Init                  // create a starting template for mage
-	Clean                 // clean out old compiled mage binaries from the cache
+	Version               // report the current version of stave
+	Init                  // create a starting template for stave
+	Clean                 // clean out old compiled stave binaries from the cache
 	CompileStatic         // compile a static binary of the current directory
 )
 
-// Main is the entrypoint for running mage.  It exists external to mage's main
+// Main is the entrypoint for running stave. It exists external to stave's main
 // function to allow it to be used from other programs, specifically so you can
-// go run a simple file that run's mage's Main.
+// go run a simple file that run's stave's Main.
 func Main() int {
 	return ParseAndRun(os.Stdout, os.Stderr, os.Stdin, os.Args[1:])
 }
 
-// Invocation contains the args for invoking a run of Mage.
+// Invocation contains the args for invoking a run of Staff.
 type Invocation struct {
 	Debug      bool          // turn on debug messages
-	Dir        string        // directory to read magefiles from
-	WorkDir    string        // directory where magefiles will run
+	Dir        string        // directory to read stavefiles from
+	WorkDir    string        // directory where stavefiles will run
 	Force      bool          // forces recreation of the compiled binary
-	Verbose    bool          // tells the magefile to print out log statements
-	List       bool          // tells the magefile to print out a list of targets
-	Help       bool          // tells the magefile to print out help for a specific target
-	Keep       bool          // tells mage to keep the generated main file after compiling
-	Timeout    time.Duration // tells mage to set a timeout to running the targets
-	CompileOut string        // tells mage to compile a static binary to this path, but not execute
+	Verbose    bool          // tells the stavefile to print out log statements
+	List       bool          // tells the stavefile to print out a list of targets
+	Help       bool          // tells the stavefile to print out help for a specific target
+	Keep       bool          // tells stave to keep the generated main file after compiling
+	Timeout    time.Duration // tells stave to set a timeout to running the targets
+	CompileOut string        // tells stave to compile a static binary to this path, but not execute
 	GOOS       string        // sets the GOOS when producing a binary with -compileout
 	GOARCH     string        // sets the GOARCH when producing a binary with -compileout
 	Ldflags    string        // sets the ldflags when producing a binary with -compileout
@@ -118,19 +118,19 @@ type Invocation struct {
 	Args       []string      // args to pass to the compiled binary
 	GoCmd      string        // the go binary command to run
 	CacheDir   string        // the directory where we should store compiled binaries
-	HashFast   bool          // don't rely on GOCACHE, just hash the magefiles
+	HashFast   bool          // don't rely on GOCACHE, just hash the stavefiles
 }
 
-// MagefilesDirName is the name of the default folder to look for if no directory was specified,
-// if this folder exists it will be assumed mage package lives inside it.
-const MagefilesDirName = "magefiles"
+// StavefilesDirName is the name of the default folder to look for if no directory was specified,
+// if this folder exists it will be assumed stave package lives inside it.
+const StavefilesDirName = "stavefiles"
 
-// UsesMagefiles returns true if we are getting our mage files from a magefiles directory.
-func (i Invocation) UsesMagefiles() bool {
-	return filepath.Base(i.Dir) == MagefilesDirName
+// UsesStavefiles returns true if we are getting our stave files from a stavefiles directory.
+func (i Invocation) UsesStavefiles() bool {
+	return filepath.Base(i.Dir) == StavefilesDirName
 }
 
-// ParseAndRun parses the command line, and then compiles and runs the mage
+// ParseAndRun parses the command line, and then compiles and runs the stave
 // files in the given directory with the given args (do not include the command
 // name in the args).
 func ParseAndRun(stdout, stderr io.Writer, stdin io.Reader, args []string) int {
@@ -186,14 +186,14 @@ func Parse(stderr, stdout io.Writer, args []string) (inv Invocation, cmd Command
 
 	// options flags
 
-	fs.BoolVar(&inv.Force, "f", false, "force recreation of compiled magefile")
+	fs.BoolVar(&inv.Force, "f", false, "force recreation of compiled stavefile")
 	fs.BoolVar(&inv.Debug, "debug", mg.Debug(), "turn on debug messages")
-	fs.BoolVar(&inv.Verbose, "v", mg.Verbose(), "show verbose output when running mage targets")
+	fs.BoolVar(&inv.Verbose, "v", mg.Verbose(), "show verbose output when running stave targets")
 	fs.BoolVar(&inv.Help, "h", false, "show this help")
 	fs.DurationVar(&inv.Timeout, "t", 0, "timeout in duration parsable format (e.g. 5m30s)")
-	fs.BoolVar(&inv.Keep, "keep", false, "keep intermediate mage files around after running")
-	fs.StringVar(&inv.Dir, "d", "", "directory to read magefiles from")
-	fs.StringVar(&inv.WorkDir, "w", "", "working directory where magefiles will run")
+	fs.BoolVar(&inv.Keep, "keep", false, "keep intermediate stave files around after running")
+	fs.StringVar(&inv.Dir, "d", "", "directory to read stavefiles from")
+	fs.StringVar(&inv.WorkDir, "w", "", "working directory where stavefiles will run")
 	fs.StringVar(&inv.GoCmd, "gocmd", mg.GoCmd(), "use the given go binary to compile the output")
 	fs.StringVar(&inv.GOOS, "goos", "", "set GOOS for binary produced with -compile")
 	fs.StringVar(&inv.GOARCH, "goarch", "", "set GOARCH for binary produced with -compile")
@@ -201,11 +201,11 @@ func Parse(stderr, stdout io.Writer, args []string) (inv Invocation, cmd Command
 
 	// commands below
 
-	fs.BoolVar(&inv.List, "l", false, "list mage targets in this directory")
+	fs.BoolVar(&inv.List, "l", false, "list stave targets in this directory")
 	var showVersion bool
-	fs.BoolVar(&showVersion, "version", false, "show version info for the mage binary")
-	var mageInit bool
-	fs.BoolVar(&mageInit, "init", false, "create a starting template if no mage files exist")
+	fs.BoolVar(&showVersion, "version", false, "show version info for the stave binary")
+	var staveInit bool
+	fs.BoolVar(&staveInit, "init", false, "create a starting template if no stave files exist")
 	var clean bool
 	fs.BoolVar(&clean, "clean", false, "clean out old generated binaries from CACHE_DIR")
 	var compileOutPath string
@@ -213,36 +213,36 @@ func Parse(stderr, stdout io.Writer, args []string) (inv Invocation, cmd Command
 
 	fs.Usage = func() {
 		fmt.Fprint(stdout, `
-staff [options] [target]
+stave [options] [target]
 
-Staff is a make-like command runner. Fork of Mage. See https://github.com/yaklabco/staff
+Stave is a make-like command runner. Fork of Mage. See https://github.com/yaklabco/staff
 
 Commands:
   -clean    clean out old generated binaries from CACHE_DIR
   -compile <string>
             output a static binary to the given path
   -h        show this help
-  -init     create a starting template if no mage files exist
+  -init     create a starting template if no stave files exist
   -l        list targets in this directory
-  -version  show version info for the staff binary
+  -version  show version info for the stave binary
 
 Options:
   -d <string> 
-            directory to read magefiles from (default "." or "magefiles" if exists)
+            directory to read stavefiles from (default "." or "stavefiles" if exists)
   -debug    turn on debug messages
-  -f        force recreation of compiled magefile
+  -f        force recreation of compiled stavefile
   -goarch   sets the GOARCH for the binary created by -compile (default: current arch)
   -gocmd <string>
             use the given go binary to compile the output (default: "go")
   -goos     sets the GOOS for the binary created by -compile (default: current OS)
   -ldflags  sets the ldflags for the binary created by -compile (default: "")
   -h        show description of a target
-  -keep     keep intermediate mage files around after running
+  -keep     keep intermediate stave files around after running
   -t <string>
             timeout in duration parsable format (e.g. 5m30s)
   -v        show verbose output when running targets
   -w <string>
-            working directory where magefiles will run (default -d value)
+            working directory where stavefiles will run (default -d value)
 `[1:])
 	}
 	err = fs.Parse(args)
@@ -258,7 +258,7 @@ Options:
 
 	numCommands := 0
 	switch {
-	case mageInit:
+	case staveInit:
 		numCommands++
 		cmd = Init
 	case compileOutPath != "":
@@ -310,7 +310,7 @@ Options:
 
 const dotDirectory = "."
 
-// Invoke runs Mage with the given arguments.
+// Invoke runs Staff with the given arguments.
 func Invoke(inv Invocation) int {
 	errlog := log.New(inv.Stderr, "", 0)
 	if inv.GoCmd == "" {
@@ -322,19 +322,19 @@ func Invoke(inv Invocation) int {
 	if inv.WorkDir == "" {
 		inv.WorkDir = inv.Dir
 	}
-	magefilesDir := filepath.Join(inv.Dir, MagefilesDirName)
-	// . will be default unless we find a mage folder.
-	mfSt, err := os.Stat(magefilesDir)
+	stavefilesDir := filepath.Join(inv.Dir, StavefilesDirName)
+	// . will be default unless we find a stavefiles folder.
+	stSt, err := os.Stat(stavefilesDir)
 	if err == nil {
-		if mfSt.IsDir() {
+		if stSt.IsDir() {
 			stderrBuf := &bytes.Buffer{}
 			originalDir := inv.Dir
-			inv.Dir = magefilesDir // preemptive assignment
-			// TODO: Remove this fallback and the above Magefiles invocation when the bw compatibility is removed.
-			files, err := Magefiles(originalDir, inv.GOOS, inv.GOARCH, inv.GoCmd, stderrBuf, false, inv.Debug)
+			inv.Dir = stavefilesDir // preemptive assignment
+			// TODO: Remove this fallback and the above Stavefiles invocation when the bw compatibility is removed.
+			files, err := Stavefiles(originalDir, inv.GOOS, inv.GOARCH, inv.GoCmd, stderrBuf, false, inv.Debug)
 			if err == nil {
 				if len(files) != 0 {
-					errlog.Println("[WARNING] You have both a magefiles directory and mage files in the " +
+					errlog.Println("[WARNING] You have both a stavefiles directory and stave files in the " +
 						"current directory, in future versions the files will be ignored in favor of the directory")
 					inv.Dir = originalDir
 				}
@@ -346,17 +346,17 @@ func Invoke(inv Invocation) int {
 		inv.CacheDir = mg.CacheDir()
 	}
 
-	files, err := Magefiles(inv.Dir, inv.GOOS, inv.GOARCH, inv.GoCmd, inv.Stderr, inv.UsesMagefiles(), inv.Debug)
+	files, err := Stavefiles(inv.Dir, inv.GOOS, inv.GOARCH, inv.GoCmd, inv.Stderr, inv.UsesStavefiles(), inv.Debug)
 	if err != nil {
-		errlog.Println("Error determining list of magefiles:", err)
+		errlog.Println("Error determining list of stavefiles:", err)
 		return 1
 	}
 
 	if len(files) == 0 {
-		errlog.Println("No .go files marked with the mage build tag in this directory.")
+		errlog.Println("No .go files marked with the stave build tag in this directory.")
 		return 1
 	}
-	debug.Printf("found magefiles: %s", strings.Join(files, ", "))
+	debug.Printf("found stavefiles: %s", strings.Join(files, ", "))
 	exePath := inv.CompileOut
 	if inv.CompileOut == "" {
 		exePath, err = ExeName(inv.GoCmd, inv.CacheDir, files)
@@ -369,7 +369,7 @@ func Invoke(inv Invocation) int {
 
 	useCache := false
 	if inv.HashFast {
-		debug.Println("user has set MAGEFILE_HASHFAST, so we'll ignore GOCACHE")
+		debug.Println("user has set STAVEFILE_HASHFAST, so we'll ignore GOCACHE")
 	} else {
 		s, err := internal.OutputDebug(inv.GoCmd, "env", "GOCACHE")
 		if err != nil {
@@ -414,7 +414,7 @@ func Invoke(inv Invocation) int {
 	debug.Println("parsing files")
 	info, err := parse.PrimaryPackage(inv.GoCmd, inv.Dir, fnames)
 	if err != nil {
-		errlog.Println("Error parsing magefiles:", err)
+		errlog.Println("Error parsing stavefiles:", err)
 		return 1
 	}
 
@@ -423,7 +423,7 @@ func Invoke(inv Invocation) int {
 	sort.Sort(info.Imports)
 
 	main := filepath.Join(inv.Dir, mainfile)
-	binaryName := "mage"
+	binaryName := "stave"
 	if inv.CompileOut != "" {
 		binaryName = filepath.Base(inv.CompileOut)
 	}
@@ -468,14 +468,14 @@ type mainfileTemplateData struct {
 
 // listGoFiles returns a list of all .go files in a given directory,
 // matching the provided tag
-func listGoFiles(magePath, goCmd, tag string, envStr []string) ([]string, error) {
-	origMagePath := magePath
-	if !filepath.IsAbs(magePath) {
+func listGoFiles(stavePath, goCmd, tag string, envStr []string) ([]string, error) {
+	origStavePath := stavePath
+	if !filepath.IsAbs(stavePath) {
 		cwd, err := os.Getwd()
 		if err != nil {
 			return nil, fmt.Errorf("can't get current working directory: %v", err)
 		}
-		magePath = filepath.Join(cwd, magePath)
+		stavePath = filepath.Join(cwd, stavePath)
 	}
 
 	env, err := internal.SplitEnv(envStr)
@@ -494,7 +494,7 @@ func listGoFiles(magePath, goCmd, tag string, envStr []string) ([]string, error)
 		bctx.GOARCH = env["GOARCH"]
 	}
 
-	pkg, err := bctx.Import(".", magePath, 0)
+	pkg, err := bctx.Import(".", stavePath, 0)
 	if err != nil {
 		if _, ok := err.(*build.NoGoError); ok {
 			return []string{}, nil
@@ -508,18 +508,18 @@ func listGoFiles(magePath, goCmd, tag string, envStr []string) ([]string, error)
 
 	goFiles := make([]string, len(pkg.GoFiles))
 	for i := range pkg.GoFiles {
-		goFiles[i] = filepath.Join(origMagePath, pkg.GoFiles[i])
+		goFiles[i] = filepath.Join(origStavePath, pkg.GoFiles[i])
 	}
 
 	debug.Printf("found %d go files with build tag %s (files: %v)", len(goFiles), tag, goFiles)
 	return goFiles, nil
 }
 
-// Magefiles returns the list of magefiles in dir.
-func Magefiles(magePath, goos, goarch, goCmd string, stderr io.Writer, isMagefilesDirectory, isDebug bool) ([]string, error) {
+// Stavefiles returns the list of stavefiles in dir.
+func Stavefiles(stavePath, goos, goarch, goCmd string, stderr io.Writer, isStavefilesDirectory, isDebug bool) ([]string, error) {
 	start := time.Now()
 	defer func() {
-		debug.Println("time to scan for Magefiles:", time.Since(start))
+		debug.Println("time to scan for Stavefiles:", time.Since(start))
 	}()
 
 	env, err := internal.EnvWithGOOS(goos, goarch)
@@ -527,40 +527,40 @@ func Magefiles(magePath, goos, goarch, goCmd string, stderr io.Writer, isMagefil
 		return nil, err
 	}
 
-	debug.Println("getting all files including those with mage tag in", magePath)
-	mageFiles, err := listGoFiles(magePath, goCmd, "mage", env)
+	debug.Println("getting all files including those with stave tag in", stavePath)
+	staveFiles, err := listGoFiles(stavePath, goCmd, "stave", env)
 	if err != nil {
-		return nil, fmt.Errorf("listing mage files: %v", err)
+		return nil, fmt.Errorf("listing stave files: %v", err)
 	}
 
-	if isMagefilesDirectory {
-		// For the magefiles directory, we always use all go files, both with
-		// and without the mage tag, as per normal go build tag rules.
-		debug.Println("using all go files in magefiles directory", magePath)
-		return mageFiles, nil
+	if isStavefilesDirectory {
+		// For the stavefiles directory, we always use all go files, both with
+		// and without the stave tag, as per normal go build tag rules.
+		debug.Println("using all go files in stavefiles directory", stavePath)
+		return staveFiles, nil
 	}
 
-	// For folders other than the magefiles directory, we only consider files
-	// that have the mage build tag and ignore those that don't.
+	// For folders other than the stavefiles directory, we only consider files
+	// that have the stave build tag and ignore those that don't.
 
-	debug.Println("getting all files without mage tag in", magePath)
-	nonMageFiles, err := listGoFiles(magePath, goCmd, "", env)
+	debug.Println("getting all files without stave tag in", stavePath)
+	nonStaveFiles, err := listGoFiles(stavePath, goCmd, "", env)
 	if err != nil {
-		return nil, fmt.Errorf("listing non-mage files: %v", err)
+		return nil, fmt.Errorf("listing non-stave files: %v", err)
 	}
 
-	// convert non-Mage list to a map of files to exclude.
+	// convert non-Stave list to a map of files to exclude.
 	exclude := map[string]bool{}
-	for _, f := range nonMageFiles {
+	for _, f := range nonStaveFiles {
 		if f != "" {
-			debug.Printf("marked file as non-mage: %q", f)
+			debug.Printf("marked file as non-stave: %q", f)
 			exclude[f] = true
 		}
 	}
 
-	// filter out the non-mage files from the mage files.
+	// filter out the non-stave files from the stave files.
 	var files []string
-	for _, f := range mageFiles {
+	for _, f := range staveFiles {
 		if f != "" && !exclude[f] {
 			files = append(files, f)
 		}
@@ -570,7 +570,7 @@ func Magefiles(magePath, goos, goarch, goCmd string, stderr io.Writer, isMagefil
 }
 
 // Compile uses the go tool to compile the files into an executable at path.
-func Compile(goos, goarch, ldflags, magePath, goCmd, compileTo string, gofiles []string, isDebug bool, stderr, stdout io.Writer) error {
+func Compile(goos, goarch, ldflags, stavePath, goCmd, compileTo string, gofiles []string, isDebug bool, stderr, stdout io.Writer) error {
 	debug.Println("compiling to", compileTo)
 	debug.Println("compiling using gocmd:", goCmd)
 	if isDebug {
@@ -596,17 +596,17 @@ func Compile(goos, goarch, ldflags, magePath, goCmd, compileTo string, gofiles [
 	c.Env = environ
 	c.Stderr = stderr
 	c.Stdout = stdout
-	c.Dir = magePath
+	c.Dir = stavePath
 	start := time.Now()
 	err = c.Run()
-	debug.Println("time to compile Magefile:", time.Since(start))
+	debug.Println("time to compile Stavefile:", time.Since(start))
 	if err != nil {
-		return errors.New("error compiling magefiles")
+		return errors.New("error compiling stavefiles")
 	}
 	return nil
 }
 
-// GenerateMainfile generates the mage mainfile at path.
+// GenerateMainfile generates the stave mainfile at path.
 func GenerateMainfile(binaryName, path string, info *parse.PkgInfo) error {
 	debug.Println("Creating mainfile at", path)
 
@@ -643,8 +643,8 @@ func GenerateMainfile(binaryName, path string, info *parse.PkgInfo) error {
 	return nil
 }
 
-// ExeName reports the executable filename that this version of Mage would
-// create for the given magefiles.
+// ExeName reports the executable filename that this version of Staff would
+// create for the given stavefiles.
 func ExeName(goCmd, cacheDir string, files []string) (string, error) {
 	var hashes []string
 	for _, s := range files {
@@ -656,7 +656,7 @@ func ExeName(goCmd, cacheDir string, files []string) (string, error) {
 	}
 	// hash the mainfile template to ensure if it gets updated, we make a new
 	// binary.
-	hashes = append(hashes, fmt.Sprintf("%x", sha1.Sum([]byte(mageMainfileTplString))))
+	hashes = append(hashes, fmt.Sprintf("%x", sha1.Sum([]byte(staveMainfileTplString))))
 	sort.Strings(hashes)
 	ver, err := internal.OutputDebug(goCmd, "version")
 	if err != nil {
@@ -687,21 +687,21 @@ func hashFile(fn string) (string, error) {
 }
 
 func generateInit(dir string) error {
-	debug.Println("generating default magefile in", dir)
+	debug.Println("generating default stavefile in", dir)
 	f, err := os.Create(filepath.Join(dir, initFile))
 	if err != nil {
-		return fmt.Errorf("could not create mage template: %v", err)
+		return fmt.Errorf("could not create stave template: %v", err)
 	}
 	defer f.Close()
 
 	if err := initOutput.Execute(f, nil); err != nil {
-		return fmt.Errorf("can't execute magefile template: %v", err)
+		return fmt.Errorf("can't execute stavefile template: %v", err)
 	}
 
 	return nil
 }
 
-// RunCompiled runs an already-compiled mage command with the given args,
+// RunCompiled runs an already-compiled stave command with the given args,
 func RunCompiled(inv Invocation, exePath string, errlog *log.Logger) int {
 	debug.Println("running binary", exePath)
 	c := exec.Command(exePath, inv.Args...)
@@ -712,35 +712,35 @@ func RunCompiled(inv Invocation, exePath string, errlog *log.Logger) int {
 	if inv.WorkDir != inv.Dir {
 		c.Dir = inv.WorkDir
 	}
-	// intentionally pass through unaltered os.Environ here.. your magefile has
+	// intentionally pass through unaltered os.Environ here.. your stavefile has
 	// to deal with it.
 	c.Env = os.Environ()
 	if inv.Verbose {
-		c.Env = append(c.Env, "MAGEFILE_VERBOSE=1")
+		c.Env = append(c.Env, "STAVEFILE_VERBOSE=1")
 	}
 	if inv.List {
-		c.Env = append(c.Env, "MAGEFILE_LIST=1")
+		c.Env = append(c.Env, "STAVEFILE_LIST=1")
 	}
 	if inv.Help {
-		c.Env = append(c.Env, "MAGEFILE_HELP=1")
+		c.Env = append(c.Env, "STAVEFILE_HELP=1")
 	}
 	if inv.Debug {
-		c.Env = append(c.Env, "MAGEFILE_DEBUG=1")
+		c.Env = append(c.Env, "STAVEFILE_DEBUG=1")
 	}
 	if inv.GoCmd != "" {
-		c.Env = append(c.Env, fmt.Sprintf("MAGEFILE_GOCMD=%s", inv.GoCmd))
+		c.Env = append(c.Env, fmt.Sprintf("STAVEFILE_GOCMD=%s", inv.GoCmd))
 	}
 	if inv.Timeout > 0 {
-		c.Env = append(c.Env, fmt.Sprintf("MAGEFILE_TIMEOUT=%s", inv.Timeout.String()))
+		c.Env = append(c.Env, fmt.Sprintf("STAVEFILE_TIMEOUT=%s", inv.Timeout.String()))
 	}
-	debug.Print("running magefile with mage vars:\n", strings.Join(filter(c.Env, "MAGEFILE"), "\n"))
-	// catch SIGINT to allow magefile to handle them
+	debug.Print("running stavefile with stave vars:\n", strings.Join(filter(c.Env, "STAVEFILE"), "\n"))
+	// catch SIGINT to allow stavefile to handle them
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT)
 	defer signal.Stop(sigCh)
 	err := c.Run()
 	if !sh.CmdRan(err) {
-		errlog.Printf("failed to run compiled magefile: %v", err)
+		errlog.Printf("failed to run compiled stavefile: %v", err)
 	}
 	return sh.ExitStatus(err)
 }

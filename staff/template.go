@@ -3,7 +3,7 @@ package staff
 // this template uses the "data"
 
 // var only for tests
-var mageMainfileTplString = `//go:build ignore
+var staveMainfileTplString = `//go:build ignore
 // +build ignore
 
 package main
@@ -28,7 +28,7 @@ import (
 )
 
 func main() {
-	// Use local types and functions in order to avoid name conflicts with additional magefiles.
+	// Use local types and functions in order to avoid name conflicts with additional stavefiles.
 	type arguments struct {
 		Verbose       bool          // print out log statements
 		List          bool          // print out a list of targets
@@ -62,15 +62,37 @@ func main() {
 		}
 		return d
 	}
+
+	// getBoolEnvWithFallback checks primary env var first, then legacy for backward compat
+	getBoolEnvWithFallback := func(primary, legacy string) bool {
+		if v := os.Getenv(primary); v != "" {
+			b, _ := strconv.ParseBool(v)
+			return b
+		}
+		b, _ := strconv.ParseBool(os.Getenv(legacy))
+		return b
+	}
+
+	// getDurationEnvWithFallback checks primary env var first, then legacy for backward compat
+	getDurationEnvWithFallback := func(primary, legacy string) time.Duration {
+		if v := os.Getenv(primary); v != "" {
+			d, _ := time.ParseDuration(v)
+			return d
+		}
+		d, _ := time.ParseDuration(os.Getenv(legacy))
+		return d
+	}
+
 	args := arguments{}
 	fs := _flag.FlagSet{}
 	fs.SetOutput(os.Stdout)
 
 	// default flag set with ExitOnError and auto generated PrintDefaults should be sufficient
-	fs.BoolVar(&args.Verbose, "v", parseBool("MAGEFILE_VERBOSE"), "show verbose output when running targets")
-	fs.BoolVar(&args.List, "l", parseBool("MAGEFILE_LIST"), "list targets for this binary")
-	fs.BoolVar(&args.Help, "h", parseBool("MAGEFILE_HELP"), "print out help for a specific target")
-	fs.DurationVar(&args.Timeout, "t", parseDuration("MAGEFILE_TIMEOUT"), "timeout in duration parsable format (e.g. 5m30s)")
+	// Use new STAVEFILE_* env vars with fallback to legacy MAGEFILE_* for backward compatibility
+	fs.BoolVar(&args.Verbose, "v", getBoolEnvWithFallback("STAVEFILE_VERBOSE", "MAGEFILE_VERBOSE"), "show verbose output when running targets")
+	fs.BoolVar(&args.List, "l", getBoolEnvWithFallback("STAVEFILE_LIST", "MAGEFILE_LIST"), "list targets for this binary")
+	fs.BoolVar(&args.Help, "h", getBoolEnvWithFallback("STAVEFILE_HELP", "MAGEFILE_HELP"), "print out help for a specific target")
+	fs.DurationVar(&args.Timeout, "t", getDurationEnvWithFallback("STAVEFILE_TIMEOUT", "MAGEFILE_TIMEOUT"), "timeout in duration parsable format (e.g. 5m30s)")
 	fs.Usage = func() {
 		_fmt.Fprintf(os.Stdout, ` + "`" + `
 %s [options] [target]
@@ -194,16 +216,25 @@ Options:
 		return true
 	}
 
+	// getEnvWithFallback checks primary env var first, then legacy for backward compat
+	getEnvWithFallback := func(primary, legacy string) string {
+		if v := os.Getenv(primary); v != "" {
+			return v
+		}
+		return os.Getenv(legacy)
+	}
+
 	// enableColor reports whether the user has requested to enable a color output.
 	enableColor := func() bool {
-		b, _ := strconv.ParseBool(os.Getenv("MAGEFILE_ENABLE_COLOR"))
+		v := getEnvWithFallback("STAVEFILE_ENABLE_COLOR", "MAGEFILE_ENABLE_COLOR")
+		b, _ := strconv.ParseBool(v)
 		return b
 	}
 
 	// targetColor returns the ANSI color which should be used to colorize targets.
 	targetColor := func() string {
-		s, exists := os.LookupEnv("MAGEFILE_TARGET_COLOR")
-		if exists == true {
+		s := getEnvWithFallback("STAVEFILE_TARGET_COLOR", "MAGEFILE_TARGET_COLOR")
+		if s != "" {
 			if c, ok := getAnsiColor(s); ok == true {
 				return c
 			}
@@ -295,7 +326,7 @@ Options:
 		signal.Notify(sigCh, syscall.SIGINT)
 		select {
 		case <-sigCh:
-			logger.Println("cancelling mage targets, waiting up to 5 seconds for cleanup...")
+			logger.Println("cancelling stave targets, waiting up to 5 seconds for cleanup...")
 			cancel()
 			cleanupCh := time.After(5 * time.Second)
 
@@ -308,7 +339,7 @@ Options:
 				return _fmt.Errorf("cleanup timeout exceeded")
 			// second SIGINT received
 			case <-sigCh:
-				logger.Println("exiting mage")
+				logger.Println("exiting stave")
 				return _fmt.Errorf("exit forced")
 			}
 		case <-ctx.Done():
@@ -340,11 +371,11 @@ Options:
 	}
 	_ = handleError
 
-	// Set MAGEFILE_VERBOSE so mg.Verbose() reflects the flag value.
+	// Set STAVEFILE_VERBOSE so mg.Verbose() reflects the flag value.
 	if args.Verbose {
-		os.Setenv("MAGEFILE_VERBOSE", "1")
+		os.Setenv("STAVEFILE_VERBOSE", "1")
 	} else {
-		os.Setenv("MAGEFILE_VERBOSE", "0")
+		os.Setenv("STAVEFILE_VERBOSE", "0")
 	}
 
 	_log.SetFlags(0)
@@ -411,7 +442,7 @@ Options:
 	}
 	if len(args.Args) < 1 {
 	{{- if .DefaultFunc.Name}}
-		ignoreDefault, _ := strconv.ParseBool(os.Getenv("MAGEFILE_IGNOREDEFAULT"))
+		ignoreDefault := getBoolEnvWithFallback("STAVEFILE_IGNOREDEFAULT", "MAGEFILE_IGNOREDEFAULT")
 		if ignoreDefault {
 			if err := list(); err != nil {
 				logger.Println("Error:", err)

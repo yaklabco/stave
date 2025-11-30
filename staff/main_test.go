@@ -181,29 +181,29 @@ func TestTransitiveHashFast(t *testing.T) {
 		t.Fatalf("got code %v, err: %s", code, stderr)
 	}
 	// we should still get woof, even though the dependency was changed to
-	// return "meow", because we're only hashing the top level magefiles, not
+	// return "meow", because we're only hashing the top level stavefiles, not
 	// dependencies.
 	if actual := stdout.String(); actual != expected {
 		t.Fatalf("expected %q but got %q", expected, actual)
 	}
 }
 
-func TestListMagefilesMain(t *testing.T) {
+func TestListStavefilesMain(t *testing.T) {
 	buf := &bytes.Buffer{}
-	files, err := Magefiles("testdata/mixed_main_files", "", "", "go", buf, false, false)
+	files, err := Stavefiles("testdata/mixed_main_files", "", "", "go", buf, false, false)
 	if err != nil {
-		t.Errorf("error from magefile list: %v: %s", err, buf)
+		t.Errorf("error from stavefile list: %v: %s", err, buf)
 	}
 	expected := []string{
-		filepath.FromSlash("testdata/mixed_main_files/mage_helpers.go"),
-		filepath.FromSlash("testdata/mixed_main_files/magefile.go"),
+		filepath.FromSlash("testdata/mixed_main_files/stave_helpers.go"),
+		filepath.FromSlash("testdata/mixed_main_files/stavefile.go"),
 	}
 	if !reflect.DeepEqual(files, expected) {
 		t.Fatalf("expected %q but got %q", expected, files)
 	}
 }
 
-func TestListMagefilesIgnoresGOOS(t *testing.T) {
+func TestListStavefilesIgnoresGOOS(t *testing.T) {
 	buf := &bytes.Buffer{}
 	if runtime.GOOS == "windows" {
 		os.Setenv("GOOS", "linux")
@@ -211,22 +211,22 @@ func TestListMagefilesIgnoresGOOS(t *testing.T) {
 		os.Setenv("GOOS", "windows")
 	}
 	defer os.Setenv("GOOS", runtime.GOOS)
-	files, err := Magefiles("testdata/goos_magefiles", "", "", "go", buf, false, false)
+	files, err := Stavefiles("testdata/goos_stavefiles", "", "", "go", buf, false, false)
 	if err != nil {
-		t.Errorf("error from magefile list: %v: %s", err, buf)
+		t.Errorf("error from stavefile list: %v: %s", err, buf)
 	}
 	var expected []string
 	if runtime.GOOS == "windows" {
-		expected = []string{filepath.FromSlash("testdata/goos_magefiles/magefile_windows.go")}
+		expected = []string{filepath.FromSlash("testdata/goos_stavefiles/stavefile_windows.go")}
 	} else {
-		expected = []string{filepath.FromSlash("testdata/goos_magefiles/magefile_nonwindows.go")}
+		expected = []string{filepath.FromSlash("testdata/goos_stavefiles/stavefile_nonwindows.go")}
 	}
 	if !reflect.DeepEqual(files, expected) {
 		t.Fatalf("expected %q but got %q", expected, files)
 	}
 }
 
-func TestListMagefilesIgnoresRespectsGOOSArg(t *testing.T) {
+func TestListStavefilesIgnoresRespectsGOOSArg(t *testing.T) {
 	buf := &bytes.Buffer{}
 	var goos string
 	if runtime.GOOS == "windows" {
@@ -235,15 +235,15 @@ func TestListMagefilesIgnoresRespectsGOOSArg(t *testing.T) {
 		goos = "windows"
 	}
 	// Set GOARCH as amd64 because windows is not on all non-x86 architectures.
-	files, err := Magefiles("testdata/goos_magefiles", goos, "amd64", "go", buf, false, false)
+	files, err := Stavefiles("testdata/goos_stavefiles", goos, "amd64", "go", buf, false, false)
 	if err != nil {
-		t.Errorf("error from magefile list: %v: %s", err, buf)
+		t.Errorf("error from stavefile list: %v: %s", err, buf)
 	}
 	var expected []string
 	if goos == "windows" {
-		expected = []string{filepath.FromSlash("testdata/goos_magefiles/magefile_windows.go")}
+		expected = []string{filepath.FromSlash("testdata/goos_stavefiles/stavefile_windows.go")}
 	} else {
-		expected = []string{filepath.FromSlash("testdata/goos_magefiles/magefile_nonwindows.go")}
+		expected = []string{filepath.FromSlash("testdata/goos_stavefiles/stavefile_nonwindows.go")}
 	}
 	if !reflect.DeepEqual(files, expected) {
 		t.Fatalf("expected %q but got %q", expected, files)
@@ -307,22 +307,22 @@ func TestCompileDiffGoosGoarch(t *testing.T) {
 	}
 }
 
-func TestListMagefilesLib(t *testing.T) {
+func TestListStavefilesLib(t *testing.T) {
 	buf := &bytes.Buffer{}
-	files, err := Magefiles("testdata/mixed_lib_files", "", "", "go", buf, false, false)
+	files, err := Stavefiles("testdata/mixed_lib_files", "", "", "go", buf, false, false)
 	if err != nil {
-		t.Errorf("error from magefile list: %v: %s", err, buf)
+		t.Errorf("error from stavefile list: %v: %s", err, buf)
 	}
 	expected := []string{
-		filepath.FromSlash("testdata/mixed_lib_files/mage_helpers.go"),
-		filepath.FromSlash("testdata/mixed_lib_files/magefile.go"),
+		filepath.FromSlash("testdata/mixed_lib_files/stave_helpers.go"),
+		filepath.FromSlash("testdata/mixed_lib_files/stavefile.go"),
 	}
 	if !reflect.DeepEqual(files, expected) {
 		t.Fatalf("expected %q but got %q", expected, files)
 	}
 }
 
-func TestMixedMageImports(t *testing.T) {
+func TestMixedStaffImports(t *testing.T) {
 	resetTerm()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
@@ -343,15 +343,15 @@ func TestMixedMageImports(t *testing.T) {
 	}
 }
 
-func TestMagefilesFolder(t *testing.T) {
+func TestStavefilesFolder(t *testing.T) {
 	resetTerm()
 	wd, err := os.Getwd()
 	t.Log(wd)
 	if err != nil {
 		t.Fatalf("finding current working directory: %v", err)
 	}
-	if err := os.Chdir("testdata/with_magefiles_folder"); err != nil {
-		t.Fatalf("changing to magefolders tests data: %v", err)
+	if err := os.Chdir("testdata/with_stavefiles_folder"); err != nil {
+		t.Fatalf("changing to stafffolders tests data: %v", err)
 	}
 	// restore previous state
 	defer os.Chdir(wd)
@@ -375,15 +375,15 @@ func TestMagefilesFolder(t *testing.T) {
 	}
 }
 
-func TestMagefilesFolderMixedWithMagefiles(t *testing.T) {
+func TestStavefilesFolderMixedWithStavefiles(t *testing.T) {
 	resetTerm()
 	wd, err := os.Getwd()
 	t.Log(wd)
 	if err != nil {
 		t.Fatalf("finding current working directory: %v", err)
 	}
-	if err := os.Chdir("testdata/with_magefiles_folder_and_mage_files_in_dot"); err != nil {
-		t.Fatalf("changing to magefolders tests data: %v", err)
+	if err := os.Chdir("testdata/with_stavefiles_folder_and_staff_files_in_dot"); err != nil {
+		t.Fatalf("changing to stafffolders tests data: %v", err)
 	}
 	// restore previous state
 	defer os.Chdir(wd)
@@ -406,22 +406,22 @@ func TestMagefilesFolderMixedWithMagefiles(t *testing.T) {
 		t.Fatalf("expected %q but got %q", expected, actual)
 	}
 
-	expectedErr := "[WARNING] You have both a magefiles directory and mage files in the current directory, in future versions the files will be ignored in favor of the directory\n"
+	expectedErr := "[WARNING] You have both a stavefiles directory and stave files in the current directory, in future versions the files will be ignored in favor of the directory\n"
 	actualErr := stderr.String()
 	if actualErr != expectedErr {
 		t.Fatalf("expected Warning %q but got %q", expectedErr, actualErr)
 	}
 }
 
-func TestUntaggedMagefilesFolder(t *testing.T) {
+func TestUntaggedStavefilesFolder(t *testing.T) {
 	resetTerm()
 	wd, err := os.Getwd()
 	t.Log(wd)
 	if err != nil {
 		t.Fatalf("finding current working directory: %v", err)
 	}
-	if err := os.Chdir("testdata/with_untagged_magefiles_folder"); err != nil {
-		t.Fatalf("changing to magefolders tests data: %v", err)
+	if err := os.Chdir("testdata/with_untagged_stavefiles_folder"); err != nil {
+		t.Fatalf("changing to stafffolders tests data: %v", err)
 	}
 	// restore previous state
 	defer os.Chdir(wd)
@@ -445,15 +445,15 @@ func TestUntaggedMagefilesFolder(t *testing.T) {
 	}
 }
 
-func TestMixedTaggingMagefilesFolder(t *testing.T) {
+func TestMixedTaggingStavefilesFolder(t *testing.T) {
 	resetTerm()
 	wd, err := os.Getwd()
 	t.Log(wd)
 	if err != nil {
 		t.Fatalf("finding current working directory: %v", err)
 	}
-	if err := os.Chdir("testdata/with_mixtagged_magefiles_folder"); err != nil {
-		t.Fatalf("changing to magefolders tests data: %v", err)
+	if err := os.Chdir("testdata/with_mixtagged_stavefiles_folder"); err != nil {
+		t.Fatalf("changing to stafffolders tests data: %v", err)
 	}
 	// restore previous state
 	defer os.Chdir(wd)
@@ -483,7 +483,7 @@ func TestSetDirWithMagefilesFolder(t *testing.T) {
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
-		Dir:    "testdata/setdir_with_magefiles_folder",
+		Dir:    "testdata/setdir_with_stavefiles_folder",
 		Stdout: stdout,
 		Stderr: stderr,
 		List:   true,
@@ -1243,7 +1243,7 @@ func TestCompiledFlags(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	name := filepath.Join(compileDir, "mage_out")
+	name := filepath.Join(compileDir, "staff_out")
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
@@ -1330,7 +1330,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	name := filepath.Join(compileDir, "mage_out")
+	name := filepath.Join(compileDir, "staff_out")
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
@@ -1422,7 +1422,7 @@ func TestCompiledVerboseFlag(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	filename := filepath.Join(compileDir, "mage_out")
+	filename := filepath.Join(compileDir, "staff_out")
 	if runtime.GOOS == "windows" {
 		filename += ".exe"
 	}
@@ -1488,7 +1488,7 @@ func TestSignals(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	name := filepath.Join(compileDir, "mage_out")
+	name := filepath.Join(compileDir, "staff_out")
 	// The CompileOut directory is relative to the
 	// invocation directory, so chop off the invocation dir.
 	outName := "./" + name[len(dir)-1:]
@@ -1600,7 +1600,7 @@ func TestCompiledDeterministic(t *testing.T) {
 		run := run
 		t.Run(run, func(t *testing.T) {
 			// probably don't run this parallel
-			filename := filepath.Join(compileDir, "mage_out")
+			filename := filepath.Join(compileDir, "staff_out")
 			if runtime.GOOS == "windows" {
 				filename += ".exe"
 			}
@@ -1739,9 +1739,9 @@ func TestGoModules(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(dir)
-	// beware, mage builds in go versions older than 1.17 so both build tag formats need to be present
-	err = ioutil.WriteFile(filepath.Join(dir, "magefile.go"), []byte(`//go:build mage
-// +build mage
+	// beware, staff builds in go versions older than 1.17 so both build tag formats need to be present
+	err = ioutil.WriteFile(filepath.Join(dir, "stavefile.go"), []byte(`//go:build stave
+// +build stave
 
 package main
 

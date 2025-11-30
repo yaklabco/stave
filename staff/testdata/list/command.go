@@ -1,5 +1,5 @@
-//go:build mage
-// +build mage
+//go:build stave
+// +build stave
 
 // This is a comment on the package which should get turned into output with the
 // list of targets.
