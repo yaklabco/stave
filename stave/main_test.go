@@ -1950,3 +1950,236 @@ func fileData(file string) (exeType, archSize, error) {
 	}
 	return -1, -1, fmt.Errorf("unrecognized executable format")
 }
+
+func TestUsesStavefiles(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		dir  string
+		want bool
+	}{
+		{
+			name: "dir ends with stavefiles",
+			dir:  "/path/to/stavefiles",
+			want: true,
+		},
+		{
+			name: "dir doesn't end with stavefiles",
+			dir:  "/path/to/project",
+			want: false,
+		},
+		{
+			name: "empty dir",
+			dir:  "",
+			want: false,
+		},
+		{
+			name: "just stavefiles",
+			dir:  "stavefiles",
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			inv := Invocation{Dir: tt.dir}
+			got := inv.UsesStavefiles()
+			if got != tt.want {
+				t.Errorf("UsesStavefiles() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseInvalidFlags(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		args    []string
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name:    "goos without compile",
+			args:    []string{"-goos", "linux"},
+			wantErr: true,
+			errMsg:  "-goos and -goarch only apply when running with -compile",
+		},
+		{
+			name:    "goarch without compile",
+			args:    []string{"-goarch", "amd64"},
+			wantErr: true,
+			errMsg:  "-goos and -goarch only apply when running with -compile",
+		},
+		{
+			name:    "h with multiple targets",
+			args:    []string{"-h", "target1", "target2"},
+			wantErr: true,
+			errMsg:  "-h can only show help for a single target",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, _, err := Parse(io.Discard, io.Discard, tt.args)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && err != nil {
+				if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("Parse() error = %v, want error containing %q", err, tt.errMsg)
+				}
+			}
+		})
+	}
+}
+
+func TestParseEnvDefaults(t *testing.T) {
+	t.Parallel()
+
+	// Set up environment variables
+	os.Setenv("STAVEFILE_VERBOSE", "1")
+	os.Setenv("STAVEFILE_DEBUG", "1")
+	t.Cleanup(func() {
+		os.Unsetenv("STAVEFILE_VERBOSE")
+		os.Unsetenv("STAVEFILE_DEBUG")
+	})
+
+	inv, _, err := Parse(io.Discard, io.Discard, []string{})
+	if err != nil && err != flag.ErrHelp {
+		t.Fatalf("Parse() error = %v", err)
+	}
+
+	if !inv.Verbose {
+		t.Error("Parse() should set Verbose from STAVEFILE_VERBOSE env var")
+	}
+
+	if !inv.Debug {
+		t.Error("Parse() should set Debug from STAVEFILE_DEBUG env var")
+	}
+}
+
+func TestGenerateInit(t *testing.T) {
+	t.Parallel()
+
+	dir, err := os.MkdirTemp("", "stave-test-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	err = generateInit(dir)
+	if err != nil {
+		t.Fatalf("generateInit() error = %v", err)
+	}
+
+	// Verify file was created
+	initPath := filepath.Join(dir, "stavefile.go")
+	if _, err := os.Stat(initPath); os.IsNotExist(err) {
+		t.Error("generateInit() did not create stavefile.go")
+	}
+
+	// Verify template rendered correctly
+	content, err := os.ReadFile(initPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check for key content
+	requiredStrings := []string{
+		"package main",
+		"import",
+		"stave",
+		"func",
+	}
+
+	for _, s := range requiredStrings {
+		if !strings.Contains(string(content), s) {
+			t.Errorf("generateInit() template missing %q", s)
+		}
+	}
+}
+
+func TestExeNameConsistency(t *testing.T) {
+	t.Parallel()
+
+	// Create temporary test files
+	dir, err := os.MkdirTemp("", "stave-test-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	file1 := filepath.Join(dir, "test1.go")
+	if err := os.WriteFile(file1, []byte("package main"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	file2 := filepath.Join(dir, "test2.go")
+	if err := os.WriteFile(file2, []byte("package main"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cacheDir, err := os.MkdirTemp("", "stave-cache-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(cacheDir)
+
+	// Test consistent hash
+	name1, err := ExeName("go", cacheDir, []string{file1, file2})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	name2, err := ExeName("go", cacheDir, []string{file1, file2})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if name1 != name2 {
+		t.Errorf("ExeName() not consistent: %q != %q", name1, name2)
+	}
+
+	// Test Windows .exe suffix
+	if runtime.GOOS == "windows" {
+		if !strings.HasSuffix(name1, ".exe") {
+			t.Errorf("ExeName() on Windows should end with .exe, got %q", name1)
+		}
+	}
+}
+
+func TestCompileError(t *testing.T) {
+	t.Parallel()
+
+	// Create a directory with invalid Go code
+	dir, err := os.MkdirTemp("", "stave-test-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	// Write invalid Go code
+	invalidFile := filepath.Join(dir, "invalid.go")
+	if err := os.WriteFile(invalidFile, []byte("package main\nthis is not valid go code"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	compiledPath := filepath.Join(dir, "output")
+	stderr := &bytes.Buffer{}
+	stdout := &bytes.Buffer{}
+
+	err = Compile("", "", "", dir, "go", compiledPath, []string{"invalid.go"}, false, stderr, stdout)
+	if err == nil {
+		t.Error("Compile() with invalid Go code should return error")
+	}
+}
