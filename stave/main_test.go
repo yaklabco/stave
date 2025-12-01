@@ -14,6 +14,7 @@ import (
 	"go/token"
 	"io"
 	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -37,52 +38,61 @@ func TestMain(m *testing.M) {
 		_, _ = fmt.Fprint(os.Stdout, s)
 		os.Exit(0)
 	}
-	os.Exit(testmain(m))
+	os.Exit(actualTestMain(m))
 }
 
-func testmain(m *testing.M) int {
+func actualTestMain(m *testing.M) int {
 	// ensure we write our temporary binaries to a directory that we'll delete
 	// after running tests.
 	dir, err := os.MkdirTemp("", "")
 	if err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		return 1
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
 	if err := os.Setenv(st.CacheEnv, dir); err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		return 1
 	}
 	if err := os.Unsetenv(st.VerboseEnv); err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		return 1
 	}
 	if err := os.Unsetenv(st.DebugEnv); err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		return 1
 	}
 	if err := os.Unsetenv(st.IgnoreDefaultEnv); err != nil {
-		log.Fatal(err)
-	}
-	if err := os.Setenv(st.CacheEnv, dir); err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		return 1
 	}
 	if err := os.Unsetenv(st.EnableColorEnv); err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		return 1
 	}
 	if err := os.Unsetenv(st.TargetColorEnv); err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		return 1
 	}
-	resetTerm()
+	if err := resetTerm(); err != nil {
+		slog.Error(err.Error())
+		return 1
+	}
+
 	return m.Run()
 }
 
-func resetTerm() {
+func resetTerm() error {
 	if term, exists := os.LookupEnv("TERM"); exists {
 		log.Printf("Current terminal: %s", term)
 		// unset TERM env var in order to disable color output to make the tests simpler
 		// there is a specific test for colorized output, so all the other tests can use non-colorized one
 		if err := os.Unsetenv("TERM"); err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
-	_ = os.Setenv(st.EnableColorEnv, "false")
+
+	return os.Setenv(st.EnableColorEnv, "false")
 }
 
 func TestTransitiveDepCache(t *testing.T) {
@@ -282,25 +292,25 @@ func TestCompileDiffGoosGoarch(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("got code %v, err: %s", code, stderr)
 	}
-	os, arch, err := fileData(filepath.Join(target, "output"))
+	theOS, theArch, err := fileData(filepath.Join(target, "output"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if goos == "windows" {
-		if os != winExe {
+		if theOS != winExe {
 			t.Error("ran with GOOS=windows but did not produce a windows exe")
 		}
 	} else {
-		if os != macExe {
+		if theOS != macExe {
 			t.Error("ran with GOOS=darwin but did not a mac exe")
 		}
 	}
 	if goarch == "amd64" {
-		if arch != arch64 {
+		if theArch != arch64 {
 			t.Error("ran with GOARCH=amd64 but did not produce a 64 bit exe")
 		}
 	} else {
-		if arch != arch32 {
+		if theArch != arch32 {
 			t.Error("rand with GOARCH=386 but did not produce a 32 bit exe")
 		}
 	}
@@ -322,7 +332,7 @@ func TestListStavefilesLib(t *testing.T) {
 }
 
 func TestMixedStaveImports(t *testing.T) {
-	resetTerm()
+	require.NoError(t, resetTerm())
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
@@ -343,7 +353,7 @@ func TestMixedStaveImports(t *testing.T) {
 }
 
 func TestStavefilesFolder(t *testing.T) {
-	resetTerm()
+	require.NoError(t, resetTerm())
 	wd, err := os.Getwd()
 	t.Log(wd)
 	if err != nil {
@@ -375,7 +385,7 @@ func TestStavefilesFolder(t *testing.T) {
 }
 
 func TestStavefilesFolderMixedWithStavefiles(t *testing.T) {
-	resetTerm()
+	require.NoError(t, resetTerm())
 	wd, err := os.Getwd()
 	t.Log(wd)
 	if err != nil {
@@ -413,7 +423,7 @@ func TestStavefilesFolderMixedWithStavefiles(t *testing.T) {
 }
 
 func TestUntaggedStavefilesFolder(t *testing.T) {
-	resetTerm()
+	require.NoError(t, resetTerm())
 	wd, err := os.Getwd()
 	t.Log(wd)
 	if err != nil {
@@ -445,7 +455,7 @@ func TestUntaggedStavefilesFolder(t *testing.T) {
 }
 
 func TestMixedTaggingStavefilesFolder(t *testing.T) {
-	resetTerm()
+	require.NoError(t, resetTerm())
 	wd, err := os.Getwd()
 	t.Log(wd)
 	if err != nil {
@@ -477,7 +487,7 @@ func TestMixedTaggingStavefilesFolder(t *testing.T) {
 }
 
 func TestSetDirWithStavefilesFolder(t *testing.T) {
-	resetTerm()
+	require.NoError(t, resetTerm())
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
@@ -681,7 +691,7 @@ Targets:
 }
 
 func TestNoArgNoDefaultList(t *testing.T) {
-	resetTerm()
+	require.NoError(t, resetTerm())
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -716,7 +726,7 @@ func TestIgnoreDefault(t *testing.T) {
 		Stderr: stderr,
 	}
 	t.Setenv(st.IgnoreDefaultEnv, "1")
-	resetTerm()
+	require.NoError(t, resetTerm())
 
 	code := Invoke(inv)
 	if code != 0 {
@@ -1716,7 +1726,7 @@ func TestGoCmd(t *testing.T) {
 }
 
 func TestGoModules(t *testing.T) {
-	resetTerm()
+	require.NoError(t, resetTerm())
 	dir, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Fatal(err)
