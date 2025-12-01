@@ -13,3 +13,4 @@
     - [ ] Husky setup
     - [ ] Copy over CHANGELOG uber-hook from [goctx](https://github.com/preminger/goctx/)
 - [x] Merge goctx's `.gitignore` with stave's `.gitignore`
+- [ ] Add STAVE_NUM_PROCESSORS / GOMAXPROCS setter
