@@ -12,4 +12,4 @@
   - [ ] Hooks:
     - [ ] Husky setup
     - [ ] Copy over CHANGELOG uber-hook from [goctx](https://github.com/preminger/goctx/)
-- [ ] Merge goctx's `.gitignore` with stave's `.gitignore`
+- [x] Merge goctx's `.gitignore` with stave's `.gitignore`
