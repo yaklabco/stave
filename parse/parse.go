@@ -10,11 +10,13 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/yaklabco/stave/internal"
+	"golang.org/x/tools/go/packages"
 )
 
 const importTag = "stave:import"
@@ -29,7 +31,10 @@ func EnableDebug() {
 // PkgInfo contains inforamtion about a package of files according to stave's
 // parsing rules.
 type PkgInfo struct {
-	AstPkg      *ast.Package
+	// PkgName is the package name (e.g., "main", "stavefile").
+	PkgName string
+	// Files are the parsed Go files that make up the package under analysis.
+	Files       []*ast.File
 	DocPkg      *doc.Package
 	Description string
 	Funcs       Functions
@@ -247,13 +252,18 @@ func Package(path string, files []string) (*PkgInfo, error) {
 		debug.Println("time parse Stavefiles:", time.Since(start))
 	}()
 	fset := token.NewFileSet()
-	pkg, err := getPackage(path, files, fset)
+	pkgName, pkgFiles, err := getPackage(path, files, fset)
 	if err != nil {
 		return nil, err
 	}
-	p := doc.New(pkg, "./", 0)
+	// Build documentation package from files to avoid relying on deprecated ast.Package
+	p, err := doc.NewFromFiles(fset, pkgFiles, "./")
+	if err != nil {
+		return nil, err
+	}
 	pi := &PkgInfo{
-		AstPkg:      pkg,
+		PkgName:     pkgName,
+		Files:       pkgFiles,
 		DocPkg:      p,
 		Description: toOneLine(p.Doc),
 	}
@@ -401,9 +411,9 @@ func setNamespaces(pi *PkgInfo) {
 }
 
 func setImports(gocmd string, pi *PkgInfo) error {
+	var rootImports []string
 	importNames := map[string]string{}
-	rootImports := []string{}
-	for _, f := range pi.AstPkg.Files {
+	for _, f := range pi.Files {
 		for _, d := range f.Decls {
 			gen, ok := d.(*ast.GenDecl)
 			if !ok || gen.Tok != token.IMPORT {
@@ -729,40 +739,115 @@ func getFunction(exp ast.Expr, pi *PkgInfo) (*Function, error) {
 	return nil, fmt.Errorf("unknown package for function %q", exp)
 }
 
-// getPackage returns the importable package at the given path.
-func getPackage(path string, files []string, fset *token.FileSet) (*ast.Package, error) {
-	var filter func(f os.FileInfo) bool
+// getPackage parses a directory of Go files and retrieves package information.
+// Returns the package name, parsed files, and an error if encountered.
+func getPackage(path string, files []string, fset *token.FileSet) (string, []*ast.File, error) {
+	// If specific files are provided, parse just those files regardless of build tags.
 	if len(files) > 0 {
-		fm := make(map[string]bool, len(files))
-		for _, f := range files {
-			fm[f] = true
+		var out []*ast.File
+		var pkgName string
+		for _, name := range files {
+			full := filepath.Join(path, name)
+			f, err := parser.ParseFile(fset, full, nil, parser.ParseComments)
+			if err != nil {
+				return "", nil, fmt.Errorf("failed to parse file %s: %v", name, err)
+			}
+			if pkgName == "" {
+				pkgName = f.Name.Name
+			} else if pkgName != f.Name.Name {
+				return "", nil, fmt.Errorf("multiple packages found in %s: %v", path, strings.Join([]string{pkgName, f.Name.Name}, ", "))
+			}
+			out = append(out, f)
 		}
-
-		filter = func(f os.FileInfo) bool {
-			return fm[f.Name()]
+		if pkgName == "" {
+			return "", nil, fmt.Errorf("no importable packages found in %s", path)
 		}
+		return pkgName, out, nil
 	}
 
-	pkgs, err := parser.ParseDir(fset, path, filter, parser.ParseComments)
+	// Otherwise, attempt to use go/packages to respect build tags.
+	cfg := &packages.Config{
+		Mode:  packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedSyntax,
+		Dir:   path,
+		Fset:  fset,
+		Tests: false,
+	}
+	pkgs, err := packages.Load(cfg, ".")
+	if err == nil && len(pkgs) > 0 && packages.PrintErrors(pkgs) == 0 {
+		// Collect unique, valid packages with syntax.
+		var outPkgs []*packages.Package
+		nameSet := map[string]struct{}{}
+		for _, p := range pkgs {
+			if p == nil || len(p.Syntax) == 0 {
+				continue
+			}
+			outPkgs = append(outPkgs, p)
+			nameSet[p.Name] = struct{}{}
+		}
+		if len(outPkgs) == 1 && len(nameSet) == 1 {
+			p := outPkgs[0]
+			astFiles := make([]*ast.File, 0, len(p.Syntax))
+			astFiles = append(astFiles, p.Syntax...)
+			return p.Name, astFiles, nil
+		}
+		if len(outPkgs) > 1 {
+			var names []string
+			for n := range nameSet {
+				names = append(names, n)
+			}
+			sort.Strings(names)
+			return "", nil, fmt.Errorf("multiple packages found in %s: %v", path, strings.Join(names, ", "))
+		}
+		// else fall through to manual parsing
+	}
+
+	// Fallback: manually parse all .go files in the directory (ignoring build tags),
+	// similar to previous behavior before removing parser.ParseDir.
+	entries, err := os.ReadDir(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse directory: %v", err)
+		return "", nil, fmt.Errorf("failed to read directory: %v", err)
 	}
-
-	switch len(pkgs) {
-	case 1:
-		var pkg *ast.Package
-		for _, pkg = range pkgs {
+	var (
+		filesInDir []string
+		pkgName    string
+		out        []*ast.File
+		namesSet   = map[string]struct{}{}
+	)
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
 		}
-		return pkg, nil
-	case 0:
-		return nil, fmt.Errorf("no importable packages found in %s", path)
-	default:
+		name := e.Name()
+		if !strings.HasSuffix(name, ".go") {
+			continue
+		}
+		filesInDir = append(filesInDir, name)
+	}
+	sort.Strings(filesInDir)
+	for _, name := range filesInDir {
+		full := filepath.Join(path, name)
+		f, err := parser.ParseFile(fset, full, nil, parser.ParseComments)
+		if err != nil {
+			return "", nil, fmt.Errorf("failed to parse file %s: %v", name, err)
+		}
+		namesSet[f.Name.Name] = struct{}{}
+		if pkgName == "" {
+			pkgName = f.Name.Name
+		}
+		out = append(out, f)
+	}
+	if len(out) == 0 {
+		return "", nil, fmt.Errorf("no importable packages found in %s", path)
+	}
+	if len(namesSet) > 1 {
 		var names []string
-		for name := range pkgs {
-			names = append(names, name)
+		for n := range namesSet {
+			names = append(names, n)
 		}
-		return nil, fmt.Errorf("multiple packages found in %s: %v", path, strings.Join(names, ", "))
+		sort.Strings(names)
+		return "", nil, fmt.Errorf("multiple packages found in %s: %v", path, strings.Join(names, ", "))
 	}
+	return pkgName, out, nil
 }
 
 // hasContextParams returns whether or not the first parameter is a context.Context. If it

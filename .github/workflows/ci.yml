@@ -9,20 +9,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        go-version:
-          - stable
-          - "1.22"
-          - "1.21"
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Go ${{ matrix.go-version }}
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version-file: go.mod
 
       - name: Verify dependencies
         run: go mod verify
@@ -40,7 +33,6 @@ jobs:
 
       - name: Upload coverage
         uses: codecov/codecov-action@v3
-        if: matrix.go-version == 'stable'
         with:
           files: coverage.out
 
@@ -52,7 +44,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: stable
+          go-version-file: go.mod
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3

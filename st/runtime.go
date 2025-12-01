@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+
+	"github.com/yaklabco/stave/internal/dryrun"
 )
 
 // CacheEnv is the environment variable that users may set to change the
@@ -18,6 +20,12 @@ const VerboseEnv = "STAVEFILE_VERBOSE"
 // DebugEnv is the environment variable that indicates the user requested
 // debug mode when running stave.
 const DebugEnv = "STAVEFILE_DEBUG"
+
+// DryRunRequestedEnv is the environment variable that indicates the user requested dryrun mode when running mage.
+const DryRunRequestedEnv = dryrun.RequestedEnv
+
+// DryRunPossibleEnv is the environment variable that indicates we are in a context where a dry run is possible.
+const DryRunPossibleEnv = dryrun.PossibleEnv
 
 // GoCmdEnv is the environment variable that indicates the go binary the user
 // desires to utilize for Stavefile compilation.

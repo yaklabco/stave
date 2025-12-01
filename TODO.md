@@ -1,0 +1,15 @@
+- [ ] Go lint:
+  - [ ] Bring over `.golangci.yml` from [goctx](https://github.com/preminger/goctx/)
+  - [ ] Fix all lint that emerges after running with new config
+- [ ] Establish [CHANGELOG](https://keepachangelog.com/en/1.1.0/)
+- [ ] Bring over elements of build- & CI-configs from [goctx](https://github.com/preminger/goctx/):
+  - [ ] `nprocs.sh`
+  - [ ] `.goreleaser.yaml`
+  - [ ] `.markdownlint.yaml`
+  - [ ] `.svu.yml`
+  - [ ] `Brewfile`
+  - [ ] Merge goctx's `magefile.go` into stave's `magefile.go`
+  - [ ] Hooks:
+    - [ ] Husky setup
+    - [ ] Copy over CHANGELOG uber-hook from [goctx](https://github.com/preminger/goctx/)
+- [ ] Merge goctx's `.gitignore` with stave's `.gitignore`

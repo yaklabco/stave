@@ -2,6 +2,7 @@ package sh
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/yaklabco/stave/internal/dryrun"
 	"github.com/yaklabco/stave/st"
 )
 
@@ -62,7 +64,8 @@ func RunV(cmd string, args ...string) error {
 // be in the format name=value.
 func RunWith(env map[string]string, cmd string, args ...string) error {
 	var output io.Writer
-	if st.Verbose() {
+	// In dryrun mode, the actual "command" will just print the cmd and args to stdout; so we want to make sure we're outputting that regardless of verbosity settings.
+	if st.Verbose() || dryrun.IsDryRun() {
 		output = os.Stdout
 	}
 	_, err := Exec(env, output, os.Stderr, cmd, args...)
@@ -124,7 +127,7 @@ func Exec(env map[string]string, stdout, stderr io.Writer, cmd string, args ...s
 }
 
 func run(env map[string]string, stdout, stderr io.Writer, cmd string, args ...string) (ran bool, code int, err error) {
-	c := exec.Command(cmd, args...)
+	c := dryrun.Wrap(cmd, args...)
 	c.Env = os.Environ()
 	for k, v := range env {
 		c.Env = append(c.Env, k+"="+v)
@@ -155,7 +158,8 @@ func CmdRan(err error) bool {
 	if err == nil {
 		return true
 	}
-	ee, ok := err.(*exec.ExitError)
+	var ee *exec.ExitError
+	ok := errors.As(err, &ee)
 	if ok {
 		return ee.Exited()
 	}
@@ -176,7 +180,8 @@ func ExitStatus(err error) int {
 	if e, ok := err.(exitStatus); ok {
 		return e.ExitStatus()
 	}
-	if e, ok := err.(*exec.ExitError); ok {
+	var e *exec.ExitError
+	if errors.As(err, &e) {
 		if ex, ok := e.Sys().(exitStatus); ok {
 			return ex.ExitStatus()
 		}

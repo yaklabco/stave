@@ -1,7 +1,6 @@
 package stave
 
 import (
-	"bytes"
 	"crypto/sha1"
 	"errors"
 	"flag"
@@ -10,7 +9,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"regexp"
@@ -22,6 +20,7 @@ import (
 	"time"
 
 	"github.com/yaklabco/stave/internal"
+	"github.com/yaklabco/stave/internal/dryrun"
 	"github.com/yaklabco/stave/parse"
 	"github.com/yaklabco/stave/sh"
 	"github.com/yaklabco/stave/st"
@@ -106,6 +105,7 @@ type Invocation struct {
 	List       bool          // tells the stavefile to print out a list of targets
 	Help       bool          // tells the stavefile to print out help for a specific target
 	Keep       bool          // tells stave to keep the generated main file after compiling
+	DryRun     bool          // tells stave that all sh.Run* commands should print, but not execute
 	Timeout    time.Duration // tells stave to set a timeout to running the targets
 	CompileOut string        // tells stave to compile a static binary to this path, but not execute
 	GOOS       string        // sets the GOOS when producing a binary with -compileout
@@ -136,15 +136,16 @@ func ParseAndRun(stdout, stderr io.Writer, stdin io.Reader, args []string) int {
 	errlog := log.New(stderr, "", 0)
 	out := log.New(stdout, "", 0)
 	inv, cmd, err := Parse(stderr, stdout, args)
-	inv.Stderr = stderr
-	inv.Stdin = stdin
-	if err == flag.ErrHelp {
+	if errors.Is(err, flag.ErrHelp) {
 		return 0
 	}
 	if err != nil {
 		errlog.Println("Error:", err)
 		return 2
 	}
+
+	inv.Stderr = stderr
+	inv.Stdin = stdin
 
 	switch cmd {
 	case Version:
@@ -191,6 +192,7 @@ func Parse(stderr, stdout io.Writer, args []string) (inv Invocation, cmd Command
 	fs.BoolVar(&inv.Help, "h", false, "show this help")
 	fs.DurationVar(&inv.Timeout, "t", 0, "timeout in duration parsable format (e.g. 5m30s)")
 	fs.BoolVar(&inv.Keep, "keep", false, "keep intermediate stave files around after running")
+	fs.BoolVar(&inv.DryRun, "dryrun", false, "print commands instead of executing them")
 	fs.StringVar(&inv.Dir, "d", "", "directory to read stavefiles from")
 	fs.StringVar(&inv.WorkDir, "w", "", "working directory where stavefiles will run")
 	fs.StringVar(&inv.GoCmd, "gocmd", st.GoCmd(), "use the given go binary to compile the output")
@@ -229,6 +231,7 @@ Options:
   -d <string> 
             directory to read stavefiles from (default "." or "stavefiles" if exists)
   -debug    turn on debug messages
+  -dryrun   print commands instead of executing them
   -f        force recreation of compiled stavefile
   -goarch   sets the GOARCH for the binary created by -compile (default: current arch)
   -gocmd <string>
@@ -245,7 +248,7 @@ Options:
 `[1:])
 	}
 	err = fs.Parse(args)
-	if err == flag.ErrHelp {
+	if errors.Is(err, flag.ErrHelp) {
 		// parse will have already called fs.Usage()
 		return inv, cmd, err
 	}
@@ -282,6 +285,10 @@ Options:
 
 	if inv.Debug {
 		debug.SetOutput(stderr)
+	}
+
+	if inv.DryRun {
+		dryrun.SetRequested(true)
 	}
 
 	inv.CacheDir = st.CacheDir()
@@ -326,11 +333,10 @@ func Invoke(inv Invocation) int {
 	mfSt, err := os.Stat(stavefilesDir)
 	if err == nil {
 		if mfSt.IsDir() {
-			stderrBuf := &bytes.Buffer{}
 			originalDir := inv.Dir
 			inv.Dir = stavefilesDir // preemptive assignment
 			// TODO: Remove this fallback and the above Stavefiles invocation when the bw compatibility is removed.
-			files, err := Stavefiles(originalDir, inv.GOOS, inv.GOARCH, inv.GoCmd, stderrBuf, false, inv.Debug)
+			files, err := Stavefiles(originalDir, inv.GOOS, inv.GOARCH, false)
 			if err == nil {
 				if len(files) != 0 {
 					errlog.Println("[WARNING] You have both a stavefiles directory and stave files in the " +
@@ -345,7 +351,7 @@ func Invoke(inv Invocation) int {
 		inv.CacheDir = st.CacheDir()
 	}
 
-	files, err := Stavefiles(inv.Dir, inv.GOOS, inv.GOARCH, inv.GoCmd, inv.Stderr, inv.UsesStavefiles(), inv.Debug)
+	files, err := Stavefiles(inv.Dir, inv.GOOS, inv.GOARCH, inv.UsesStavefiles())
 	if err != nil {
 		errlog.Println("Error determining list of stavefiles:", err)
 		return 1
@@ -467,7 +473,7 @@ type mainfileTemplateData struct {
 
 // listGoFiles returns a list of all .go files in a given directory,
 // matching the provided tag
-func listGoFiles(stavePath, goCmd, tag string, envStr []string) ([]string, error) {
+func listGoFiles(stavePath, tag string, envStr []string) ([]string, error) {
 	origStavePath := stavePath
 	if !filepath.IsAbs(stavePath) {
 		cwd, err := os.Getwd()
@@ -495,14 +501,20 @@ func listGoFiles(stavePath, goCmd, tag string, envStr []string) ([]string, error
 
 	pkg, err := bctx.Import(".", stavePath, 0)
 	if err != nil {
-		if _, ok := err.(*build.NoGoError); ok {
+		var noGoError *build.NoGoError
+		if errors.As(err, &noGoError) {
 			return []string{}, nil
 		}
 
 		// Allow multiple packages in the same directory
-		if _, ok := err.(*build.MultiplePackageError); !ok {
+		var multiplePackageError *build.MultiplePackageError
+		if !errors.As(err, &multiplePackageError) {
 			return nil, fmt.Errorf("failed to parse go source files: %v", err)
 		}
+	}
+
+	if pkg == nil {
+		return []string{}, errors.New("unexpected nil return-value from bctx.Import")
 	}
 
 	goFiles := make([]string, len(pkg.GoFiles))
@@ -515,7 +527,7 @@ func listGoFiles(stavePath, goCmd, tag string, envStr []string) ([]string, error
 }
 
 // Stavefiles returns the list of stavefiles in dir.
-func Stavefiles(stavePath, goos, goarch, goCmd string, stderr io.Writer, isStavefilesDirectory, isDebug bool) ([]string, error) {
+func Stavefiles(stavePath, goos, goarch string, isStavefilesDirectory bool) ([]string, error) {
 	start := time.Now()
 	defer func() {
 		debug.Println("time to scan for Stavefiles:", time.Since(start))
@@ -527,7 +539,7 @@ func Stavefiles(stavePath, goos, goarch, goCmd string, stderr io.Writer, isStave
 	}
 
 	debug.Println("getting all files including those with stave tag in", stavePath)
-	staveFiles, err := listGoFiles(stavePath, goCmd, "stave", env)
+	staveFiles, err := listGoFiles(stavePath, "stave", env)
 	if err != nil {
 		return nil, fmt.Errorf("listing stave files: %v", err)
 	}
@@ -543,7 +555,7 @@ func Stavefiles(stavePath, goos, goarch, goCmd string, stderr io.Writer, isStave
 	// that have the stave build tag and ignore those that don't.
 
 	debug.Println("getting all files without stave tag in", stavePath)
-	nonStaveFiles, err := listGoFiles(stavePath, goCmd, "", env)
+	nonStaveFiles, err := listGoFiles(stavePath, "", env)
 	if err != nil {
 		return nil, fmt.Errorf("listing non-stave files: %v", err)
 	}
@@ -591,7 +603,7 @@ func Compile(goos, goarch, ldflags, stavePath, goCmd, compileTo string, gofiles 
 	args := append(buildArgs, gofiles...)
 
 	debug.Printf("running %s %s", goCmd, strings.Join(args, " "))
-	c := exec.Command(goCmd, args...)
+	c := dryrun.Wrap(goCmd, args...)
 	c.Env = environ
 	c.Stderr = stderr
 	c.Stdout = stdout
@@ -703,7 +715,7 @@ func generateInit(dir string) error {
 // RunCompiled runs an already-compiled stave command with the given args,
 func RunCompiled(inv Invocation, exePath string, errlog *log.Logger) int {
 	debug.Println("running binary", exePath)
-	c := exec.Command(exePath, inv.Args...)
+	c := dryrun.Wrap(exePath, inv.Args...)
 	c.Stderr = inv.Stderr
 	c.Stdout = inv.Stdout
 	c.Stdin = inv.Stdin
@@ -711,9 +723,15 @@ func RunCompiled(inv Invocation, exePath string, errlog *log.Logger) int {
 	if inv.WorkDir != inv.Dir {
 		c.Dir = inv.WorkDir
 	}
+
 	// intentionally pass through unaltered os.Environ here.. your stavefile has
 	// to deal with it.
 	c.Env = os.Environ()
+
+	// We don't want to actually allow dryrun in the outermost invocation of stave, since that will inhibit the very compilation of the stavefile & the use of the resulting binary.
+	// But every situation that's within such an execution is one in which dryrun is supported, so we set this environment variable which will be carried over throughout all such situations.
+	c.Env = append(c.Env, "STAVEFILE_DRYRUN_POSSIBLE=1")
+
 	if inv.Verbose {
 		c.Env = append(c.Env, "STAVEFILE_VERBOSE=1")
 	}
@@ -731,6 +749,9 @@ func RunCompiled(inv Invocation, exePath string, errlog *log.Logger) int {
 	}
 	if inv.Timeout > 0 {
 		c.Env = append(c.Env, fmt.Sprintf("STAVEFILE_TIMEOUT=%s", inv.Timeout.String()))
+	}
+	if inv.DryRun {
+		c.Env = append(c.Env, "STAVEFILE_DRYRUN=1")
 	}
 	debug.Print("running stavefile with stave vars:\n", strings.Join(filter(c.Env, "STAVEFILE"), "\n"))
 	// catch SIGINT to allow stavefile to handle them

@@ -1,6 +1,7 @@
 package target
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -32,7 +33,7 @@ func DirNewer(target time.Time, sources ...string) (bool, error) {
 		if err == nil {
 			continue
 		}
-		if err == errNewer {
+		if errors.Is(err, errNewer) {
 			return true, nil
 		}
 		return false, err
