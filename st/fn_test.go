@@ -135,7 +135,7 @@ func TestF(t *testing.T) {
 		bOut   bool
 		dOut   time.Duration
 	)
-	f := func(cctx context.Context, ii int, ss string, bb bool, dd time.Duration) error {
+	theFunc := func(cctx context.Context, ii int, ss string, bb bool, dd time.Duration) error {
 		ctxOut = cctx
 		iOut = ii
 		sOut = ss
@@ -145,25 +145,25 @@ func TestF(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	i := 1776
-	s := "abc124"
-	b := true
-	d := time.Second
+	iVal := 1776
+	sVal := "abc124"
+	bVal := true
+	dVal := time.Second
 
-	CtxDeps(ctx, F(f, i, s, b, d))
+	CtxDeps(ctx, F(theFunc, iVal, sVal, bVal, dVal))
 	if ctxOut != ctx {
 		t.Error(ctxOut)
 	}
-	if iOut != i {
+	if iOut != iVal {
 		t.Error(iOut)
 	}
-	if bOut != b {
+	if bOut != bVal {
 		t.Error(bOut)
 	}
-	if dOut != d {
+	if dOut != dVal {
 		t.Error(dOut)
 	}
-	if sOut != s {
+	if sOut != sVal {
 		t.Error(sOut)
 	}
 }

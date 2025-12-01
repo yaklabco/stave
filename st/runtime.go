@@ -69,7 +69,7 @@ const EnableColorEnv = "STAVEFILE_ENABLE_COLOR"
 // - BrightBlue
 // - BrightStaventa
 // - BrightCyan
-// - BrightWhite
+// - BrightWhite.
 const TargetColorEnv = "STAVEFILE_TARGET_COLOR"
 
 // Verbose reports whether a stavefile was run with the verbose flag.
@@ -140,5 +140,5 @@ func TargetColor() string {
 	return DefaultTargetAnsiColor
 }
 
-// Namespace allows for the grouping of similar commands
+// Namespace allows for the grouping of similar commands.
 type Namespace struct{}

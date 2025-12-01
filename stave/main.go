@@ -2,6 +2,7 @@ package stave
 
 import (
 	"crypto/sha1"
+	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
@@ -32,20 +33,20 @@ import (
 // change the inputs to the compiling process.
 const magicRebuildKey = "v0.3"
 
-// (Aaaa)(Bbbb) -> aaaaBbbb
+// (Aaaa)(Bbbb) -> aaaaBbbb.
 var firstWordRx = regexp.MustCompile(`^([[:upper:]][^[:upper:]]+)([[:upper:]].*)$`)
 
-// (AAAA)(Bbbb) -> aaaaBbbb
+// (AAAA)(Bbbb) -> aaaaBbbb.
 var firstAbbrevRx = regexp.MustCompile(`^([[:upper:]]+)([[:upper:]][^[:upper:]].*)$`)
 
-func lowerFirstWord(s string) string {
-	if match := firstWordRx.FindStringSubmatch(s); match != nil {
+func lowerFirstWord(str string) string {
+	if match := firstWordRx.FindStringSubmatch(str); match != nil {
 		return strings.ToLower(match[1]) + match[2]
 	}
-	if match := firstAbbrevRx.FindStringSubmatch(s); match != nil {
+	if match := firstAbbrevRx.FindStringSubmatch(str); match != nil {
 		return strings.ToLower(match[1]) + match[2]
 	}
-	return strings.ToLower(s)
+	return strings.ToLower(str)
 }
 
 var mainfileTemplate = template.Must(template.New("").Funcs(map[string]interface{}{
@@ -67,7 +68,7 @@ const (
 
 var debug = log.New(io.Discard, "DEBUG: ", log.Ltime|log.Lmicroseconds)
 
-// set by ldflags when you "stave build"
+// set by ldflags when you "stave build".
 var (
 	commitHash = "<not set>"
 	timestamp  = "<not set>"
@@ -79,7 +80,7 @@ var (
 // Command tracks invocations of stave that run without targets or other flags.
 type Command int
 
-// The various command types
+// The various command types.
 const (
 	None          Command = iota
 	Version               // report the current version of stave
@@ -376,7 +377,7 @@ func Invoke(inv Invocation) int {
 	if inv.HashFast {
 		debug.Println("user has set STAVEFILE_HASHFAST, so we'll ignore GOCACHE")
 	} else {
-		s, err := internal.OutputDebug(inv.GoCmd, "env", "GOCACHE")
+		theGoCache, err := internal.OutputDebug(inv.GoCmd, "env", "GOCACHE")
 		if err != nil {
 			errlog.Printf("failed to run %s env GOCACHE: %s", inv.GoCmd, err)
 			return 1
@@ -384,7 +385,7 @@ func Invoke(inv Invocation) int {
 
 		// if GOCACHE exists, always rebuild, so we catch transitive
 		// dependencies that have changed.
-		if s != "" {
+		if theGoCache != "" {
 			debug.Println("go build cache exists, will ignore any compiled binary")
 			useCache = true
 		}
@@ -472,20 +473,20 @@ type mainfileTemplateData struct {
 }
 
 // listGoFiles returns a list of all .go files in a given directory,
-// matching the provided tag
+// matching the provided tag.
 func listGoFiles(stavePath, tag string, envStr []string) ([]string, error) {
 	origStavePath := stavePath
 	if !filepath.IsAbs(stavePath) {
 		cwd, err := os.Getwd()
 		if err != nil {
-			return nil, fmt.Errorf("can't get current working directory: %v", err)
+			return nil, fmt.Errorf("can't get current working directory: %w", err)
 		}
 		stavePath = filepath.Join(cwd, stavePath)
 	}
 
 	env, err := internal.SplitEnv(envStr)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing environment variables: %v", err)
+		return nil, fmt.Errorf("error parsing environment variables: %w", err)
 	}
 
 	bctx := build.Default
@@ -509,7 +510,7 @@ func listGoFiles(stavePath, tag string, envStr []string) ([]string, error) {
 		// Allow multiple packages in the same directory
 		var multiplePackageError *build.MultiplePackageError
 		if !errors.As(err, &multiplePackageError) {
-			return nil, fmt.Errorf("failed to parse go source files: %v", err)
+			return nil, fmt.Errorf("failed to parse go source files: %w", err)
 		}
 	}
 
@@ -541,7 +542,7 @@ func Stavefiles(stavePath, goos, goarch string, isStavefilesDirectory bool) ([]s
 	debug.Println("getting all files including those with stave tag in", stavePath)
 	staveFiles, err := listGoFiles(stavePath, "stave", env)
 	if err != nil {
-		return nil, fmt.Errorf("listing stave files: %v", err)
+		return nil, fmt.Errorf("listing stave files: %w", err)
 	}
 
 	if isStavefilesDirectory {
@@ -557,7 +558,7 @@ func Stavefiles(stavePath, goos, goarch string, isStavefilesDirectory bool) ([]s
 	debug.Println("getting all files without stave tag in", stavePath)
 	nonStaveFiles, err := listGoFiles(stavePath, "", env)
 	if err != nil {
-		return nil, fmt.Errorf("listing non-stave files: %v", err)
+		return nil, fmt.Errorf("listing non-stave files: %w", err)
 	}
 
 	// convert non-Stave list to a map of files to exclude.
@@ -603,13 +604,13 @@ func Compile(goos, goarch, ldflags, stavePath, goCmd, compileTo string, gofiles 
 	args := append(buildArgs, gofiles...)
 
 	debug.Printf("running %s %s", goCmd, strings.Join(args, " "))
-	c := dryrun.Wrap(goCmd, args...)
-	c.Env = environ
-	c.Stderr = stderr
-	c.Stdout = stdout
-	c.Dir = stavePath
+	theCmd := dryrun.Wrap(goCmd, args...)
+	theCmd.Env = environ
+	theCmd.Stderr = stderr
+	theCmd.Stdout = stdout
+	theCmd.Dir = stavePath
 	start := time.Now()
-	err = c.Run()
+	err = theCmd.Run()
 	debug.Println("time to compile Stavefile:", time.Since(start))
 	if err != nil {
 		return errors.New("error compiling stavefiles")
@@ -621,11 +622,11 @@ func Compile(goos, goarch, ldflags, stavePath, goCmd, compileTo string, gofiles 
 func GenerateMainfile(binaryName, path string, info *parse.PkgInfo) error {
 	debug.Println("Creating mainfile at", path)
 
-	f, err := os.Create(path)
+	fd, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("error creating generated mainfile: %v", err)
+		return fmt.Errorf("error creating generated mainfile: %w", err)
 	}
-	defer func() { _ = f.Close() }()
+	defer func() { _ = fd.Close() }()
 	data := mainfileTemplateData{
 		Description: info.Description,
 		Funcs:       info.Funcs,
@@ -639,17 +640,17 @@ func GenerateMainfile(binaryName, path string, info *parse.PkgInfo) error {
 	}
 
 	debug.Println("writing new file at", path)
-	if err := mainfileTemplate.Execute(f, data); err != nil {
-		return fmt.Errorf("can't execute mainfile template: %v", err)
+	if err := mainfileTemplate.Execute(fd, data); err != nil {
+		return fmt.Errorf("can't execute mainfile template: %w", err)
 	}
-	if err := f.Close(); err != nil {
-		return fmt.Errorf("error closing generated mainfile: %v", err)
+	if err := fd.Close(); err != nil {
+		return fmt.Errorf("error closing generated mainfile: %w", err)
 	}
 	// we set an old modtime on the generated mainfile so that the go tool
 	// won't think it has changed more recently than the compiled binary.
 	longAgo := time.Now().Add(-time.Hour * 24 * 365 * 10)
 	if err := os.Chtimes(path, longAgo, longAgo); err != nil {
-		return fmt.Errorf("error setting old modtime on generated mainfile: %v", err)
+		return fmt.Errorf("error setting old modtime on generated mainfile: %w", err)
 	}
 	return nil
 }
@@ -674,7 +675,7 @@ func ExeName(goCmd, cacheDir string, files []string) (string, error) {
 		return "", err
 	}
 	hash := sha1.Sum([]byte(strings.Join(hashes, "") + magicRebuildKey + ver))
-	filename := fmt.Sprintf("%x", hash)
+	filename := hex.EncodeToString(hash[:])
 
 	out := filepath.Join(cacheDir, filename)
 	if runtime.GOOS == "windows" {
@@ -684,81 +685,81 @@ func ExeName(goCmd, cacheDir string, files []string) (string, error) {
 }
 
 func hashFile(fn string) (string, error) {
-	f, err := os.Open(fn)
+	fd, err := os.Open(fn)
 	if err != nil {
-		return "", fmt.Errorf("can't open input file for hashing: %#v", err)
+		return "", fmt.Errorf("can't open input file for hashing: %#w", err)
 	}
-	defer func() { _ = f.Close() }()
+	defer func() { _ = fd.Close() }()
 
 	h := sha1.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return "", fmt.Errorf("can't write data to hash: %v", err)
+	if _, err := io.Copy(h, fd); err != nil {
+		return "", fmt.Errorf("can't write data to hash: %w", err)
 	}
-	return fmt.Sprintf("%x", h.Sum(nil)), nil
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
 func generateInit(dir string) error {
 	debug.Println("generating default stavefile in", dir)
-	f, err := os.Create(filepath.Join(dir, initFile))
+	fd, err := os.Create(filepath.Join(dir, initFile))
 	if err != nil {
-		return fmt.Errorf("could not create stave template: %v", err)
+		return fmt.Errorf("could not create stave template: %w", err)
 	}
-	defer func() { _ = f.Close() }()
+	defer func() { _ = fd.Close() }()
 
-	if err := initOutput.Execute(f, nil); err != nil {
-		return fmt.Errorf("can't execute stavefile template: %v", err)
+	if err := initOutput.Execute(fd, nil); err != nil {
+		return fmt.Errorf("can't execute stavefile template: %w", err)
 	}
 
 	return nil
 }
 
-// RunCompiled runs an already-compiled stave command with the given args,
+// RunCompiled runs an already-compiled stave command with the given args,.
 func RunCompiled(inv Invocation, exePath string, errlog *log.Logger) int {
 	debug.Println("running binary", exePath)
-	c := dryrun.Wrap(exePath, inv.Args...)
-	c.Stderr = inv.Stderr
-	c.Stdout = inv.Stdout
-	c.Stdin = inv.Stdin
-	c.Dir = inv.Dir
+	theCmd := dryrun.Wrap(exePath, inv.Args...)
+	theCmd.Stderr = inv.Stderr
+	theCmd.Stdout = inv.Stdout
+	theCmd.Stdin = inv.Stdin
+	theCmd.Dir = inv.Dir
 	if inv.WorkDir != inv.Dir {
-		c.Dir = inv.WorkDir
+		theCmd.Dir = inv.WorkDir
 	}
 
 	// intentionally pass through unaltered os.Environ here.. your stavefile has
 	// to deal with it.
-	c.Env = os.Environ()
+	theCmd.Env = os.Environ()
 
 	// We don't want to actually allow dryrun in the outermost invocation of stave, since that will inhibit the very compilation of the stavefile & the use of the resulting binary.
 	// But every situation that's within such an execution is one in which dryrun is supported, so we set this environment variable which will be carried over throughout all such situations.
-	c.Env = append(c.Env, "STAVEFILE_DRYRUN_POSSIBLE=1")
+	theCmd.Env = append(theCmd.Env, "STAVEFILE_DRYRUN_POSSIBLE=1")
 
 	if inv.Verbose {
-		c.Env = append(c.Env, "STAVEFILE_VERBOSE=1")
+		theCmd.Env = append(theCmd.Env, "STAVEFILE_VERBOSE=1")
 	}
 	if inv.List {
-		c.Env = append(c.Env, "STAVEFILE_LIST=1")
+		theCmd.Env = append(theCmd.Env, "STAVEFILE_LIST=1")
 	}
 	if inv.Help {
-		c.Env = append(c.Env, "STAVEFILE_HELP=1")
+		theCmd.Env = append(theCmd.Env, "STAVEFILE_HELP=1")
 	}
 	if inv.Debug {
-		c.Env = append(c.Env, "STAVEFILE_DEBUG=1")
+		theCmd.Env = append(theCmd.Env, "STAVEFILE_DEBUG=1")
 	}
 	if inv.GoCmd != "" {
-		c.Env = append(c.Env, fmt.Sprintf("STAVEFILE_GOCMD=%s", inv.GoCmd))
+		theCmd.Env = append(theCmd.Env, "STAVEFILE_GOCMD="+inv.GoCmd)
 	}
 	if inv.Timeout > 0 {
-		c.Env = append(c.Env, fmt.Sprintf("STAVEFILE_TIMEOUT=%s", inv.Timeout.String()))
+		theCmd.Env = append(theCmd.Env, "STAVEFILE_TIMEOUT="+inv.Timeout.String())
 	}
 	if inv.DryRun {
-		c.Env = append(c.Env, "STAVEFILE_DRYRUN=1")
+		theCmd.Env = append(theCmd.Env, "STAVEFILE_DRYRUN=1")
 	}
-	debug.Print("running stavefile with stave vars:\n", strings.Join(filter(c.Env, "STAVEFILE"), "\n"))
+	debug.Print("running stavefile with stave vars:\n", strings.Join(filter(theCmd.Env, "STAVEFILE"), "\n"))
 	// catch SIGINT to allow stavefile to handle them
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT)
 	defer signal.Stop(sigCh)
-	err := c.Run()
+	err := theCmd.Run()
 	if !sh.CmdRan(err) {
 		errlog.Printf("failed to run compiled stavefile: %v", err)
 	}

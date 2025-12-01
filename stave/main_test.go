@@ -6,6 +6,7 @@ import (
 	"debug/macho"
 	"debug/pe"
 	"encoding/hex"
+	"errors"
 	"flag"
 	"fmt"
 	"go/build"
@@ -25,6 +26,8 @@ import (
 
 	"github.com/yaklabco/stave/internal"
 	"github.com/yaklabco/stave/st"
+
+	"github.com/stretchr/testify/require"
 )
 
 const testExeEnv = "STAVE_TEST_STRING"
@@ -554,7 +557,7 @@ func TestVerboseEnv(t *testing.T) {
 
 	expected := true
 
-	if inv.Verbose != true {
+	if !inv.Verbose {
 		t.Fatalf("expected %t, but got %t ", expected, inv.Verbose)
 	}
 }
@@ -835,9 +838,9 @@ func TestHashTemplate(t *testing.T) {
 	}
 }
 
-// Test if the -keep flag does keep the mainfile around after running
+// Test if the -keep flag does keep the mainfile around after running.
 func TestKeepFlag(t *testing.T) {
-	buildFile := fmt.Sprintf("./testdata/keep_flag/%s", mainfile)
+	buildFile := "./testdata/keep_flag/" + mainfile
 	_ = os.Remove(buildFile)
 	defer func() { _ = os.Remove(buildFile) }()
 	w := tLogWriter{t}
@@ -869,9 +872,9 @@ func (t tLogWriter) Write(b []byte) (n int, err error) {
 	return len(b), nil
 }
 
-// Test if generated mainfile references anything other than the stdlib
+// Test if generated mainfile references anything other than the stdlib.
 func TestOnlyStdLib(t *testing.T) {
-	buildFile := fmt.Sprintf("./testdata/onlyStdLib/%s", mainfile)
+	buildFile := "./testdata/onlyStdLib/" + mainfile
 	_ = os.Remove(buildFile)
 	defer func() { _ = os.Remove(buildFile) }()
 
@@ -897,16 +900,13 @@ func TestOnlyStdLib(t *testing.T) {
 
 	fset := &token.FileSet{}
 	// Parse src but stop after processing the imports.
-	f, err := parser.ParseFile(fset, buildFile, nil, parser.ImportsOnly)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	fd, err := parser.ParseFile(fset, buildFile, nil, parser.ImportsOnly)
+	require.NoError(t, err)
 
 	// Print the imports from the file's AST.
-	for _, s := range f.Imports {
+	for _, importSpec := range fd.Imports {
 		// the path value comes in as a quoted string, i.e. literally \"context\"
-		path := strings.Trim(s.Path.Value, "\"")
+		path := strings.Trim(importSpec.Path.Value, "\"")
 		pkg, err := build.Default.Import(path, "./testdata/keep_flag", build.FindOnly)
 		if err != nil {
 			t.Fatal(err)
@@ -914,7 +914,7 @@ func TestOnlyStdLib(t *testing.T) {
 		// Check if pkg.Dir is under GOROOT using filepath.Rel instead of deprecated filepath.HasPrefix
 		rel, err := filepath.Rel(build.Default.GOROOT, pkg.Dir)
 		if err != nil || strings.HasPrefix(rel, "..") {
-			t.Errorf("import of non-stdlib package: %s", s.Path.Value)
+			t.Errorf("import of non-stdlib package: %s", importSpec.Path.Value)
 		}
 	}
 }
@@ -1005,7 +1005,7 @@ func TestParse(t *testing.T) {
 	if cmd == Version {
 		t.Error("showVersion should be false but was true")
 	}
-	if inv.Debug != true {
+	if !inv.Debug {
 		t.Error("debug should be true")
 	}
 	if inv.Dir != "dir" {
@@ -1065,7 +1065,7 @@ func TestSetWorkingDir(t *testing.T) {
 	}
 }
 
-// Test the timeout option
+// Test the timeout option.
 func TestTimeout(t *testing.T) {
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
@@ -1074,7 +1074,7 @@ func TestTimeout(t *testing.T) {
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"timeout"},
-		Timeout: time.Duration(100 * time.Millisecond),
+		Timeout: 100 * time.Millisecond,
 	}
 	code := Invoke(inv)
 	if code != 1 {
@@ -1091,12 +1091,12 @@ func TestTimeout(t *testing.T) {
 func TestParseHelp(t *testing.T) {
 	buf := &bytes.Buffer{}
 	_, _, err := Parse(io.Discard, buf, []string{"-h"})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Fatal("unexpected error", err)
 	}
 	buf2 := &bytes.Buffer{}
 	_, _, err = Parse(io.Discard, buf2, []string{"--help"})
-	if err != flag.ErrHelp {
+	if !errors.Is(err, flag.ErrHelp) {
 		t.Fatal("unexpected error", err)
 	}
 	s := buf.String()
@@ -1263,7 +1263,7 @@ func TestCompiledFlags(t *testing.T) {
 		cmd.Stderr = stderr
 		cmd.Stdout = stdout
 		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("running '%s %s' failed with: %v\nstdout: %s\nstderr: %s",
+			return fmt.Errorf("running '%s %s' failed with: %w\nstdout: %s\nstderr: %s",
 				filename, strings.Join(args, " "), err, stdout, stderr)
 		}
 		return nil
@@ -1285,7 +1285,7 @@ func TestCompiledFlags(t *testing.T) {
 	}
 	got = stderr.String()
 	want = "hi!"
-	if strings.Contains(got, want) == false {
+	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
 
@@ -1295,11 +1295,11 @@ func TestCompiledFlags(t *testing.T) {
 	}
 	got = stdout.String()
 	want = "This is the synopsis for Deploy"
-	if strings.Contains(got, want) == false {
+	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
 	want = "This is very verbose"
-	if strings.Contains(got, want) == false {
+	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
 
@@ -1310,7 +1310,7 @@ func TestCompiledFlags(t *testing.T) {
 	}
 	got = stderr.String()
 	want = "context deadline exceeded"
-	if strings.Contains(got, want) == false {
+	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
 }
@@ -1350,7 +1350,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 		cmd.Stderr = stderr
 		cmd.Stdout = stdout
 		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("running '%s %s' failed with: %v\nstdout: %s\nstderr: %s",
+			return fmt.Errorf("running '%s %s' failed with: %w\nstdout: %s\nstderr: %s",
 				filename, strings.Join(args, " "), err, stdout, stderr)
 		}
 		return nil
@@ -1370,7 +1370,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 	}
 	got = stderr.String()
 	want = "hi!"
-	if strings.Contains(got, want) == false {
+	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
 
@@ -1379,11 +1379,11 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 	}
 	got = stdout.String()
 	want = "This is the synopsis for Deploy"
-	if strings.Contains(got, want) == false {
+	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
 	want = "This is very verbose"
-	if strings.Contains(got, want) == false {
+	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
 
@@ -1392,7 +1392,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 	}
 	got = stdout.String()
 	want = "Compiled package description."
-	if strings.Contains(got, want) == false {
+	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
 
@@ -1402,7 +1402,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 	}
 	got = stderr.String()
 	want = "context deadline exceeded"
-	if strings.Contains(got, want) == false {
+	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
 }
@@ -1504,7 +1504,7 @@ func TestSignals(t *testing.T) {
 		cmd.Stderr = stderr
 		cmd.Stdout = stdout
 		if err := cmd.Start(); err != nil {
-			return fmt.Errorf("running '%s %s' failed with: %v\nstdout: %s\nstderr: %s",
+			return fmt.Errorf("running '%s %s' failed with: %w\nstdout: %s\nstderr: %s",
 				filename, target, err, stdout, stderr)
 		}
 		pid := cmd.Process.Pid
@@ -1516,7 +1516,7 @@ func TestSignals(t *testing.T) {
 			}
 		}()
 		if err := cmd.Wait(); err != nil {
-			return fmt.Errorf("running '%s %s' failed with: %v\nstdout: %s\nstderr: %s",
+			return fmt.Errorf("running '%s %s' failed with: %w\nstdout: %s\nstderr: %s",
 				filename, target, err, stdout, stderr)
 		}
 		return nil
@@ -1527,7 +1527,7 @@ func TestSignals(t *testing.T) {
 	}
 	got := stdout.String()
 	want := "received sighup\n"
-	if strings.Contains(got, want) == false {
+	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
 
@@ -1536,12 +1536,12 @@ func TestSignals(t *testing.T) {
 	}
 	got = stdout.String()
 	want = "exiting...done\n"
-	if strings.Contains(got, want) == false {
+	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
 	got = stderr.String()
 	want = "cancelling stave targets, waiting up to 5 seconds for cleanup...\n"
-	if strings.Contains(got, want) == false {
+	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
 
@@ -1550,12 +1550,12 @@ func TestSignals(t *testing.T) {
 	}
 	got = stdout.String()
 	want = "exiting...done\ndeferred cleanup\n"
-	if strings.Contains(got, want) == false {
+	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
 	got = stderr.String()
 	want = "cancelling stave targets, waiting up to 5 seconds for cleanup...\n"
-	if strings.Contains(got, want) == false {
+	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
 
@@ -1564,7 +1564,7 @@ func TestSignals(t *testing.T) {
 	}
 	got = stderr.String()
 	want = "cancelling stave targets, waiting up to 5 seconds for cleanup...\nexiting stave\nError: exit forced\n"
-	if strings.Contains(got, want) == false {
+	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
 
@@ -1573,7 +1573,7 @@ func TestSignals(t *testing.T) {
 	}
 	got = stderr.String()
 	want = "cancelling stave targets, waiting up to 5 seconds for cleanup...\nError: cleanup timeout exceeded\n"
-	if strings.Contains(got, want) == false {
+	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
 }
@@ -1589,9 +1589,8 @@ func TestCompiledDeterministic(t *testing.T) {
 	outFile := filepath.Join(dir, mainfile)
 
 	// compile a couple times to be sure
-	for i, run := range []string{"one", "two", "three", "four"} {
-		run := run
-		t.Run(run, func(t *testing.T) {
+	for iRun, runLabel := range []string{"one", "two", "three", "four"} {
+		t.Run(runLabel, func(t *testing.T) {
 			// probably don't run this parallel
 			filename := filepath.Join(compileDir, "stave_out")
 			if runtime.GOOS == "windows" {
@@ -1618,24 +1617,24 @@ func TestCompiledDeterministic(t *testing.T) {
 				t.Errorf("expected to exit with code 0, but got %v", code)
 			}
 
-			f, err := os.Open(outFile)
+			fd, err := os.Open(outFile)
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer func() { _ = f.Close() }()
+			defer func() { _ = fd.Close() }()
 
 			hasher := sha256.New()
-			if _, err := io.Copy(hasher, f); err != nil {
+			if _, err := io.Copy(hasher, fd); err != nil {
 				t.Fatal(err)
 			}
 
 			got := hex.EncodeToString(hasher.Sum(nil))
 			// set exp on first iteration, subsequent iterations prove the compiled file is identical
-			if i == 0 {
+			if iRun == 0 {
 				exp = got
 			}
 
-			if i > 0 && got != exp {
+			if iRun > 0 && got != exp {
 				t.Errorf("unexpected sha256 hash of %s; wanted %s, got %s", outFile, exp, got)
 			}
 		})
@@ -1696,14 +1695,14 @@ func TestGoCmd(t *testing.T) {
 	t.Setenv(testExeEnv, textOutput)
 
 	// fake out the compiled file, since the code checks for it.
-	f, err := os.CreateTemp("", "")
+	fd, err := os.CreateTemp("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	name := f.Name()
+	name := fd.Name()
 	dir := filepath.Dir(name)
 	defer func() { _ = os.Remove(name) }()
-	_ = f.Close()
+	_ = fd.Close()
 
 	buf := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
@@ -1832,7 +1831,7 @@ func TestNamespaceDefault(t *testing.T) {
 	}
 }
 
-func TestAliasToImport(t *testing.T) {
+func TestAliasToImport(_ *testing.T) {
 }
 
 func TestWrongDependency(t *testing.T) {
@@ -1855,7 +1854,7 @@ func TestWrongDependency(t *testing.T) {
 
 // Regression tests, add tests to ensure we do not regress on known issues.
 
-// TestBug508 is a regression test for: Bug: using Default with imports selects first matching func by name
+// TestBug508 is a regression test for: Bug: using Default with imports selects first matching func by name.
 func TestBug508(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
@@ -1893,18 +1892,18 @@ const (
 // fileData tells us if the given file is mac or windows and if they're 32bit or
 // 64 bit.  Other exe versions are not supported.
 func fileData(file string) (exeType, archSize, error) {
-	f, err := os.Open(file)
+	fd, err := os.Open(file)
 	if err != nil {
 		return -1, -1, err
 	}
-	defer func() { _ = f.Close() }()
+	defer func() { _ = fd.Close() }()
 	data := make([]byte, 16)
-	if _, err := io.ReadFull(f, data); err != nil {
+	if _, err := io.ReadFull(fd, data); err != nil {
 		return -1, -1, err
 	}
 	if bytes.HasPrefix(data, []byte("MZ")) {
 		// hello windows exe!
-		e, err := pe.NewFile(f)
+		e, err := pe.NewFile(fd)
 		if err != nil {
 			return -1, -1, err
 		}
@@ -1916,7 +1915,7 @@ func fileData(file string) (exeType, archSize, error) {
 
 	if bytes.HasPrefix(data, []byte("\xFE\xED\xFA")) || bytes.HasPrefix(data[1:], []byte("\xFA\xED\xFE")) {
 		// hello mac exe!
-		fe, err := macho.NewFile(f)
+		fe, err := macho.NewFile(fd)
 		if err != nil {
 			return -1, -1, err
 		}
@@ -1925,5 +1924,5 @@ func fileData(file string) (exeType, archSize, error) {
 		}
 		return macExe, arch32, nil
 	}
-	return -1, -1, fmt.Errorf("unrecognized executable format")
+	return -1, -1, errors.New("unrecognized executable format")
 }

@@ -1,6 +1,6 @@
 package st
 
-// Color is ANSI color type
+// Color is ANSI color type.
 type Color int
 
 // If you add/change/remove any items in this constant,
@@ -49,17 +49,17 @@ var ansiColor = map[Color]string{
 const AnsiColorReset = "\033[0m"
 
 // DefaultTargetAnsiColor is a default ANSI color for colorizing targets.
-// It is set to Cyan as an arbitrary color, because it has a neutral meaning
+// It is set to Cyan as an arbitrary color, because it has a neutral meaning.
 var DefaultTargetAnsiColor = ansiColor[Cyan]
 
-func toLowerCase(s string) string {
+func toLowerCase(str string) string {
 	// this is a naive implementation
 	// borrowed from https://golang.org/src/strings/strings.go
 	// and only considers alphabetical characters [a-zA-Z]
 	// so that we don't depend on the "strings" package
-	buf := make([]byte, len(s))
-	for i := 0; i < len(s); i++ {
-		c := s[i]
+	buf := make([]byte, len(str))
+	for i := range len(str) {
+		c := str[i]
 		if 'A' <= c && c <= 'Z' {
 			c += 'a' - 'A'
 		}

@@ -2,7 +2,7 @@ package stave
 
 // this template uses the "data"
 
-// var only for tests
+// var only for tests.
 var staveMainfileTplString = `//go:build ignore
 // +build ignore
 
@@ -430,9 +430,9 @@ Options:
 		return
 	{{- end}}
 	}
-	for x := 0; x < len(args.Args); {
-		target := args.Args[x]
-		x++
+	for iArg := 0; iArg < len(args.Args); {
+		target := args.Args[iArg]
+		iArg++
 
 		// resolve aliases
 		switch _strings.ToLower(target) {
@@ -445,7 +445,7 @@ Options:
 		switch _strings.ToLower(target) {
 		{{range .Funcs }}
 			case "{{lower .TargetName}}":
-				expected := x + {{len .Args}}
+				expected := iArg + {{len .Args}}
 				if expected > len(args.Args) {
 					// note that expected and args at this point include the arg for the target itself
 					// so we subtract 1 here to show the number of args without the target.
@@ -462,7 +462,7 @@ Options:
 		{{$imp := .}}
 			{{range .Info.Funcs }}
 				case "{{lower .TargetName}}":
-					expected := x + {{len .Args}}
+					expected := iArg + {{len .Args}}
 					if expected > len(args.Args) {
 						// note that expected and args at this point include the arg for the target itself
 						// so we subtract 1 here to show the number of args without the target.

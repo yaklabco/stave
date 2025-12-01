@@ -147,7 +147,7 @@ func TestGlob(t *testing.T) {
 	t.Setenv("MYVAR", "file")
 	t.Setenv("THREE", "three")
 
-	table := []struct {
+	tests := []struct {
 		desc    string
 		target  string
 		sources []string
@@ -191,18 +191,18 @@ func TestGlob(t *testing.T) {
 		},
 	}
 
-	for _, c := range table {
-		t.Run(c.desc, func(t *testing.T) {
-			for i := range c.sources {
-				c.sources[i] = filepath.Join(dir, c.sources[i])
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			for i := range tt.sources {
+				tt.sources[i] = filepath.Join(dir, tt.sources[i])
 			}
-			c.target = filepath.Join(dir, c.target)
-			v, err := Glob(c.target, c.sources...)
+			tt.target = filepath.Join(dir, tt.target)
+			v, err := Glob(tt.target, tt.sources...)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if v != c.expect {
-				t.Errorf("expecting %v got %v", c.expect, v)
+			if v != tt.expect {
+				t.Errorf("expecting %v got %v", tt.expect, v)
 			}
 		})
 	}
@@ -239,7 +239,7 @@ func TestPath(t *testing.T) {
 	t.Setenv("MYVAR", "file")
 	t.Setenv("THREE", "three")
 
-	table := []struct {
+	tests := []struct {
 		desc    string
 		target  string
 		sources []string
@@ -298,18 +298,18 @@ func TestPath(t *testing.T) {
 		},
 	}
 
-	for _, c := range table {
-		t.Run(c.desc, func(t *testing.T) {
-			for i := range c.sources {
-				c.sources[i] = filepath.Join(dir, c.sources[i])
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			for i := range tt.sources {
+				tt.sources[i] = filepath.Join(dir, tt.sources[i])
 			}
-			c.target = filepath.Join(dir, c.target)
-			v, err := Path(c.target, c.sources...)
+			tt.target = filepath.Join(dir, tt.target)
+			v, err := Path(tt.target, tt.sources...)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if v != c.expect {
-				t.Errorf("expecting %v got %v", c.expect, v)
+			if v != tt.expect {
+				t.Errorf("expecting %v got %v", tt.expect, v)
 			}
 		})
 	}
@@ -348,7 +348,7 @@ func TestDir(t *testing.T) {
 	t.Setenv("MYDIR", "dir")
 	t.Setenv("X1", "one")
 
-	table := []struct {
+	tests := []struct {
 		desc    string
 		target  string
 		sources []string
@@ -432,19 +432,19 @@ func TestDir(t *testing.T) {
 		},
 	}
 
-	for _, c := range table {
-		t.Run(c.desc, func(t *testing.T) {
-			sources := make([]string, len(c.sources))
-			for i := range c.sources {
-				sources[i] = filepath.Join(dir, c.sources[i])
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			sources := make([]string, len(tt.sources))
+			for i := range tt.sources {
+				sources[i] = filepath.Join(dir, tt.sources[i])
 			}
-			target := filepath.Join(dir, c.target)
+			target := filepath.Join(dir, tt.target)
 			v, err := Dir(target, sources...)
 			if err != nil {
 				t.Fatal("unexpected error:", err)
 			}
-			if v != c.expect {
-				t.Errorf("expecting %v got %v", c.expect, v)
+			if v != tt.expect {
+				t.Errorf("expecting %v got %v", tt.expect, v)
 			}
 		})
 	}

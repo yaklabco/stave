@@ -95,7 +95,7 @@ func EnvWithCurrentGOOS() ([]string, error) {
 	return joinEnv(vals), nil
 }
 
-// EnvWithGOOS retuns the os.Environ() values with GOOS and/or GOARCH either set
+// EnvWithGOOS returns the os.Environ() values with GOOS and/or GOARCH either set
 // to their runtime value, or the given value if non-empty.
 func EnvWithGOOS(goos, goarch string) ([]string, error) {
 	env, err := SplitEnv(os.Environ())
