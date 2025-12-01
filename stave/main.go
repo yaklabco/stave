@@ -180,7 +180,10 @@ func ParseAndRun(stdout, stderr io.Writer, stdin io.Reader, args []string) int {
 
 // Parse parses the given args and returns structured data.  If parse returns
 // flag.ErrHelp, the calling process should exit with code 0.
-func Parse(stderr, stdout io.Writer, args []string) (inv Invocation, cmd Command, err error) {
+func Parse(stderr, stdout io.Writer, args []string) (Invocation, Command, error) {
+	var inv Invocation
+	var cmd Command
+
 	inv.Stdout = stdout
 	fs := flag.FlagSet{}
 	fs.SetOutput(stdout)
@@ -248,7 +251,7 @@ Options:
             working directory where stavefiles will run (default -d value)
 `[1:])
 	}
-	err = fs.Parse(args)
+	err := fs.Parse(args)
 	if errors.Is(err, flag.ErrHelp) {
 		// parse will have already called fs.Usage()
 		return inv, cmd, err
@@ -395,12 +398,11 @@ func Invoke(inv Invocation) int {
 		_, err = os.Stat(exePath)
 		switch {
 		case err == nil:
-			if inv.Force {
-				debug.Println("ignoring existing executable")
-			} else {
+			if !inv.Force {
 				debug.Println("Running existing exe")
 				return RunCompiled(inv, exePath, errlog)
 			}
+			debug.Println("ignoring existing executable")
 		case os.IsNotExist(err):
 			debug.Println("no existing exe, creating new")
 		default:
@@ -443,7 +445,18 @@ func Invoke(inv Invocation) int {
 		defer func() { _ = os.RemoveAll(main) }()
 	}
 	files = append(files, main)
-	if err := Compile(inv.GOOS, inv.GOARCH, inv.Ldflags, inv.Dir, inv.GoCmd, exePath, files, inv.Debug, inv.Stderr, inv.Stdout); err != nil {
+	if err := Compile(CompileParams{
+		Goos:      inv.GOOS,
+		Goarch:    inv.GOARCH,
+		Ldflags:   inv.Ldflags,
+		StavePath: inv.Dir,
+		GoCmd:     inv.GoCmd,
+		CompileTo: exePath,
+		Gofiles:   files,
+		Debug:     inv.Debug,
+		Stderr:    inv.Stderr,
+		Stdout:    inv.Stdout,
+	}); err != nil {
 		errlog.Println("Error:", err)
 		return 1
 	}
@@ -581,34 +594,48 @@ func Stavefiles(stavePath, goos, goarch string, isStavefilesDirectory bool) ([]s
 	return files, nil
 }
 
+// CompileParams groups parameters for Compile.
+type CompileParams struct {
+	Goos      string
+	Goarch    string
+	Ldflags   string
+	StavePath string
+	GoCmd     string
+	CompileTo string
+	Gofiles   []string
+	Debug     bool
+	Stderr    io.Writer
+	Stdout    io.Writer
+}
+
 // Compile uses the go tool to compile the files into an executable at path.
-func Compile(goos, goarch, ldflags, stavePath, goCmd, compileTo string, gofiles []string, isDebug bool, stderr, stdout io.Writer) error {
-	debug.Println("compiling to", compileTo)
-	debug.Println("compiling using gocmd:", goCmd)
-	if isDebug {
-		_ = internal.RunDebug(goCmd, "version")
-		_ = internal.RunDebug(goCmd, "env")
+func Compile(params CompileParams) error {
+	debug.Println("compiling to", params.CompileTo)
+	debug.Println("compiling using gocmd:", params.GoCmd)
+	if params.Debug {
+		_ = internal.RunDebug(params.GoCmd, "version")
+		_ = internal.RunDebug(params.GoCmd, "env")
 	}
-	environ, err := internal.EnvWithGOOS(goos, goarch)
+	environ, err := internal.EnvWithGOOS(params.Goos, params.Goarch)
 	if err != nil {
 		return err
 	}
 	// strip off the path since we're setting the path in the build command
-	for i := range gofiles {
-		gofiles[i] = filepath.Base(gofiles[i])
+	for i := range params.Gofiles {
+		params.Gofiles[i] = filepath.Base(params.Gofiles[i])
 	}
-	buildArgs := []string{"build", "-o", compileTo}
-	if ldflags != "" {
-		buildArgs = append(buildArgs, "-ldflags", ldflags)
+	buildArgs := []string{"build", "-o", params.CompileTo}
+	if params.Ldflags != "" {
+		buildArgs = append(buildArgs, "-ldflags", params.Ldflags)
 	}
-	args := append(buildArgs, gofiles...)
+	args := append(buildArgs, params.Gofiles...)
 
-	debug.Printf("running %s %s", goCmd, strings.Join(args, " "))
-	theCmd := dryrun.Wrap(goCmd, args...)
+	debug.Printf("running %s %s", params.GoCmd, strings.Join(args, " "))
+	theCmd := dryrun.Wrap(params.GoCmd, args...)
 	theCmd.Env = environ
-	theCmd.Stderr = stderr
-	theCmd.Stdout = stdout
-	theCmd.Dir = stavePath
+	theCmd.Stderr = params.Stderr
+	theCmd.Stdout = params.Stdout
+	theCmd.Dir = params.StavePath
 	start := time.Now()
 	err = theCmd.Run()
 	debug.Println("time to compile Stavefile:", time.Since(start))
@@ -658,7 +685,7 @@ func GenerateMainfile(binaryName, path string, info *parse.PkgInfo) error {
 // ExeName reports the executable filename that this version of Stave would
 // create for the given stavefiles.
 func ExeName(goCmd, cacheDir string, files []string) (string, error) {
-	var hashes []string
+	hashes := make([]string, 0, len(files)+1)
 	for _, s := range files {
 		h, err := hashFile(s)
 		if err != nil {

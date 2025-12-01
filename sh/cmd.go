@@ -104,7 +104,7 @@ func OutputWith(env map[string]string, cmd string, args ...string) (string, erro
 // Ran reports if the command ran (rather than was not found or not executable).
 // Code reports the exit code the command returned if it ran. If err == nil, ran
 // is always true and code is always 0.
-func Exec(env map[string]string, stdout, stderr io.Writer, cmd string, args ...string) (ran bool, err error) {
+func Exec(env map[string]string, stdout, stderr io.Writer, cmd string, args ...string) (bool, error) {
 	expand := func(s string) string {
 		s2, ok := env[s]
 		if ok {
@@ -126,7 +126,7 @@ func Exec(env map[string]string, stdout, stderr io.Writer, cmd string, args ...s
 	return ran, fmt.Errorf(`failed to run "%s %s: %w"`, cmd, strings.Join(args, " "), err)
 }
 
-func run(env map[string]string, stdout, stderr io.Writer, cmd string, args ...string) (ran bool, code int, err error) {
+func run(env map[string]string, stdout, stderr io.Writer, cmd string, args ...string) (bool, int, error) {
 	theCmd := dryrun.Wrap(cmd, args...)
 	theCmd.Env = os.Environ()
 	for k, v := range env {
@@ -136,7 +136,7 @@ func run(env map[string]string, stdout, stderr io.Writer, cmd string, args ...st
 	theCmd.Stdout = stdout
 	theCmd.Stdin = os.Stdin
 
-	var quoted []string
+	quoted := make([]string, 0, len(args))
 	for i := range args {
 		quoted = append(quoted, fmt.Sprintf("%q", args[i]))
 	}
@@ -144,7 +144,8 @@ func run(env map[string]string, stdout, stderr io.Writer, cmd string, args ...st
 	if st.Verbose() {
 		log.Println("exec:", cmd, strings.Join(quoted, " "))
 	}
-	err = theCmd.Run()
+	err := theCmd.Run()
+
 	return CmdRan(err), ExitStatus(err), err
 }
 

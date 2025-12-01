@@ -877,7 +877,7 @@ type tLogWriter struct {
 	*testing.T
 }
 
-func (t tLogWriter) Write(b []byte) (n int, err error) {
+func (t tLogWriter) Write(b []byte) (int, error) {
 	t.Log(string(b))
 	return len(b), nil
 }
@@ -1716,7 +1716,18 @@ func TestGoCmd(t *testing.T) {
 
 	buf := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	if err := Compile("", "", "", dir, os.Args[0], name, []string{}, false, stderr, buf); err != nil {
+	if err := Compile(CompileParams{
+		Goos:      "",
+		Goarch:    "",
+		Ldflags:   "",
+		StavePath: dir,
+		GoCmd:     os.Args[0],
+		CompileTo: name,
+		Gofiles:   []string{},
+		Debug:     false,
+		Stderr:    stderr,
+		Stdout:    buf,
+	}); err != nil {
 		t.Log("stderr: ", stderr.String())
 		t.Fatal(err)
 	}

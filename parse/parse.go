@@ -167,7 +167,7 @@ func (f Function) ExecCode() string {
 		out += "return "
 	}
 	out += name + "("
-	var args []string
+	args := make([]string, 0, len(f.Args)+1)
 	if f.IsContext {
 		args = append(args, "ctx")
 	}
@@ -288,16 +288,16 @@ func Package(path string, files []string) (*PkgInfo, error) {
 }
 
 func getNamedImports(gocmd string, pkgs map[string]string) ([]*Import, error) {
-	var imports []*Import
+	theImports := make([]*Import, 0, len(pkgs))
 	for pkg, alias := range pkgs {
 		debug.Printf("getting import package %q, alias %q", pkg, alias)
 		imp, err := getImport(gocmd, pkg, alias)
 		if err != nil {
 			return nil, err
 		}
-		imports = append(imports, imp)
+		theImports = append(theImports, imp)
 	}
-	return imports, nil
+	return theImports, nil
 }
 
 // getImport returns the metadata about a package that has been stave:import'ed.
@@ -475,7 +475,7 @@ func setImports(gocmd string, pi *PkgInfo) error {
 	return nil
 }
 
-func getImportPath(imp *ast.ImportSpec) (path, alias string, ok bool) {
+func getImportPath(imp *ast.ImportSpec) (string, string, bool) {
 	leadingVals := getImportPathFromCommentGroup(imp.Doc)
 	trailingVals := getImportPathFromCommentGroup(imp.Comment)
 
@@ -490,7 +490,7 @@ func getImportPath(imp *ast.ImportSpec) (path, alias string, ok bool) {
 	} else {
 		return "", "", false
 	}
-	path, ok = lit2string(imp.Path)
+	path, ok := lit2string(imp.Path)
 	if !ok {
 		return "", "", false
 	}
@@ -547,8 +547,9 @@ func isNamespace(t *doc.Type) bool {
 }
 
 // checkDupeTargets checks a package for duplicate target names.
-func checkDupeTargets(info *PkgInfo) (hasDupes bool, names map[string][]string) {
-	names = map[string][]string{}
+func checkDupeTargets(info *PkgInfo) (bool, map[string][]string) {
+	var hasDupes bool
+	names := map[string][]string{}
 	lowers := map[string]bool{}
 	for _, theFunc := range info.Funcs {
 		low := strings.ToLower(theFunc.Name)
@@ -810,9 +811,9 @@ func getPackage(path string, files []string, fset *token.FileSet) (string, []*as
 		return "", nil, fmt.Errorf("failed to read directory: %w", err)
 	}
 	var (
-		filesInDir []string
+		filesInDir = make([]string, 0, len(entries))
 		pkgName    string
-		out        []*ast.File
+		out        = make([]*ast.File, 0, len(entries))
 		namesSet   = map[string]struct{}{}
 	)
 	for _, e := range entries {

@@ -62,7 +62,7 @@ func TestParse(t *testing.T) {
 	}
 
 	// DefaultIsError
-	if info.DefaultFunc.IsError != true {
+	if !info.DefaultFunc.IsError {
 		t.Fatalf("expected DefaultIsError to be true")
 	}
 
@@ -93,9 +93,8 @@ func TestParse(t *testing.T) {
 			if reflect.DeepEqual(fn, *infoFn) {
 				found = true
 				break
-			} else {
-				t.Logf("%#v", infoFn)
 			}
+			t.Logf("%#v", infoFn)
 		}
 		if !found {
 			t.Fatalf("expected:\n%#v\n\nto be in:\n%#v", fn, info.Funcs)

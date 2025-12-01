@@ -99,7 +99,7 @@ func (f fn) Run(ctx context.Context) error {
 	return f.f(ctx)
 }
 
-func checkF(target interface{}, args []interface{}) (hasContext, isNamespace bool, _ error) {
+func checkF(target interface{}, args []interface{}) (bool, bool, error) {
 	theType := reflect.TypeOf(target)
 	if theType == nil || theType.Kind() != reflect.Func {
 		return false, false, fmt.Errorf("non-function passed to st.F: %T. The st.F function accepts function names, such as st.F(TargetA, \"arg1\", \"arg2\")", target)
@@ -124,6 +124,8 @@ func checkF(target interface{}, args []interface{}) (hasContext, isNamespace boo
 	iArg := 0
 	inputs := theType.NumIn()
 
+	var isNamespace bool
+	var hasContext bool
 	if theType.In(0).AssignableTo(emptyType) {
 		// nameSpace func
 		isNamespace = true

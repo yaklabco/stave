@@ -157,7 +157,7 @@ func TestDepWithUnhandledFunc(t *testing.T) {
 			t.Fatalf("Expected type error from panic")
 		}
 	}()
-	var NotValid = func(a string) string {
+	var NotValid = func(a string) string { //nolint:revive // Let's keep this as it is for the sake of the test.
 		return a
 	}
 	Deps(NotValid)

@@ -166,15 +166,15 @@ func Deps(fns ...interface{}) {
 	CtxDeps(context.Background(), fns...)
 }
 
-func changeExit(old, new int) int {
-	if new == 0 {
-		return old
+func changeExit(oldExitCode, newExitCode int) int {
+	if newExitCode == 0 {
+		return oldExitCode
 	}
-	if old == 0 {
-		return new
+	if oldExitCode == 0 {
+		return newExitCode
 	}
-	if old == new {
-		return old
+	if oldExitCode == newExitCode {
+		return oldExitCode
 	}
 	// both different and both non-zero, just set
 	// exit to 1. Nothing more we can do.
