@@ -96,7 +96,8 @@ func resetTerm() error {
 }
 
 func TestTransitiveDepCache(t *testing.T) {
-	cache, err := internal.OutputDebug("go", "env", "GOCACHE")
+	ctx := t.Context()
+	cache, err := internal.OutputDebug(ctx, "go", "env", "GOCACHE")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +113,7 @@ func TestTransitiveDepCache(t *testing.T) {
 		Dir:    "testdata/transitiveDeps",
 		Args:   []string{"Run"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("got code %v, err: %s", code, stderr)
 	}
@@ -133,7 +134,7 @@ func TestTransitiveDepCache(t *testing.T) {
 	defer func() { _ = os.Rename("testdata/transitiveDeps/dep/cat.go", "testdata/transitiveDeps/dep/cat.notgo") }()
 	stderr.Reset()
 	stdout.Reset()
-	code = Invoke(inv)
+	code = Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("got code %v, err: %s", code, stderr)
 	}
@@ -144,7 +145,8 @@ func TestTransitiveDepCache(t *testing.T) {
 }
 
 func TestTransitiveHashFast(t *testing.T) {
-	cache, err := internal.OutputDebug("go", "env", "GOCACHE")
+	ctx := t.Context()
+	cache, err := internal.OutputDebug(ctx, "go", "env", "GOCACHE")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +165,7 @@ func TestTransitiveHashFast(t *testing.T) {
 		Dir:    "testdata/transitiveDeps",
 		Args:   []string{"Run"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("got code %v, err: %s", code, stderr)
 	}
@@ -186,7 +188,7 @@ func TestTransitiveHashFast(t *testing.T) {
 	stderr.Reset()
 	stdout.Reset()
 	inv.HashFast = true
-	code = Invoke(inv)
+	code = Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("got code %v, err: %s", code, stderr)
 	}
@@ -260,6 +262,7 @@ func TestListStavefilesIgnoresRespectsGOOSArg(t *testing.T) {
 }
 
 func TestCompileDiffGoosGoarch(t *testing.T) {
+	ctx := t.Context()
 	target, err := os.MkdirTemp("./testdata", "")
 	if err != nil {
 		t.Fatal(err)
@@ -288,7 +291,7 @@ func TestCompileDiffGoosGoarch(t *testing.T) {
 		GOOS:       goos,
 		GOARCH:     goarch,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("got code %v, err: %s", code, stderr)
 	}
@@ -332,6 +335,7 @@ func TestListStavefilesLib(t *testing.T) {
 }
 
 func TestMixedStaveImports(t *testing.T) {
+	ctx := t.Context()
 	require.NoError(t, resetTerm())
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
@@ -341,7 +345,7 @@ func TestMixedStaveImports(t *testing.T) {
 		Stderr: stderr,
 		List:   true,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
 	}
@@ -353,6 +357,7 @@ func TestMixedStaveImports(t *testing.T) {
 }
 
 func TestStavefilesFolder(t *testing.T) {
+	ctx := t.Context()
 	require.NoError(t, resetTerm())
 	wd, err := os.Getwd()
 	t.Log(wd)
@@ -373,7 +378,7 @@ func TestStavefilesFolder(t *testing.T) {
 		Stderr: stderr,
 		List:   true,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
 	}
@@ -385,6 +390,7 @@ func TestStavefilesFolder(t *testing.T) {
 }
 
 func TestStavefilesFolderMixedWithStavefiles(t *testing.T) {
+	ctx := t.Context()
 	require.NoError(t, resetTerm())
 	wd, err := os.Getwd()
 	t.Log(wd)
@@ -405,7 +411,7 @@ func TestStavefilesFolderMixedWithStavefiles(t *testing.T) {
 		Stderr: stderr,
 		List:   true,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
 	}
@@ -423,6 +429,7 @@ func TestStavefilesFolderMixedWithStavefiles(t *testing.T) {
 }
 
 func TestUntaggedStavefilesFolder(t *testing.T) {
+	ctx := t.Context()
 	require.NoError(t, resetTerm())
 	wd, err := os.Getwd()
 	t.Log(wd)
@@ -443,7 +450,7 @@ func TestUntaggedStavefilesFolder(t *testing.T) {
 		Stderr: stderr,
 		List:   true,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
 	}
@@ -455,6 +462,7 @@ func TestUntaggedStavefilesFolder(t *testing.T) {
 }
 
 func TestMixedTaggingStavefilesFolder(t *testing.T) {
+	ctx := t.Context()
 	require.NoError(t, resetTerm())
 	wd, err := os.Getwd()
 	t.Log(wd)
@@ -475,7 +483,7 @@ func TestMixedTaggingStavefilesFolder(t *testing.T) {
 		Stderr: stderr,
 		List:   true,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
 	}
@@ -487,6 +495,7 @@ func TestMixedTaggingStavefilesFolder(t *testing.T) {
 }
 
 func TestSetDirWithStavefilesFolder(t *testing.T) {
+	ctx := t.Context()
 	require.NoError(t, resetTerm())
 
 	stderr := &bytes.Buffer{}
@@ -497,7 +506,7 @@ func TestSetDirWithStavefilesFolder(t *testing.T) {
 		Stderr: stderr,
 		List:   true,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
 	}
@@ -524,6 +533,7 @@ func TestGoRun(t *testing.T) {
 }
 
 func TestVerbose(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
@@ -533,7 +543,7 @@ func TestVerbose(t *testing.T) {
 		Args:   []string{"testverbose"},
 	}
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v", code)
 	}
@@ -545,7 +555,7 @@ func TestVerbose(t *testing.T) {
 	stderr.Reset()
 	stdout.Reset()
 	inv.Verbose = true
-	code = Invoke(inv)
+	code = Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v", code)
 	}
@@ -573,9 +583,10 @@ func TestVerboseEnv(t *testing.T) {
 }
 
 func TestVerboseFalseEnv(t *testing.T) {
+	ctx := t.Context()
 	t.Setenv("STAVEFILE_VERBOSE", "0")
 	stdout := &bytes.Buffer{}
-	code := ParseAndRun(io.Discard, stdout, nil, []string{"-d", "testdata", "testverbose"})
+	code := ParseAndRun(ctx, io.Discard, stdout, nil, []string{"-d", "testdata", "testverbose"})
 	if code != 0 {
 		t.Fatal("unexpected code", code)
 	}
@@ -586,6 +597,7 @@ func TestVerboseFalseEnv(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
 		Dir:    "./testdata/list",
@@ -594,7 +606,7 @@ func TestList(t *testing.T) {
 		List:   true,
 	}
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v", code)
 	}
@@ -632,6 +644,7 @@ var terminals = []struct {
 }
 
 func TestListWithColor(t *testing.T) {
+	ctx := t.Context()
 	t.Setenv(st.EnableColorEnv, "true")
 	t.Setenv(st.TargetColorEnv, st.Cyan.String())
 
@@ -669,7 +682,7 @@ Targets:
 				List:   true,
 			}
 
-			code := Invoke(inv)
+			code := Invoke(ctx, inv)
 			if code != 0 {
 				t.Errorf("expected to exit with code 0, but got %v", code)
 			}
@@ -691,6 +704,7 @@ Targets:
 }
 
 func TestNoArgNoDefaultList(t *testing.T) {
+	ctx := t.Context()
 	require.NoError(t, resetTerm())
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
@@ -699,7 +713,7 @@ func TestNoArgNoDefaultList(t *testing.T) {
 		Stdout: stdout,
 		Stderr: stderr,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v", code)
 	}
@@ -718,6 +732,7 @@ Targets:
 }
 
 func TestIgnoreDefault(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -728,7 +743,7 @@ func TestIgnoreDefault(t *testing.T) {
 	t.Setenv(st.IgnoreDefaultEnv, "1")
 	require.NoError(t, resetTerm())
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
 	}
@@ -751,6 +766,7 @@ Targets:
 }
 
 func TestTargetError(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
 		Dir:    "./testdata",
@@ -758,7 +774,7 @@ func TestTargetError(t *testing.T) {
 		Stderr: stderr,
 		Args:   []string{"returnsnonnilerror"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 1 {
 		t.Fatalf("expected 1, but got %v", code)
 	}
@@ -770,6 +786,7 @@ func TestTargetError(t *testing.T) {
 }
 
 func TestStdinCopy(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stdin := strings.NewReader("hi!")
 	inv := Invocation{
@@ -779,7 +796,7 @@ func TestStdinCopy(t *testing.T) {
 		Stdin:  stdin,
 		Args:   []string{"CopyStdin"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected 0, but got %v", code)
 	}
@@ -791,6 +808,7 @@ func TestStdinCopy(t *testing.T) {
 }
 
 func TestTargetPanics(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
 		Dir:    "./testdata",
@@ -798,7 +816,7 @@ func TestTargetPanics(t *testing.T) {
 		Stderr: stderr,
 		Args:   []string{"panics"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 1 {
 		t.Fatalf("expected 1, but got %v", code)
 	}
@@ -810,6 +828,7 @@ func TestTargetPanics(t *testing.T) {
 }
 
 func TestPanicsErr(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
 		Dir:    "./testdata",
@@ -817,7 +836,7 @@ func TestPanicsErr(t *testing.T) {
 		Stderr: stderr,
 		Args:   []string{"panicserr"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 1 {
 		t.Fatalf("expected 1, but got %v", code)
 	}
@@ -832,14 +851,15 @@ func TestPanicsErr(t *testing.T) {
 // executable name to run, so we automatically create a new exe if the template
 // changes.
 func TestHashTemplate(t *testing.T) {
+	ctx := t.Context()
 	templ := staveMainfileTplString
 	defer func() { staveMainfileTplString = templ }()
-	name, err := ExeName("go", st.CacheDir(), []string{"testdata/func.go", "testdata/command.go"})
+	name, err := ExeName(ctx, "go", st.CacheDir(), []string{"testdata/func.go", "testdata/command.go"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	staveMainfileTplString = "some other template"
-	changed, err := ExeName("go", st.CacheDir(), []string{"testdata/func.go", "testdata/command.go"})
+	changed, err := ExeName(ctx, "go", st.CacheDir(), []string{"testdata/func.go", "testdata/command.go"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -850,6 +870,7 @@ func TestHashTemplate(t *testing.T) {
 
 // Test if the -keep flag does keep the mainfile around after running.
 func TestKeepFlag(t *testing.T) {
+	ctx := t.Context()
 	buildFile := "./testdata/keep_flag/" + mainfile
 	_ = os.Remove(buildFile)
 	defer func() { _ = os.Remove(buildFile) }()
@@ -863,7 +884,7 @@ func TestKeepFlag(t *testing.T) {
 		Keep:   true,
 		Force:  true, // need force so we always regenerate
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected code 0, but got %v", code)
 	}
@@ -884,6 +905,7 @@ func (t tLogWriter) Write(b []byte) (int, error) {
 
 // Test if generated mainfile references anything other than the stdlib.
 func TestOnlyStdLib(t *testing.T) {
+	ctx := t.Context()
 	buildFile := "./testdata/onlyStdLib/" + mainfile
 	_ = os.Remove(buildFile)
 	defer func() { _ = os.Remove(buildFile) }()
@@ -899,7 +921,7 @@ func TestOnlyStdLib(t *testing.T) {
 		Force:   true, // need force so we always regenerate
 		Verbose: true,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected code 0, but got %v", code)
 	}
@@ -930,6 +952,7 @@ func TestOnlyStdLib(t *testing.T) {
 }
 
 func TestMultipleTargets(t *testing.T) {
+	ctx := t.Context()
 	var stderr, stdout bytes.Buffer
 	inv := Invocation{
 		Dir:     "./testdata",
@@ -938,7 +961,7 @@ func TestMultipleTargets(t *testing.T) {
 		Args:    []string{"TestVerbose", "ReturnsNilError"},
 		Verbose: true,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected 0, but got %v", code)
 	}
@@ -955,6 +978,7 @@ func TestMultipleTargets(t *testing.T) {
 }
 
 func TestFirstTargetFails(t *testing.T) {
+	ctx := t.Context()
 	var stderr, stdout bytes.Buffer
 	inv := Invocation{
 		Dir:     "./testdata",
@@ -963,7 +987,7 @@ func TestFirstTargetFails(t *testing.T) {
 		Args:    []string{"ReturnsNonNilError", "ReturnsNilError"},
 		Verbose: true,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 1 {
 		t.Errorf("expected 1, but got %v", code)
 	}
@@ -980,6 +1004,7 @@ func TestFirstTargetFails(t *testing.T) {
 }
 
 func TestBadSecondTargets(t *testing.T) {
+	ctx := t.Context()
 	var stderr, stdout bytes.Buffer
 	inv := Invocation{
 		Dir:    "./testdata",
@@ -987,7 +1012,7 @@ func TestBadSecondTargets(t *testing.T) {
 		Stderr: &stderr,
 		Args:   []string{"TestVerbose", "NotGonnaWork"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 2 {
 		t.Errorf("expected 2, but got %v", code)
 	}
@@ -1034,9 +1059,10 @@ func TestParse(t *testing.T) {
 }
 
 func TestSetDir(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	code := Invoke(Invocation{
+	code := Invoke(ctx, Invocation{
 		Dir:    "testdata/setdir",
 		Stdout: stdout,
 		Stderr: stderr,
@@ -1052,9 +1078,10 @@ func TestSetDir(t *testing.T) {
 }
 
 func TestSetWorkingDir(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	code := Invoke(Invocation{
+	code := Invoke(ctx, Invocation{
 		Dir:     "testdata/setworkdir",
 		WorkDir: "testdata/setworkdir/data",
 		Stdout:  stdout,
@@ -1077,6 +1104,7 @@ func TestSetWorkingDir(t *testing.T) {
 
 // Test the timeout option.
 func TestTimeout(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
@@ -1086,7 +1114,7 @@ func TestTimeout(t *testing.T) {
 		Args:    []string{"timeout"},
 		Timeout: 100 * time.Millisecond,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 1 {
 		t.Fatalf("expected 1, but got %v, stderr: %q, stdout: %q", code, stderr, stdout)
 	}
@@ -1117,6 +1145,7 @@ func TestParseHelp(t *testing.T) {
 }
 
 func TestHelpTarget(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
 		Dir:    "./testdata",
@@ -1125,7 +1154,7 @@ func TestHelpTarget(t *testing.T) {
 		Args:   []string{"panics"},
 		Help:   true,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v", code)
 	}
@@ -1137,6 +1166,7 @@ func TestHelpTarget(t *testing.T) {
 }
 
 func TestHelpAlias(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
 		Dir:    "./testdata/alias",
@@ -1145,7 +1175,7 @@ func TestHelpAlias(t *testing.T) {
 		Args:   []string{"status"},
 		Help:   true,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v", code)
 	}
@@ -1162,7 +1192,7 @@ func TestHelpAlias(t *testing.T) {
 		Help:   true,
 	}
 	stdout.Reset()
-	code = Invoke(inv)
+	code = Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v", code)
 	}
@@ -1174,6 +1204,7 @@ func TestHelpAlias(t *testing.T) {
 }
 
 func TestAlias(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	debug.SetOutput(stderr)
@@ -1184,7 +1215,7 @@ func TestAlias(t *testing.T) {
 		Args:   []string{"status"},
 		Debug:  true,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v\noutput:\n%s\nstderr:\n%s", code, stdout, stderr)
 	}
@@ -1195,7 +1226,7 @@ func TestAlias(t *testing.T) {
 	}
 	stdout.Reset()
 	inv.Args = []string{"st"}
-	code = Invoke(inv)
+	code = Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v", code)
 	}
@@ -1206,6 +1237,7 @@ func TestAlias(t *testing.T) {
 }
 
 func TestInvalidAlias(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	log.SetOutput(io.Discard)
 	inv := Invocation{
@@ -1214,7 +1246,7 @@ func TestInvalidAlias(t *testing.T) {
 		Stderr: stderr,
 		Args:   []string{"co"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 2 {
 		t.Errorf("expected to exit with code 2, but got %v", code)
 	}
@@ -1226,9 +1258,10 @@ func TestInvalidAlias(t *testing.T) {
 }
 
 func TestRunCompiledPrintsError(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	logger := log.New(stderr, "", 0)
-	code := RunCompiled(Invocation{}, "thiswon'texist", logger)
+	code := RunCompiled(ctx, Invocation{}, "thiswon'texist", logger)
 	if code != 1 {
 		t.Errorf("expected code 1 but got %v", code)
 	}
@@ -1239,6 +1272,7 @@ func TestRunCompiledPrintsError(t *testing.T) {
 }
 
 func TestCompiledFlags(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	dir := "./testdata/compiled"
@@ -1260,7 +1294,7 @@ func TestCompiledFlags(t *testing.T) {
 		Stderr:     stderr,
 		CompileOut: outName,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
 	}
@@ -1326,6 +1360,7 @@ func TestCompiledFlags(t *testing.T) {
 }
 
 func TestCompiledEnvironmentVars(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	dir := "./testdata/compiled"
@@ -1347,7 +1382,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 		Stderr:     stderr,
 		CompileOut: outName,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
 	}
@@ -1418,6 +1453,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 }
 
 func TestCompiledVerboseFlag(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	dir := "./testdata/compiled"
@@ -1439,7 +1475,7 @@ func TestCompiledVerboseFlag(t *testing.T) {
 		Stderr:     stderr,
 		CompileOut: outName,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
 	}
@@ -1484,6 +1520,7 @@ func TestCompiledVerboseFlag(t *testing.T) {
 }
 
 func TestSignals(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	dir := "./testdata/signals"
@@ -1502,7 +1539,7 @@ func TestSignals(t *testing.T) {
 		Stderr:     stderr,
 		CompileOut: outName,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
 	}
@@ -1589,6 +1626,7 @@ func TestSignals(t *testing.T) {
 }
 
 func TestCompiledDeterministic(t *testing.T) {
+	ctx := t.Context()
 	dir := "./testdata/compiled"
 	compileDir, err := os.MkdirTemp(dir, "")
 	if err != nil {
@@ -1622,7 +1660,7 @@ func TestCompiledDeterministic(t *testing.T) {
 				CompileOut: outName,
 			}
 
-			code := Invoke(inv)
+			code := Invoke(ctx, inv)
 			if code != 0 {
 				t.Errorf("expected to exit with code 0, but got %v", code)
 			}
@@ -1652,10 +1690,11 @@ func TestCompiledDeterministic(t *testing.T) {
 }
 
 func TestClean(t *testing.T) {
+	ctx := t.Context()
 	if err := os.RemoveAll(st.CacheDir()); err != nil {
 		t.Error("error removing cache dir:", err)
 	}
-	code := ParseAndRun(io.Discard, io.Discard, &bytes.Buffer{}, []string{"-clean"})
+	code := ParseAndRun(ctx, io.Discard, io.Discard, &bytes.Buffer{}, []string{"-clean"})
 	if code != 0 {
 		t.Errorf("expected 0, but got %v", code)
 	}
@@ -1678,7 +1717,7 @@ func TestClean(t *testing.T) {
 		t.Errorf("Expected 'clean' command but got %v", cmd)
 	}
 	buf := &bytes.Buffer{}
-	code = ParseAndRun(io.Discard, buf, &bytes.Buffer{}, []string{"-clean"})
+	code = ParseAndRun(ctx, io.Discard, buf, &bytes.Buffer{}, []string{"-clean"})
 	if code != 0 {
 		t.Fatalf("expected 0, but got %v: %s", code, buf)
 	}
@@ -1701,6 +1740,7 @@ func TestClean(t *testing.T) {
 }
 
 func TestGoCmd(t *testing.T) {
+	ctx := t.Context()
 	textOutput := "TestGoCmd"
 	t.Setenv(testExeEnv, textOutput)
 
@@ -1716,7 +1756,7 @@ func TestGoCmd(t *testing.T) {
 
 	buf := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	if err := Compile(CompileParams{
+	if err := Compile(ctx, CompileParams{
 		Goos:      "",
 		Goarch:    "",
 		Ldflags:   "",
@@ -1737,6 +1777,7 @@ func TestGoCmd(t *testing.T) {
 }
 
 func TestGoModules(t *testing.T) {
+	ctx := t.Context()
 	require.NoError(t, resetTerm())
 	dir, err := os.MkdirTemp("", "")
 	if err != nil {
@@ -1781,7 +1822,7 @@ func Test() {
 	}
 	stderr.Reset()
 	stdout.Reset()
-	code := Invoke(Invocation{
+	code := Invoke(ctx, Invocation{
 		Dir:    dir,
 		Stderr: stderr,
 		Stdout: stdout,
@@ -1799,6 +1840,7 @@ Targets:
 }
 
 func TestNamespaceDep(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -1807,7 +1849,7 @@ func TestNamespaceDep(t *testing.T) {
 		Stdout: stdout,
 		Args:   []string{"TestNamespaceDep"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected 0, but got %v, stderr:\n%s", code, stderr)
 	}
@@ -1818,6 +1860,7 @@ func TestNamespaceDep(t *testing.T) {
 }
 
 func TestNamespace(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
 		Dir:    "./testdata/namespaces",
@@ -1825,7 +1868,7 @@ func TestNamespace(t *testing.T) {
 		Stdout: stdout,
 		Args:   []string{"ns:error"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected 0, but got %v", code)
 	}
@@ -1836,13 +1879,14 @@ func TestNamespace(t *testing.T) {
 }
 
 func TestNamespaceDefault(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
 		Dir:    "./testdata/namespaces",
 		Stderr: io.Discard,
 		Stdout: stdout,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected 0, but got %v", code)
 	}
@@ -1856,13 +1900,14 @@ func TestAliasToImport(_ *testing.T) {
 }
 
 func TestWrongDependency(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
 		Dir:    "./testdata/wrong_dep",
 		Stderr: stderr,
 		Stdout: io.Discard,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 1 {
 		t.Fatalf("expected 1, but got %v", code)
 	}
@@ -1877,6 +1922,7 @@ func TestWrongDependency(t *testing.T) {
 
 // TestBug508 is a regression test for: Bug: using Default with imports selects first matching func by name.
 func TestBug508(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -1884,7 +1930,7 @@ func TestBug508(t *testing.T) {
 		Stderr: stderr,
 		Stdout: stdout,
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Log(stderr.String())
 		t.Fatalf("expected 0, but got %v", code)

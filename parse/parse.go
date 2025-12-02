@@ -1,12 +1,17 @@
 package parse
 
 import (
+	"context"
 	"errors"
 	"fmt"
+
+	"github.com/yaklabco/stave/internal"
 	"go/ast"
 	"go/doc"
 	"go/parser"
 	"go/token"
+
+	"golang.org/x/tools/go/packages"
 	"io"
 	"log"
 	"os"
@@ -14,9 +19,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/yaklabco/stave/internal"
-	"golang.org/x/tools/go/packages"
 )
 
 const importTag = "stave:import"
@@ -187,13 +189,13 @@ func (f Function) ExecCode() string {
 }
 
 // PrimaryPackage parses a package.  If files is non-empty, it will only parse the files given.
-func PrimaryPackage(gocmd, path string, files []string) (*PkgInfo, error) {
+func PrimaryPackage(ctx context.Context, gocmd, path string, files []string) (*PkgInfo, error) {
 	info, err := Package(path, files)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := setImports(gocmd, info); err != nil {
+	if err := setImports(ctx, gocmd, info); err != nil {
 		return nil, err
 	}
 
@@ -287,11 +289,11 @@ func Package(path string, files []string) (*PkgInfo, error) {
 	return pi, nil
 }
 
-func getNamedImports(gocmd string, pkgs map[string]string) ([]*Import, error) {
+func getNamedImports(ctx context.Context, gocmd string, pkgs map[string]string) ([]*Import, error) {
 	theImports := make([]*Import, 0, len(pkgs))
 	for pkg, alias := range pkgs {
 		debug.Printf("getting import package %q, alias %q", pkg, alias)
-		imp, err := getImport(gocmd, pkg, alias)
+		imp, err := getImport(ctx, gocmd, pkg, alias)
 		if err != nil {
 			return nil, err
 		}
@@ -301,8 +303,8 @@ func getNamedImports(gocmd string, pkgs map[string]string) ([]*Import, error) {
 }
 
 // getImport returns the metadata about a package that has been stave:import'ed.
-func getImport(gocmd, importpath, alias string) (*Import, error) {
-	out, err := internal.OutputDebug(gocmd, "list", "-f", "{{.Dir}}||{{.Name}}", importpath)
+func getImport(ctx context.Context, gocmd, importpath, alias string) (*Import, error) {
+	out, err := internal.OutputDebug(ctx, gocmd, "list", "-f", "{{.Dir}}||{{.Name}}", importpath)
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +318,7 @@ func getImport(gocmd, importpath, alias string) (*Import, error) {
 	// we use go list to get the list of files, since go/parser doesn't differentiate between
 	// go files with build tags etc, and go list does. This prevents weird problems if you
 	// have more than one package in a folder because of build tags.
-	out, err = internal.OutputDebug(gocmd, "list", "-f", `{{join .GoFiles "||"}}`, importpath)
+	out, err = internal.OutputDebug(ctx, gocmd, "list", "-f", `{{join .GoFiles "||"}}`, importpath)
 	if err != nil {
 		return nil, err
 	}
@@ -412,7 +414,7 @@ func setNamespaces(pi *PkgInfo) {
 	}
 }
 
-func setImports(gocmd string, pi *PkgInfo) error {
+func setImports(ctx context.Context, gocmd string, pi *PkgInfo) error {
 	var rootImports []string
 	importNames := map[string]string{}
 	for _, f := range pi.Files {
@@ -441,12 +443,12 @@ func setImports(gocmd string, pi *PkgInfo) error {
 			}
 		}
 	}
-	imports, err := getNamedImports(gocmd, importNames)
+	imports, err := getNamedImports(ctx, gocmd, importNames)
 	if err != nil {
 		return err
 	}
 	for _, s := range rootImports {
-		imp, err := getImport(gocmd, s, "")
+		imp, err := getImport(ctx, gocmd, s, "")
 		if err != nil {
 			return err
 		}

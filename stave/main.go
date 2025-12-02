@@ -1,11 +1,18 @@
 package stave
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
+
+	"github.com/yaklabco/stave/internal"
+	"github.com/yaklabco/stave/internal/dryrun"
+	"github.com/yaklabco/stave/parse"
+	"github.com/yaklabco/stave/sh"
+	"github.com/yaklabco/stave/st"
 	"go/build"
 	"io"
 	"log"
@@ -19,12 +26,6 @@ import (
 	"syscall"
 	"text/template"
 	"time"
-
-	"github.com/yaklabco/stave/internal"
-	"github.com/yaklabco/stave/internal/dryrun"
-	"github.com/yaklabco/stave/parse"
-	"github.com/yaklabco/stave/sh"
-	"github.com/yaklabco/stave/st"
 )
 
 // magicRebuildKey is used when hashing the output binary to ensure that we get
@@ -92,8 +93,8 @@ const (
 // Main is the entrypoint for running stave.  It exists external to stave's main
 // function to allow it to be used from other programs, specifically so you can
 // go run a simple file that run's stave's Main.
-func Main() int {
-	return ParseAndRun(os.Stdout, os.Stderr, os.Stdin, os.Args[1:])
+func Main(ctx context.Context) int {
+	return ParseAndRun(ctx, os.Stdout, os.Stderr, os.Stdin, os.Args[1:])
 }
 
 // Invocation contains the args for invoking a run of Stave.
@@ -133,7 +134,7 @@ func (i Invocation) UsesStavefiles() bool {
 // ParseAndRun parses the command line, and then compiles and runs the stave
 // files in the given directory with the given args (do not include the command
 // name in the args).
-func ParseAndRun(stdout, stderr io.Writer, stdin io.Reader, args []string) int {
+func ParseAndRun(ctx context.Context, stdout, stderr io.Writer, stdin io.Reader, args []string) int {
 	errlog := log.New(stderr, "", 0)
 	out := log.New(stdout, "", 0)
 	inv, cmd, err := Parse(stderr, stdout, args)
@@ -170,9 +171,9 @@ func ParseAndRun(stdout, stderr io.Writer, stdin io.Reader, args []string) int {
 		out.Println(inv.CacheDir, "cleaned")
 		return 0
 	case CompileStatic:
-		return Invoke(inv)
+		return Invoke(ctx, inv)
 	case None:
-		return Invoke(inv)
+		return Invoke(ctx, inv)
 	default:
 		panic(fmt.Errorf("unknown command type: %v", cmd))
 	}
@@ -321,7 +322,7 @@ Options:
 const dotDirectory = "."
 
 // Invoke runs Stave with the given arguments.
-func Invoke(inv Invocation) int {
+func Invoke(ctx context.Context, inv Invocation) int {
 	errlog := log.New(inv.Stderr, "", 0)
 	if inv.GoCmd == "" {
 		inv.GoCmd = "go"
@@ -368,7 +369,7 @@ func Invoke(inv Invocation) int {
 	debug.Printf("found stavefiles: %s", strings.Join(files, ", "))
 	exePath := inv.CompileOut
 	if inv.CompileOut == "" {
-		exePath, err = ExeName(inv.GoCmd, inv.CacheDir, files)
+		exePath, err = ExeName(ctx, inv.GoCmd, inv.CacheDir, files)
 		if err != nil {
 			errlog.Println("Error getting exe name:", err)
 			return 1
@@ -380,7 +381,7 @@ func Invoke(inv Invocation) int {
 	if inv.HashFast {
 		debug.Println("user has set STAVEFILE_HASHFAST, so we'll ignore GOCACHE")
 	} else {
-		theGoCache, err := internal.OutputDebug(inv.GoCmd, "env", "GOCACHE")
+		theGoCache, err := internal.OutputDebug(ctx, inv.GoCmd, "env", "GOCACHE")
 		if err != nil {
 			errlog.Printf("failed to run %s env GOCACHE: %s", inv.GoCmd, err)
 			return 1
@@ -400,7 +401,7 @@ func Invoke(inv Invocation) int {
 		case err == nil:
 			if !inv.Force {
 				debug.Println("Running existing exe")
-				return RunCompiled(inv, exePath, errlog)
+				return RunCompiled(ctx, inv, exePath, errlog)
 			}
 			debug.Println("ignoring existing executable")
 		case os.IsNotExist(err):
@@ -420,7 +421,7 @@ func Invoke(inv Invocation) int {
 		parse.EnableDebug()
 	}
 	debug.Println("parsing files")
-	info, err := parse.PrimaryPackage(inv.GoCmd, inv.Dir, fnames)
+	info, err := parse.PrimaryPackage(ctx, inv.GoCmd, inv.Dir, fnames)
 	if err != nil {
 		errlog.Println("Error parsing stavefiles:", err)
 		return 1
@@ -445,7 +446,7 @@ func Invoke(inv Invocation) int {
 		defer func() { _ = os.RemoveAll(main) }()
 	}
 	files = append(files, main)
-	if err := Compile(CompileParams{
+	if err := Compile(ctx, CompileParams{
 		Goos:      inv.GOOS,
 		Goarch:    inv.GOARCH,
 		Ldflags:   inv.Ldflags,
@@ -473,7 +474,7 @@ func Invoke(inv Invocation) int {
 		return 0
 	}
 
-	return RunCompiled(inv, exePath, errlog)
+	return RunCompiled(ctx, inv, exePath, errlog)
 }
 
 type mainfileTemplateData struct {
@@ -609,12 +610,12 @@ type CompileParams struct {
 }
 
 // Compile uses the go tool to compile the files into an executable at path.
-func Compile(params CompileParams) error {
+func Compile(ctx context.Context, params CompileParams) error {
 	debug.Println("compiling to", params.CompileTo)
 	debug.Println("compiling using gocmd:", params.GoCmd)
 	if params.Debug {
-		_ = internal.RunDebug(params.GoCmd, "version")
-		_ = internal.RunDebug(params.GoCmd, "env")
+		_ = internal.RunDebug(ctx, params.GoCmd, "version")
+		_ = internal.RunDebug(ctx, params.GoCmd, "env")
 	}
 	environ, err := internal.EnvWithGOOS(params.Goos, params.Goarch)
 	if err != nil {
@@ -631,7 +632,7 @@ func Compile(params CompileParams) error {
 	args := append(buildArgs, params.Gofiles...)
 
 	debug.Printf("running %s %s", params.GoCmd, strings.Join(args, " "))
-	theCmd := dryrun.Wrap(params.GoCmd, args...)
+	theCmd := dryrun.Wrap(ctx, params.GoCmd, args...)
 	theCmd.Env = environ
 	theCmd.Stderr = params.Stderr
 	theCmd.Stdout = params.Stdout
@@ -684,7 +685,7 @@ func GenerateMainfile(binaryName, path string, info *parse.PkgInfo) error {
 
 // ExeName reports the executable filename that this version of Stave would
 // create for the given stavefiles.
-func ExeName(goCmd, cacheDir string, files []string) (string, error) {
+func ExeName(ctx context.Context, goCmd, cacheDir string, files []string) (string, error) {
 	hashes := make([]string, 0, len(files)+1)
 	for _, s := range files {
 		h, err := hashFile(s)
@@ -697,7 +698,7 @@ func ExeName(goCmd, cacheDir string, files []string) (string, error) {
 	// binary.
 	hashes = append(hashes, fmt.Sprintf("%x", sha1.Sum([]byte(staveMainfileTplString))))
 	sort.Strings(hashes)
-	ver, err := internal.OutputDebug(goCmd, "version")
+	ver, err := internal.OutputDebug(ctx, goCmd, "version")
 	if err != nil {
 		return "", err
 	}
@@ -741,9 +742,9 @@ func generateInit(dir string) error {
 }
 
 // RunCompiled runs an already-compiled stave command with the given args,.
-func RunCompiled(inv Invocation, exePath string, errlog *log.Logger) int {
+func RunCompiled(ctx context.Context, inv Invocation, exePath string, errlog *log.Logger) int {
 	debug.Println("running binary", exePath)
-	theCmd := dryrun.Wrap(exePath, inv.Args...)
+	theCmd := dryrun.Wrap(ctx, exePath, inv.Args...)
 	theCmd.Stderr = inv.Stderr
 	theCmd.Stdout = inv.Stdout
 	theCmd.Stdin = inv.Stdin

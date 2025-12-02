@@ -1,6 +1,7 @@
 package sh
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -27,7 +28,7 @@ func init() {
 	flag.BoolVar(&dryRunOutput, "dryRunOutput", false, "")
 }
 
-func TestMain(m *testing.M) {
+func TestMain(ctx context.Context, m *testing.M) {
 	flag.Parse()
 
 	if printArgs {
@@ -44,7 +45,7 @@ func TestMain(m *testing.M) {
 		// We use a non-echo command to make the "DRYRUN: " prefix deterministic.
 		_ = os.Setenv("STAVEFILE_DRYRUN_POSSIBLE", "1")
 		_ = os.Setenv("STAVEFILE_DRYRUN", "1")
-		s, err := Output("somecmd", "arg1", "arg two")
+		s, err := Output(ctx, "somecmd", "arg1", "arg two")
 		if err != nil {
 			_, _ = fmt.Println("ERR:", err)
 			return

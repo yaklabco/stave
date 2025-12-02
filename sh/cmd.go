@@ -2,8 +2,10 @@ package sh
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
+
 	"io"
 	"log"
 	"os"
@@ -127,7 +129,8 @@ func Exec(env map[string]string, stdout, stderr io.Writer, cmd string, args ...s
 }
 
 func run(env map[string]string, stdout, stderr io.Writer, cmd string, args ...string) (bool, int, error) {
-	theCmd := dryrun.Wrap(cmd, args...)
+	ctx := context.Background()
+	theCmd := dryrun.Wrap(ctx, cmd, args...)
 	theCmd.Env = os.Environ()
 	for k, v := range env {
 		theCmd.Env = append(theCmd.Env, k+"="+v)

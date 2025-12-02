@@ -2,14 +2,15 @@ package internal
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+
+	"github.com/yaklabco/stave/internal/dryrun"
 	"io"
 	"log"
 	"os"
 	"runtime"
 	"strings"
-
-	"github.com/yaklabco/stave/internal/dryrun"
 )
 
 var debug = log.New(io.Discard, "", 0)
@@ -18,7 +19,7 @@ func SetDebug(l *log.Logger) {
 	debug = l
 }
 
-func RunDebug(cmd string, args ...string) error {
+func RunDebug(ctx context.Context, cmd string, args ...string) error {
 	env, err := EnvWithCurrentGOOS()
 	if err != nil {
 		return err
@@ -26,7 +27,7 @@ func RunDebug(cmd string, args ...string) error {
 	buf := &bytes.Buffer{}
 	errbuf := &bytes.Buffer{}
 	debug.Println("running", cmd, strings.Join(args, " "))
-	c := dryrun.Wrap(cmd, args...)
+	c := dryrun.Wrap(ctx, cmd, args...)
 	c.Env = env
 	c.Stderr = errbuf
 	c.Stdout = buf
@@ -38,7 +39,7 @@ func RunDebug(cmd string, args ...string) error {
 	return nil
 }
 
-func OutputDebug(cmd string, args ...string) (string, error) {
+func OutputDebug(ctx context.Context, cmd string, args ...string) (string, error) {
 	env, err := EnvWithCurrentGOOS()
 	if err != nil {
 		return "", err
@@ -46,7 +47,7 @@ func OutputDebug(cmd string, args ...string) (string, error) {
 	buf := &bytes.Buffer{}
 	errbuf := &bytes.Buffer{}
 	debug.Println("running", cmd, strings.Join(args, " "))
-	c := dryrun.Wrap(cmd, args...)
+	c := dryrun.Wrap(ctx, cmd, args...)
 	c.Env = env
 	c.Stderr = errbuf
 	c.Stdout = buf

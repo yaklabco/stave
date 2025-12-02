@@ -13,6 +13,7 @@
 package dryrun
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"sync"
@@ -63,13 +64,13 @@ func IsPossible() bool {
 // Wrap creates an *exec.Cmd to run a command or simulate it in dry-run mode.
 // If not in dry-run mode, it returns exec.Command(cmd, args...).
 // In dry-run mode, it returns a command that prints the simulated command.
-func Wrap(cmd string, args ...string) *exec.Cmd {
+func Wrap(ctx context.Context, cmd string, args ...string) *exec.Cmd {
 	if !IsDryRun() {
-		return exec.Command(cmd, args...)
+		return exec.CommandContext(ctx, cmd, args...)
 	}
 
 	// Return an *exec.Cmd that just prints the command that would have been run.
-	return exec.Command("echo", append([]string{"DRYRUN: " + cmd}, args...)...)
+	return exec.CommandContext(ctx, "echo", append([]string{"DRYRUN: " + cmd}, args...)...)
 }
 
 // IsDryRun determines if dry-run mode is both possible and requested.
