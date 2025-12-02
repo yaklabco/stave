@@ -1,3 +1,4 @@
+//nolint:gochecknoglobals // These are all intended as constants (and are private).
 package st
 
 // Color is ANSI color type.

@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const futureShift = time.Hour * 24 * 365 * 250
+
 var (
 	// errNewer is an ugly sentinel error to cause filepath.Walk to abort
 	// as soon as a newer file is encountered.
@@ -84,23 +86,23 @@ func PathNewer(target time.Time, sources ...string) (bool, error) {
 // OldestModTime recurses a list of target filesystem objects and finds the
 // oldest ModTime among them.
 func OldestModTime(targets ...string) (time.Time, error) {
-	t := time.Now().Add(time.Hour * 100000)
+	oldestTime := time.Now().Add(futureShift)
 	for _, target := range targets {
 		walkFn := func(_ string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
 			mTime := info.ModTime()
-			if mTime.Before(t) {
-				t = mTime
+			if mTime.Before(oldestTime) {
+				oldestTime = mTime
 			}
 			return nil
 		}
 		if err := filepath.Walk(target, walkFn); err != nil {
-			return t, err
+			return oldestTime, err
 		}
 	}
-	return t, nil
+	return oldestTime, nil
 }
 
 // NewestModTime recurses a list of target filesystem objects and finds the

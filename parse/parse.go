@@ -4,26 +4,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
-	"github.com/yaklabco/stave/internal"
 	"go/ast"
 	"go/doc"
 	"go/parser"
 	"go/token"
-
-	"golang.org/x/tools/go/packages"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+
+	"golang.org/x/tools/go/packages"
+
+	"github.com/yaklabco/stave/internal"
 )
 
 const importTag = "stave:import"
-
-var debug = log.New(io.Discard, "DEBUG: ", log.Ltime|log.Lmicroseconds)
 
 // EnableDebug turns on debug logging.
 func EnableDebug() {
@@ -425,7 +422,10 @@ func setImports(ctx context.Context, gocmd string, pi *PkgInfo) error {
 			}
 			for j := range len(gen.Specs) {
 				spec := gen.Specs[j]
-				impspec := spec.(*ast.ImportSpec)
+				impspec, ok := spec.(*ast.ImportSpec)
+				if !ok {
+					return fmt.Errorf("expected *ast.ImportSpec, got %T instead", spec)
+				}
 				if len(gen.Specs) == 1 && gen.Lparen == token.NoPos && impspec.Doc == nil {
 					impspec.Doc = gen.Doc
 				}
@@ -482,16 +482,18 @@ func getImportPath(imp *ast.ImportSpec) (string, string, bool) {
 	trailingVals := getImportPathFromCommentGroup(imp.Comment)
 
 	var vals []string
-	if len(leadingVals) > 0 {
+	switch {
+	case len(leadingVals) > 0:
 		vals = leadingVals
 		if len(trailingVals) > 0 {
 			log.Println("warning:", importTag, "specified both before and after, picking first")
 		}
-	} else if len(trailingVals) > 0 {
+	case len(trailingVals) > 0:
 		vals = trailingVals
-	} else {
+	default:
 		return "", "", false
 	}
+
 	path, ok := lit2string(imp.Path)
 	if !ok {
 		return "", "", false
@@ -587,12 +589,16 @@ func sanitizeSynopsis(theFunc *doc.Func) string {
 }
 
 func setDefault(pi *PkgInfo) {
-	for _, v := range pi.DocPkg.Vars {
-		for x, name := range v.Names {
-			if name != "Default" {
+	for _, theValue := range pi.DocPkg.Vars {
+		for iName, theName := range theValue.Names {
+			if theName != "Default" {
 				continue
 			}
-			spec := v.Decl.Specs[x].(*ast.ValueSpec)
+			spec, ok := theValue.Decl.Specs[iName].(*ast.ValueSpec)
+			if !ok {
+				log.Printf("warning: expected *ast.ValueSpec, but got %T instead", theValue.Decl.Specs[iName])
+				continue
+			}
 			if len(spec.Values) != 1 {
 				log.Println("warning: default declaration has multiple values")
 			}
@@ -666,82 +672,99 @@ func setAliases(pi *PkgInfo) {
 
 func getFunction(exp ast.Expr, pi *PkgInfo) (*Function, error) {
 	// selector expressions are in LIFO format.
-	// So, in  foo.bar.baz the first selector.Name is
-	// actually "baz", the second is "bar", and the last is "foo"
+	// So, in  foo.bar.baz the first selector.Name is actually "baz",
+	// the second is "bar", and the last is "foo".
 
-	var pkg, receiver, funcname string
-	switch theValue := exp.(type) {
-	case *ast.Ident:
-		// "foo" : Bar
-		funcname = theValue.Name
-	case *ast.SelectorExpr:
-		// need to handle
-		// namespace.Func
-		// import.Func
-		// import.namespace.Func
-
-		// "foo" : ?.bar
-		funcname = theValue.Sel.Name
-		switch expressionValue := theValue.X.(type) {
-		case *ast.Ident:
-			// "foo" : baz.bar
-			// this is either a namespace or package
-			firstname := expressionValue.Name
-			for _, f := range pi.Funcs {
-				if firstname == f.Receiver && funcname == f.Name {
-					return f, nil
-				}
+	// Small helpers to keep the control-flow simple and flat.
+	findLocal := func(receiver, name string) *Function {
+		for _, f := range pi.Funcs {
+			if f.Name == name && f.Receiver == receiver {
+				return f
 			}
-			// not a namespace, let's try imported packages
-			for _, imp := range pi.Imports {
-				if firstname == imp.Name {
-					for _, f := range imp.Info.Funcs {
-						if funcname == f.Name && f.Receiver == "" {
-							return f, nil
-						}
+		}
+		return nil
+	}
+
+	findImported := func(pkg, receiver, name string) *Function {
+		for _, imp := range pi.Imports {
+			if imp.Name == pkg {
+				for _, f := range imp.Info.Funcs {
+					if f.Name == name && f.Receiver == receiver {
+						return f
 					}
-					break
 				}
+				return nil
+			}
+		}
+		return nil
+	}
+
+	hasImport := func(pkg string) bool {
+		for _, imp := range pi.Imports {
+			if imp.Name == pkg {
+				return true
+			}
+		}
+		return false
+	}
+
+	switch theExpr := exp.(type) {
+	case *ast.Ident:
+		// Just a function name in the current package/namespace.
+		if f := findLocal("", theExpr.Name); f != nil {
+			return f, nil
+		}
+		return nil, fmt.Errorf("unknown function %s.%s", "", theExpr.Name)
+
+	case *ast.SelectorExpr:
+		// Cases to handle:
+		//   namespace.Func
+		//   import.Func
+		//   import.namespace.Func
+
+		funcname := theExpr.Sel.Name
+		switch x := theExpr.X.(type) {
+		case *ast.Ident:
+			// Either a local namespace (receiver) or an imported package
+			first := x.Name
+
+			if f := findLocal(first, funcname); f != nil { // namespace.Func
+				return f, nil
+			}
+
+			// Imported free function (no receiver)
+			if f := findImported(first, "", funcname); f != nil { // import.Func
+				return f, nil
 			}
 			return nil, fmt.Errorf("%q is not a known target", exp)
+
 		case *ast.SelectorExpr:
-			// "foo" : bar.Baz.Bat
-			// must be package.Namespace.Func
-			sel, ok := theValue.X.(*ast.SelectorExpr)
+			// import.namespace.Func — peel off the pieces
+			sel, ok := theExpr.X.(*ast.SelectorExpr)
 			if !ok {
-				return nil, fmt.Errorf("%q is must denote a target function but was %T", exp, theValue.X)
+				return nil, fmt.Errorf("%q is must denote a target function but was %T", exp, theExpr.X)
 			}
-			receiver = sel.Sel.Name
+			receiver := sel.Sel.Name
 			id, ok := sel.X.(*ast.Ident)
 			if !ok {
-				return nil, fmt.Errorf("%q is must denote a target function but was %T", exp, theValue.X)
+				return nil, fmt.Errorf("%q is must denote a target function but was %T", exp, theExpr.X)
 			}
-			pkg = id.Name
+			pkg := id.Name
+
+			if f := findImported(pkg, receiver, funcname); f != nil {
+				return f, nil
+			}
+			if hasImport(pkg) {
+				return nil, fmt.Errorf("unknown function %s.%s.%s", pkg, receiver, funcname)
+			}
+			return nil, fmt.Errorf("unknown package for function %q", exp)
+
 		default:
 			return nil, fmt.Errorf("%q is not valid", exp)
 		}
 	default:
 		return nil, fmt.Errorf("target %s is not a function", exp)
 	}
-	if pkg == "" {
-		for _, f := range pi.Funcs {
-			if f.Name == funcname && f.Receiver == receiver {
-				return f, nil
-			}
-		}
-		return nil, fmt.Errorf("unknown function %s.%s", receiver, funcname)
-	}
-	for _, imp := range pi.Imports {
-		if imp.Name == pkg {
-			for _, f := range imp.Info.Funcs {
-				if f.Name == funcname && f.Receiver == receiver {
-					return f, nil
-				}
-			}
-			return nil, fmt.Errorf("unknown function %s.%s.%s", pkg, receiver, funcname)
-		}
-	}
-	return nil, fmt.Errorf("unknown package for function %q", exp)
 }
 
 // getPackage parses a directory of Go files and retrieves package information.
@@ -935,12 +958,4 @@ func funcType(ft *ast.FuncType) (*Function, error) {
 
 func toOneLine(s string) string {
 	return strings.TrimSpace(strings.ReplaceAll(s, "\n", " "))
-}
-
-var argTypes = map[string]string{
-	"string":           "string",
-	"int":              "int",
-	"float64":          "float64",
-	"&{time Duration}": "time.Duration",
-	"bool":             "bool",
 }

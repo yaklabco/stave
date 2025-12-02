@@ -1,3 +1,4 @@
+//nolint:lll // Long string-literals.
 package stave
 
 import (

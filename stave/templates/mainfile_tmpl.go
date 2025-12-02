@@ -1,9 +1,4 @@
-package stave
-
-// this template uses the "data"
-
-// var only for tests.
-var staveMainfileTplString = `//go:build ignore
+//go:build ignore
 // +build ignore
 
 package main
@@ -23,8 +18,8 @@ import (
 	"syscall"
 	_tabwriter "text/tabwriter"
 	"time"
-	{{range .Imports}}{{.UniqueName}} "{{.Path}}"
-	{{end}}
+{{range .Imports}}{{.UniqueName}} "{{.Path}}"
+{{end}}
 )
 
 func main() {
@@ -41,7 +36,7 @@ func main() {
 		val := os.Getenv(env)
 		if val == "" {
 			return false
-		}		
+		}
 		b, err := strconv.ParseBool(val)
 		if err != nil {
 			_log.Printf("warning: environment variable %s is not a valid bool value: %v", env, val)
@@ -54,7 +49,7 @@ func main() {
 		val := os.Getenv(env)
 		if val == "" {
 			return 0
-		}		
+		}
 		d, err := time.ParseDuration(val)
 		if err != nil {
 			_log.Printf("warning: environment variable %s is not a valid duration value: %v", env, val)
@@ -73,18 +68,18 @@ func main() {
 	fs.DurationVar(&args.Timeout, "t", parseDuration("STAVEFILE_TIMEOUT"), "timeout in duration parsable format (e.g. 5m30s)")
 	fs.Usage = func() {
 		_fmt.Fprintf(os.Stdout, ` + "`" + `
-%s [options] [target]
+		%s [options] [target]
 
-Commands:
-  -l    list targets in this binary
-  -h    show this help
+	Commands:
+		-l    list targets in this binary
+		-h    show this help
 
-Options:
-  -h    show description of a target
-  -t <string>
-        timeout in duration parsable format (e.g. 5m30s)
-  -v    show verbose output when running targets
- ` + "`" + `[1:], _filepath.Base(os.Args[0]))
+	Options:
+		-h    show description of a target
+		-t <string>
+			 timeout in duration parsable format (e.g. 5m30s)
+		-v    show verbose output when running targets
+		` + "`" + `[1:], _filepath.Base(os.Args[0]))
 	}
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		// flag will have printed out an error already.
@@ -95,7 +90,7 @@ Options:
 		fs.Usage()
 		return
 	}
-		
+
 	// color is ANSI color type
 	type color int
 
@@ -140,7 +135,7 @@ Options:
 		brightcyan:    "\u001b[36;1m",
 		brightwhite:   "\u001b[37;1m",
 	}
-	
+
 	const _color_name = "blackredgreenyellowbluestaventacyanwhitebrightblackbrightredbrightgreenbrightyellowbrightbluebrightstaventabrightcyanbrightwhite"
 
 	var _color_index = [...]uint8{0, 5, 8, 13, 19, 23, 30, 34, 39, 50, 59, 70, 82, 92, 105, 115, 126}
@@ -174,7 +169,7 @@ Options:
 	// 	TERM=vt100
 	// 	TERM=cygwin
 	// 	TERM=xterm-mono
-    var noColorTerms = map[string]bool{
+	var noColorTerms = map[string]bool{
 		"vt100":      false,
 		"cygwin":     false,
 		"xterm-mono": false,
@@ -228,13 +223,13 @@ Options:
 		{{- end}}
 		{{- $default := .DefaultFunc}}
 		targets := map[string]string{
-		{{- range .Funcs}}
-			"{{lowerFirst .TargetName}}{{if and (eq .Name $default.Name) (eq .Receiver $default.Receiver)}}*{{end}}": {{printf "%q" .Synopsis}},
-		{{- end}}
-		{{- range .Imports}}{{$imp := .}}
-			{{- range .Info.Funcs}}
+			{{- range .Funcs}}
 			"{{lowerFirst .TargetName}}{{if and (eq .Name $default.Name) (eq .Receiver $default.Receiver)}}*{{end}}": {{printf "%q" .Synopsis}},
 			{{- end}}
+			{{- range .Imports}}{{$imp := .}}
+		{{- range .Info.Funcs}}
+			"{{lowerFirst .TargetName}}{{if and (eq .Name $default.Name) (eq .Receiver $default.Receiver)}}*{{end}}": {{printf "%q" .Synopsis}},
+		{{- end}}
 		{{- end}}
 		}
 
@@ -251,9 +246,9 @@ Options:
 		}
 		err := w.Flush()
 		{{- if .DefaultFunc.Name}}
-			if err == nil {
-				_fmt.Println("\n* default target")
-			}
+		if err == nil {
+			_fmt.Println("\n* default target")
+		}
 		{{- end}}
 		return err
 	}
@@ -367,50 +362,50 @@ Options:
 		}
 		switch _strings.ToLower(args.Args[0]) {
 			{{range .Funcs -}}
-			case "{{lower .TargetName}}":
-				{{if ne .Comment "" -}}
-				_fmt.Println({{printf "%q" .Comment}})
-				_fmt.Println()
-				{{end}}
-				_fmt.Print("Usage:\n\n\t{{$.BinaryName}} {{lower .TargetName}}{{range .Args}} <{{.Name}}>{{end}}\n\n")
-				var aliases []string
-				{{- $name := .Name -}}
-				{{- $recv := .Receiver -}}
-				{{range $alias, $func := $.Aliases}}
-				{{if and (eq $name $func.Name) (eq $recv $func.Receiver)}}aliases = append(aliases, "{{$alias}}"){{end -}}
-				{{- end}}
-				if len(aliases) > 0 {
-					_fmt.Printf("Aliases: %s\n\n", _strings.Join(aliases, ", "))
-				}
-				return
+		case "{{lower .TargetName}}":
+			{{if ne .Comment "" -}}
+			_fmt.Println({{printf "%q" .Comment}})
+			_fmt.Println()
+			{{end}}
+			_fmt.Print("Usage:\n\n\t{{$.BinaryName}} {{lower .TargetName}}{{range .Args}} <{{.Name}}>{{end}}\n\n")
+			var aliases []string
+			{{- $name := .Name -}}
+			{{- $recv := .Receiver -}}
+			{{range $alias, $func := $.Aliases}}
+			{{if and (eq $name $func.Name) (eq $recv $func.Receiver)}}aliases = append(aliases, "{{$alias}}"){{end -}}
+			{{- end}}
+			if len(aliases) > 0 {
+				_fmt.Printf("Aliases: %s\n\n", _strings.Join(aliases, ", "))
+			}
+			return
 			{{end -}}
 			{{range .Imports -}}
-				{{range .Info.Funcs -}}
-			case "{{lower .TargetName}}":
-				{{if ne .Comment "" -}}
-				_fmt.Println({{printf "%q" .Comment}})
-				_fmt.Println()
-				{{end}}
-				_fmt.Print("Usage:\n\n\t{{$.BinaryName}} {{lower .TargetName}}{{range .Args}} <{{.Name}}>{{end}}\n\n")
-				var aliases []string
-				{{- $name := .Name -}}
-				{{- $recv := .Receiver -}}
-				{{range $alias, $func := $.Aliases}}
-				{{if and (eq $name $func.Name) (eq $recv $func.Receiver)}}aliases = append(aliases, "{{$alias}}"){{end -}}
-				{{- end}}
-				if len(aliases) > 0 {
-					_fmt.Printf("Aliases: %s\n\n", _strings.Join(aliases, ", "))
-				}
-				return
-				{{end -}}
+			{{range .Info.Funcs -}}
+		case "{{lower .TargetName}}":
+			{{if ne .Comment "" -}}
+			_fmt.Println({{printf "%q" .Comment}})
+			_fmt.Println()
+			{{end}}
+			_fmt.Print("Usage:\n\n\t{{$.BinaryName}} {{lower .TargetName}}{{range .Args}} <{{.Name}}>{{end}}\n\n")
+			var aliases []string
+			{{- $name := .Name -}}
+			{{- $recv := .Receiver -}}
+			{{range $alias, $func := $.Aliases}}
+			{{if and (eq $name $func.Name) (eq $recv $func.Receiver)}}aliases = append(aliases, "{{$alias}}"){{end -}}
+			{{- end}}
+			if len(aliases) > 0 {
+				_fmt.Printf("Aliases: %s\n\n", _strings.Join(aliases, ", "))
+			}
+			return
 			{{end -}}
-			default:
-				logger.Printf("Unknown target: %q\n", args.Args[0])
-				os.Exit(2)
+			{{end -}}
+		default:
+			logger.Printf("Unknown target: %q\n", args.Args[0])
+			os.Exit(2)
 		}
 	}
 	if len(args.Args) < 1 {
-	{{- if .DefaultFunc.Name}}
+		{{- if .DefaultFunc.Name}}
 		ignoreDefault, _ := strconv.ParseBool(os.Getenv("STAVEFILE_IGNOREDEFAULT"))
 		if ignoreDefault {
 			if err := list(); err != nil {
@@ -422,13 +417,13 @@ Options:
 		{{.DefaultFunc.ExecCode}}
 		handleError(logger, ret)
 		return
-	{{- else}}
+		{{- else}}
 		if err := list(); err != nil {
 			logger.Println("Error:", err)
 			os.Exit(1)
 		}
 		return
-	{{- end}}
+		{{- end}}
 	}
 	for iArg := 0; iArg < len(args.Args); {
 		target := args.Args[iArg]
@@ -436,54 +431,49 @@ Options:
 
 		// resolve aliases
 		switch _strings.ToLower(target) {
-		{{range $alias, $func := .Aliases}}
-			case "{{lower $alias}}":
-				target = "{{$func.TargetName}}"
-		{{- end}}
+			{{range $alias, $func := .Aliases}}
+		case "{{lower $alias}}":
+			target = "{{$func.TargetName}}"
+			{{- end}}
 		}
 
 		switch _strings.ToLower(target) {
-		{{range .Funcs }}
-			case "{{lower .TargetName}}":
-				expected := iArg + {{len .Args}}
-				if expected > len(args.Args) {
-					// note that expected and args at this point include the arg for the target itself
-					// so we subtract 1 here to show the number of args without the target.
-					logger.Printf("not enough arguments for target \"{{.TargetName}}\", expected %v, got %v\n", expected-1, len(args.Args)-1)
-					os.Exit(2)
-				}
-				if args.Verbose {
-					logger.Println("Running target:", "{{.TargetName}}")
-				}
-				{{.ExecCode}}
-				handleError(logger, ret)
-		{{- end}}
-		{{range .Imports}}
-		{{$imp := .}}
-			{{range .Info.Funcs }}
-				case "{{lower .TargetName}}":
-					expected := iArg + {{len .Args}}
-					if expected > len(args.Args) {
-						// note that expected and args at this point include the arg for the target itself
-						// so we subtract 1 here to show the number of args without the target.
-						logger.Printf("not enough arguments for target \"{{.TargetName}}\", expected %v, got %v\n", expected-1, len(args.Args)-1)
-						os.Exit(2)
-					}
-					if args.Verbose {
-						logger.Println("Running target:", "{{.TargetName}}")
-					}
-					{{.ExecCode}}
-					handleError(logger, ret)
+			{{range .Funcs }}
+		case "{{lower .TargetName}}":
+			expected := iArg + {{len .Args}}
+			if expected > len(args.Args) {
+				// note that expected and args at this point include the arg for the target itself
+				// so we subtract 1 here to show the number of args without the target.
+				logger.Printf("not enough arguments for target \"{{.TargetName}}\", expected %v, got %v\n", expected-1, len(args.Args)-1)
+				os.Exit(2)
+			}
+			if args.Verbose {
+				logger.Println("Running target:", "{{.TargetName}}")
+			}
+			{{.ExecCode}}
+			handleError(logger, ret)
 			{{- end}}
-		{{- end}}
+			{{range .Imports}}
+			{{$imp := .}}
+			{{range .Info.Funcs }}
+		case "{{lower .TargetName}}":
+			expected := iArg + {{len .Args}}
+			if expected > len(args.Args) {
+				// note that expected and args at this point include the arg for the target itself
+				// so we subtract 1 here to show the number of args without the target.
+				logger.Printf("not enough arguments for target \"{{.TargetName}}\", expected %v, got %v\n", expected-1, len(args.Args)-1)
+				os.Exit(2)
+			}
+			if args.Verbose {
+				logger.Println("Running target:", "{{.TargetName}}")
+			}
+			{{.ExecCode}}
+			handleError(logger, ret)
+			{{- end}}
+			{{- end}}
 		default:
 			logger.Printf("Unknown target specified: %q\n", target)
 			os.Exit(2)
 		}
 	}
 }
-
-
-
-
-`

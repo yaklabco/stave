@@ -50,7 +50,7 @@ func TestHelpers(t *testing.T) {
 	defer func() {
 		derr := os.RemoveAll(mytmpdir)
 		if derr != nil {
-			fmt.Printf("error cleaning up after TestHelpers: %v", derr)
+			t.Errorf("error cleaning up after TestHelpers: %v", derr)
 		}
 	}()
 	srcname := filepath.Join(mytmpdir, "test1.txt")

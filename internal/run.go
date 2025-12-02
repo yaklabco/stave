@@ -4,16 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-
-	"github.com/yaklabco/stave/internal/dryrun"
-	"io"
 	"log"
 	"os"
 	"runtime"
 	"strings"
-)
 
-var debug = log.New(io.Discard, "", 0)
+	"github.com/yaklabco/stave/internal/dryrun"
+)
 
 func SetDebug(l *log.Logger) {
 	debug = l

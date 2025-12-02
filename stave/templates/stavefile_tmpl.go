@@ -1,6 +1,4 @@
-package stave
-
-var staveTpl = `//go:build stave
+//go:build stave
 // +build stave
 
 package main
@@ -44,4 +42,3 @@ func Clean() {
 	fmt.Println("Cleaning...")
 	os.RemoveAll("MyApp")
 }
-`

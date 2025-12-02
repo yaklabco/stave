@@ -25,13 +25,28 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/yaklabco/stave/internal"
 	"github.com/yaklabco/stave/st"
 
 	"github.com/stretchr/testify/require"
 )
 
-const testExeEnv = "STAVE_TEST_STRING"
+const (
+	testExeEnv = "STAVE_TEST_STRING"
+
+	hiExclam           = "hi!"
+	hiExclamAndNewline = hiExclam + "\n"
+
+	dotExe = ".exe"
+
+	testdataCompiled = "./testdata/compiled"
+
+	targetsBuild = "Targets:\n  build    \n"
+
+	windows = "windows"
+	amd64   = "amd64"
+)
 
 func TestMain(m *testing.M) {
 	if s := os.Getenv(testExeEnv); s != "" {
@@ -127,11 +142,17 @@ func TestTransitiveDepCache(t *testing.T) {
 	if err := os.Rename("testdata/transitiveDeps/dep/dog.go", "testdata/transitiveDeps/dep/dog.notgo"); err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = os.Rename("testdata/transitiveDeps/dep/dog.notgo", "testdata/transitiveDeps/dep/dog.go") }()
+	defer func() {
+		assert.NoError(t, os.Rename("testdata/transitiveDeps/dep/dog.notgo", "testdata/transitiveDeps/dep/dog.go"))
+	}()
+
 	if err := os.Rename("testdata/transitiveDeps/dep/cat.notgo", "testdata/transitiveDeps/dep/cat.go"); err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = os.Rename("testdata/transitiveDeps/dep/cat.go", "testdata/transitiveDeps/dep/cat.notgo") }()
+	defer func() {
+		assert.NoError(t, os.Rename("testdata/transitiveDeps/dep/cat.go", "testdata/transitiveDeps/dep/cat.notgo"))
+	}()
+
 	stderr.Reset()
 	stdout.Reset()
 	code = Invoke(ctx, inv)
@@ -180,11 +201,16 @@ func TestTransitiveHashFast(t *testing.T) {
 	if err := os.Rename("testdata/transitiveDeps/dep/dog.go", "testdata/transitiveDeps/dep/dog.notgo"); err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = os.Rename("testdata/transitiveDeps/dep/dog.notgo", "testdata/transitiveDeps/dep/dog.go") }()
+	defer func() {
+		assert.NoError(t, os.Rename("testdata/transitiveDeps/dep/dog.notgo", "testdata/transitiveDeps/dep/dog.go"))
+	}()
+
 	if err := os.Rename("testdata/transitiveDeps/dep/cat.notgo", "testdata/transitiveDeps/dep/cat.go"); err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = os.Rename("testdata/transitiveDeps/dep/cat.go", "testdata/transitiveDeps/dep/cat.notgo") }()
+	defer func() {
+		assert.NoError(t, os.Rename("testdata/transitiveDeps/dep/cat.go", "testdata/transitiveDeps/dep/cat.notgo"))
+	}()
 	stderr.Reset()
 	stdout.Reset()
 	inv.HashFast = true
@@ -217,17 +243,17 @@ func TestListStavefilesMain(t *testing.T) {
 
 func TestListStavefilesIgnoresGOOS(t *testing.T) {
 	buf := &bytes.Buffer{}
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == windows {
 		t.Setenv("GOOS", "linux")
 	} else {
-		t.Setenv("GOOS", "windows")
+		t.Setenv("GOOS", windows)
 	}
 	files, err := Stavefiles("testdata/goos_stavefiles", "", "", false)
 	if err != nil {
 		t.Errorf("error from stavefile list: %v: %s", err, buf)
 	}
 	var expected []string
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == windows {
 		expected = []string{filepath.FromSlash("testdata/goos_stavefiles/stavefile_windows.go")}
 	} else {
 		expected = []string{filepath.FromSlash("testdata/goos_stavefiles/stavefile_nonwindows.go")}
@@ -240,18 +266,18 @@ func TestListStavefilesIgnoresGOOS(t *testing.T) {
 func TestListStavefilesIgnoresRespectsGOOSArg(t *testing.T) {
 	buf := &bytes.Buffer{}
 	var goos string
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == windows {
 		goos = "linux"
 	} else {
-		goos = "windows"
+		goos = windows
 	}
 	// Set GOARCH as amd64 because windows is not on all non-x86 architectures.
-	files, err := Stavefiles("testdata/goos_stavefiles", goos, "amd64", false)
+	files, err := Stavefiles("testdata/goos_stavefiles", goos, amd64, false)
 	if err != nil {
 		t.Errorf("error from stavefile list: %v: %s", err, buf)
 	}
 	var expected []string
-	if goos == "windows" {
+	if goos == windows {
 		expected = []string{filepath.FromSlash("testdata/goos_stavefiles/stavefile_windows.go")}
 	} else {
 		expected = []string{filepath.FromSlash("testdata/goos_stavefiles/stavefile_nonwindows.go")}
@@ -271,12 +297,12 @@ func TestCompileDiffGoosGoarch(t *testing.T) {
 
 	// intentionally choose an arch and os to build that are not our current one.
 
-	goos := "windows"
-	if runtime.GOOS == "windows" {
+	goos := windows
+	if runtime.GOOS == windows {
 		goos = "darwin"
 	}
-	goarch := "amd64"
-	if runtime.GOARCH == "amd64" {
+	goarch := amd64
+	if runtime.GOARCH == amd64 {
 		goarch = "386"
 	}
 	stdout := &bytes.Buffer{}
@@ -299,7 +325,7 @@ func TestCompileDiffGoosGoarch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if goos == "windows" {
+	if goos == windows {
 		if theOS != winExe {
 			t.Error("ran with GOOS=windows but did not produce a windows exe")
 		}
@@ -308,7 +334,7 @@ func TestCompileDiffGoosGoarch(t *testing.T) {
 			t.Error("ran with GOOS=darwin but did not a mac exe")
 		}
 	}
-	if goarch == "amd64" {
+	if goarch == amd64 {
 		if theArch != arch64 {
 			t.Error("ran with GOARCH=amd64 but did not produce a 64 bit exe")
 		}
@@ -349,7 +375,7 @@ func TestMixedStaveImports(t *testing.T) {
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
 	}
-	expected := "Targets:\n  build    \n"
+	expected := targetsBuild
 	actual := stdout.String()
 	if actual != expected {
 		t.Fatalf("expected %q but got %q", expected, actual)
@@ -368,7 +394,9 @@ func TestStavefilesFolder(t *testing.T) {
 		t.Fatalf("changing to stavefolders tests data: %v", err)
 	}
 	// restore previous state
-	defer func() { _ = os.Chdir(wd) }()
+	defer func() {
+		assert.NoError(t, os.Chdir(wd))
+	}()
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
@@ -382,7 +410,7 @@ func TestStavefilesFolder(t *testing.T) {
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
 	}
-	expected := "Targets:\n  build    \n"
+	expected := targetsBuild
 	actual := stdout.String()
 	if actual != expected {
 		t.Fatalf("expected %q but got %q", expected, actual)
@@ -401,7 +429,9 @@ func TestStavefilesFolderMixedWithStavefiles(t *testing.T) {
 		t.Fatalf("changing to stavefolders tests data: %v", err)
 	}
 	// restore previous state
-	defer func() { _ = os.Chdir(wd) }()
+	defer func() {
+		assert.NoError(t, os.Chdir(wd))
+	}()
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
@@ -415,7 +445,7 @@ func TestStavefilesFolderMixedWithStavefiles(t *testing.T) {
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
 	}
-	expected := "Targets:\n  build    \n"
+	expected := targetsBuild
 	actual := stdout.String()
 	if actual != expected {
 		t.Fatalf("expected %q but got %q", expected, actual)
@@ -440,7 +470,9 @@ func TestUntaggedStavefilesFolder(t *testing.T) {
 		t.Fatalf("changing to stavefolders tests data: %v", err)
 	}
 	// restore previous state
-	defer func() { _ = os.Chdir(wd) }()
+	defer func() {
+		assert.NoError(t, os.Chdir(wd))
+	}()
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
@@ -454,7 +486,7 @@ func TestUntaggedStavefilesFolder(t *testing.T) {
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
 	}
-	expected := "Targets:\n  build    \n"
+	expected := targetsBuild
 	actual := stdout.String()
 	if actual != expected {
 		t.Fatalf("expected %q but got %q", expected, actual)
@@ -473,7 +505,9 @@ func TestMixedTaggingStavefilesFolder(t *testing.T) {
 		t.Fatalf("changing to stavefolders tests data: %v", err)
 	}
 	// restore previous state
-	defer func() { _ = os.Chdir(wd) }()
+	defer func() {
+		assert.NoError(t, os.Chdir(wd))
+	}()
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
@@ -510,7 +544,7 @@ func TestSetDirWithStavefilesFolder(t *testing.T) {
 	if code != 0 {
 		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
 	}
-	expected := "Targets:\n  build    \n"
+	expected := targetsBuild
 	actual := stdout.String()
 	if actual != expected {
 		t.Fatalf("expected %q but got %q", expected, actual)
@@ -788,7 +822,7 @@ func TestTargetError(t *testing.T) {
 func TestStdinCopy(t *testing.T) {
 	ctx := t.Context()
 	stdout := &bytes.Buffer{}
-	stdin := strings.NewReader("hi!")
+	stdin := strings.NewReader(hiExclam)
 	inv := Invocation{
 		Dir:    "./testdata",
 		Stderr: io.Discard,
@@ -801,7 +835,7 @@ func TestStdinCopy(t *testing.T) {
 		t.Fatalf("expected 0, but got %v", code)
 	}
 	actual := stdout.String()
-	expected := "hi!"
+	expected := hiExclam
 	if actual != expected {
 		t.Fatalf("expected %q, but got %q", expected, actual)
 	}
@@ -1275,14 +1309,14 @@ func TestCompiledFlags(t *testing.T) {
 	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
-	dir := "./testdata/compiled"
+	dir := testdataCompiled
 	compileDir, err := os.MkdirTemp(dir, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	name := filepath.Join(compileDir, "stave_out")
-	if runtime.GOOS == "windows" {
-		name += ".exe"
+	if runtime.GOOS == windows {
+		name += dotExe
 	}
 	// The CompileOut directory is relative to the
 	// invocation directory, so chop off the invocation dir.
@@ -1328,7 +1362,7 @@ func TestCompiledFlags(t *testing.T) {
 		t.Fatal(err)
 	}
 	got = stderr.String()
-	want = "hi!"
+	want = hiExclam
 	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
@@ -1363,14 +1397,14 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
-	dir := "./testdata/compiled"
+	dir := testdataCompiled
 	compileDir, err := os.MkdirTemp(dir, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	name := filepath.Join(compileDir, "stave_out")
-	if runtime.GOOS == "windows" {
-		name += ".exe"
+	if runtime.GOOS == windows {
+		name += dotExe
 	}
 	// The CompileOut directory is relative to the
 	// invocation directory, so chop off the invocation dir.
@@ -1414,7 +1448,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 		t.Fatal(err)
 	}
 	got = stderr.String()
-	want = "hi!"
+	want = hiExclam
 	if !strings.Contains(got, want) {
 		t.Errorf("got %q, does not contain %q", got, want)
 	}
@@ -1456,14 +1490,14 @@ func TestCompiledVerboseFlag(t *testing.T) {
 	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
-	dir := "./testdata/compiled"
+	dir := testdataCompiled
 	compileDir, err := os.MkdirTemp(dir, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	filename := filepath.Join(compileDir, "stave_out")
-	if runtime.GOOS == "windows" {
-		filename += ".exe"
+	if runtime.GOOS == windows {
+		filename += dotExe
 	}
 	// The CompileOut directory is relative to the
 	// invocation directory, so chop off the invocation dir.
@@ -1558,7 +1592,10 @@ func TestSignals(t *testing.T) {
 		go func() {
 			time.Sleep(time.Millisecond * 500)
 			for _, s := range signals {
-				_ = syscall.Kill(pid, s)
+				killErr := syscall.Kill(pid, s)
+				if killErr != nil {
+					t.Errorf("failed to kill process %d with signal %s: %v", pid, s, killErr)
+				}
 				time.Sleep(time.Millisecond * 50)
 			}
 		}()
@@ -1627,7 +1664,7 @@ func TestSignals(t *testing.T) {
 
 func TestCompiledDeterministic(t *testing.T) {
 	ctx := t.Context()
-	dir := "./testdata/compiled"
+	dir := testdataCompiled
 	compileDir, err := os.MkdirTemp(dir, "")
 	if err != nil {
 		t.Fatal(err)
@@ -1641,8 +1678,8 @@ func TestCompiledDeterministic(t *testing.T) {
 		t.Run(runLabel, func(t *testing.T) {
 			// probably don't run this parallel
 			filename := filepath.Join(compileDir, "stave_out")
-			if runtime.GOOS == "windows" {
-				filename += ".exe"
+			if runtime.GOOS == windows {
+				filename += dotExe
 			}
 
 			// The CompileOut directory is relative to the
@@ -1853,7 +1890,7 @@ func TestNamespaceDep(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("expected 0, but got %v, stderr:\n%s", code, stderr)
 	}
-	expected := "hi!\n"
+	expected := hiExclamAndNewline
 	if stdout.String() != expected {
 		t.Fatalf("expected %q, but got %q", expected, stdout.String())
 	}
@@ -1872,7 +1909,7 @@ func TestNamespace(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("expected 0, but got %v", code)
 	}
-	expected := "hi!\n"
+	expected := hiExclamAndNewline
 	if stdout.String() != expected {
 		t.Fatalf("expected %q, but got %q", expected, stdout.String())
 	}
@@ -1890,7 +1927,7 @@ func TestNamespaceDefault(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("expected 0, but got %v", code)
 	}
-	expected := "hi!\n"
+	expected := hiExclamAndNewline
 	if stdout.String() != expected {
 		t.Fatalf("expected %q, but got %q", expected, stdout.String())
 	}

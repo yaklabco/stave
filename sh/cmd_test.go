@@ -9,8 +9,7 @@ import (
 )
 
 func TestOutCmd(t *testing.T) {
-	ctx := t.Context()
-	cmd := OutCmd(ctx, os.Args[0], "-printArgs", "foo", "bar")
+	cmd := OutCmd(os.Args[0], "-printArgs", "foo", "bar")
 	out, err := cmd("baz", "bat")
 	if err != nil {
 		t.Fatal(err)
@@ -22,8 +21,7 @@ func TestOutCmd(t *testing.T) {
 }
 
 func TestExitCode(t *testing.T) {
-	ctx := t.Context()
-	ran, err := Exec(ctx, nil, nil, nil, os.Args[0], "-helper", "-exit", "99")
+	ran, err := Exec(nil, nil, nil, os.Args[0], "-helper", "-exit", "99")
 	if err == nil {
 		t.Fatal("unexpected nil error from run")
 	}
@@ -37,10 +35,9 @@ func TestExitCode(t *testing.T) {
 }
 
 func TestEnv(t *testing.T) {
-	ctx := t.Context()
 	env := "SOME_REALLY_LONG_STAVEFILE_SPECIFIC_THING"
 	out := &bytes.Buffer{}
-	ran, err := Exec(ctx, map[string]string{env: "foobar"}, out, nil, os.Args[0], "-printVar", env)
+	ran, err := Exec(map[string]string{env: "foobar"}, out, nil, os.Args[0], "-printVar", env)
 	if err != nil {
 		t.Fatalf("unexpected error from runner: %#v", err)
 	}
@@ -53,8 +50,7 @@ func TestEnv(t *testing.T) {
 }
 
 func TestNotRun(t *testing.T) {
-	ctx := t.Context()
-	ran, err := Exec(ctx, nil, nil, nil, "thiswontwork")
+	ran, err := Exec(nil, nil, nil, "thiswontwork")
 	if err == nil {
 		t.Fatal("unexpected nil error")
 	}
@@ -64,11 +60,10 @@ func TestNotRun(t *testing.T) {
 }
 
 func TestAutoExpand(t *testing.T) {
-	ctx := t.Context()
 	if err := os.Setenv("STAVE_FOOBAR", "baz"); err != nil {
 		t.Fatal(err)
 	}
-	s, err := Output(ctx, "echo", "$STAVE_FOOBAR")
+	s, err := Output("echo", "$STAVE_FOOBAR")
 	if err != nil {
 		t.Fatal(err)
 	}

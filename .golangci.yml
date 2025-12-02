@@ -1,0 +1,452 @@
+version: "2"
+run:
+  tests: true
+linters:
+  default: none
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - contextcheck
+    - copyloopvar
+    - cyclop
+    - decorder
+    - dupl
+    - dupword
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - fatcontext
+    - forbidigo
+    - forcetypeassert
+    - funlen
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecknoglobals
+    - gochecknoinits
+    - gochecksumtype
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - goheader
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - govet
+    - grouper
+    - inamedparam
+    - ineffassign
+    - interfacebloat
+    - intrange
+#    - ireturn # Go internals for parsing Go code often return interfaces.
+    - lll
+    - loggercheck
+    - maintidx
+    - makezero
+    - mirror
+    - misspell
+    - mnd
+    - musttag
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - perfsprint
+    - prealloc
+    - predeclared
+    - promlinter
+    - protogetter
+    - reassign
+    - revive
+    - rowserrcheck
+    - sloglint
+    - spancheck
+    - sqlclosecheck
+    - staticcheck
+    - testableexamples
+    - testifylint
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - varnamelen
+    - wastedassign
+    - whitespace
+#    - wrapcheck # Stave outputs error messages directly to the user, so wrapping is actually not what we want in this project.
+    - zerologlint
+  settings:
+    cyclop:
+      max-complexity: 50
+      package-average: 15
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+    exhaustive:
+      check:
+        - switch
+        - map
+    funlen:
+      lines: 150
+      statements: 100
+      ignore-comments: true
+    gocognit:
+      min-complexity: 50
+    gocritic:
+      settings:
+        captLocal:
+          paramsOnly: false
+        underef:
+          skipRecvDeref: false
+    gocyclo:
+      min-complexity: 50
+    gomodguard:
+      blocked:
+        modules:
+          - github.com/golang/protobuf:
+              recommendations:
+                - google.golang.org/protobuf
+              reason: see https://developers.google.com/protocol-buffers/docs/reference/go/faq#modules
+          - github.com/satori/go.uuid:
+              recommendations:
+                - github.com/google/uuid
+              reason: satori's package is not maintained
+          - github.com/gofrs/uuid:
+              recommendations:
+                - github.com/google/uuid
+              reason: gofrs' package is not go module
+    govet:
+      disable:
+        - fieldalignment
+      enable-all: true
+      settings:
+        shadow:
+          strict: false
+    lll:
+      line-length: 180
+      tab-width: 2
+    mnd:
+      ignored-numbers:
+        - "2"
+        - "3"
+        - "0o600"
+        - "0o644"
+        - "0o700"
+        - "0o755"
+    nestif:
+      min-complexity: 20
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-no-explanation:
+        - funlen
+        - gocognit
+        - lll
+    revive:
+      rules:
+        - name: add-constant
+          arguments:
+            - allowFloats: 0.0,0.,1.0,1.,2.0,2.
+              allowInts: 0,1,2
+              allowStrs: '""'
+              maxLitCount: "3"
+          disabled: true
+        - name: argument-limit
+          arguments:
+            - 7
+          disabled: false
+        - name: atomic
+          disabled: false
+        - name: banned-characters
+          arguments:
+            - Ω
+            - Σ
+            - σ
+            - "7"
+          disabled: true
+        - name: bare-return
+          disabled: false
+        - name: blank-imports
+          disabled: false
+        - name: bool-literal-in-expr
+          disabled: false
+        - name: call-to-gc
+          disabled: false
+        - name: cognitive-complexity
+          arguments:
+            - 7
+          disabled: true
+        - name: comment-spacings
+          arguments:
+            - mypragma
+            - otherpragma
+          disabled: true
+        - name: confusing-naming
+          disabled: true
+        - name: confusing-results
+          disabled: true
+        - name: constant-logical-expr
+          disabled: false
+        - name: context-as-argument
+          arguments:
+            - allowTypesBefore: '*testing.T,*github.com/user/repo/testing.Harness'
+          disabled: false
+        - name: context-keys-type
+          disabled: false
+        - name: cyclomatic
+          arguments:
+            - 3
+          disabled: true
+        - name: datarace
+          disabled: false
+        - name: deep-exit
+          disabled: false
+        - name: defer
+          arguments:
+            - - call-chain
+              - loop
+          disabled: false
+        - name: dot-imports
+          disabled: false
+        - name: duplicated-imports
+          disabled: false
+        - name: early-return
+          arguments:
+            - preserveScope
+          disabled: false
+        - name: empty-block
+          disabled: false
+        - name: empty-lines
+          disabled: true
+        - name: enforce-map-style
+          arguments:
+            - make
+          disabled: true
+        - name: error-naming
+          disabled: false
+        - name: error-return
+          disabled: false
+        - name: error-strings
+          disabled: false
+        - name: errorf
+          disabled: false
+        - name: file-header
+          disabled: true
+        - name: flag-parameter
+          disabled: true
+        - name: function-result-limit
+          arguments:
+            - 4
+          disabled: false
+        - name: function-length
+          arguments:
+            - 10
+            - 0
+          disabled: true
+        - name: get-return
+          disabled: false
+        - name: identical-branches
+          disabled: false
+        - name: if-return
+          disabled: false
+        - name: increment-decrement
+          disabled: false
+        - name: indent-error-flow
+          arguments:
+            - preserveScope
+          disabled: false
+        - name: import-alias-naming
+          arguments:
+            - ^[a-z][a-z0-9]{0,}$
+          disabled: false
+        - name: imports-blocklist
+          arguments:
+            - crypto/md5
+            - crypto/sha1
+          disabled: false
+        - name: import-shadowing
+          disabled: false
+        - name: line-length-limit
+          arguments:
+            - 80
+          disabled: true
+        - name: max-public-structs
+          arguments:
+            - 3
+          disabled: true
+        - name: modifies-parameter
+          disabled: false
+        - name: modifies-value-receiver
+          disabled: false
+        - name: nested-structs
+          disabled: true
+        - name: optimize-operands-order
+          disabled: false
+        - name: package-comments
+          disabled: false
+        - name: range
+          disabled: false
+        - name: range-val-in-closure
+          disabled: false
+        - name: range-val-address
+          disabled: false
+        - name: receiver-naming
+          disabled: false
+        - name: redundant-import-alias
+          disabled: false
+        - name: redefines-builtin-id
+          disabled: false
+        - name: string-of-int
+          disabled: false
+        - name: string-format
+          arguments:
+            - - core.WriteError[1].Message
+              - /^([^A-Z]|$)/
+              - must not start with a capital letter
+            - - fmt.Errorf[0]
+              - /(^|[^\.!?])$/
+              - must not end in punctuation
+            - - panic
+              - /^[^\n]*$/
+              - must not contain line breaks
+          disabled: false
+        - name: struct-tag
+          arguments:
+            - json,inline
+            - bson,outline,gnu
+          disabled: false
+        - name: superfluous-else
+          arguments:
+            - preserveScope
+          disabled: false
+        - name: time-equal
+          disabled: false
+        - name: time-naming
+          disabled: false
+        - name: var-naming
+          arguments:
+            - - ID
+            - - VM
+            - - upperCaseConst: true
+          disabled: false
+        - name: var-declaration
+          disabled: false
+        - name: unconditional-recursion
+          disabled: false
+        - name: unexported-naming
+          disabled: false
+        - name: unexported-return
+          disabled: false
+        - name: unhandled-error
+          arguments:
+            - fmt.Printf
+            - fmt.Fprintf
+            - fmt.Fprint
+            - fmt.Fprintln
+            - bytes.Buffer.Write
+            - bytes.Buffer.WriteByte
+            - bytes.Buffer.WriteString
+            - bytes.Buffer.WriteRune
+            - strings.Builder.WriteString
+            - strings.Builder.WriteRune
+            - strings.Builder.Write
+          disabled: false
+        - name: unnecessary-stmt
+          disabled: false
+        - name: unreachable-code
+          disabled: false
+        - name: unused-parameter
+          arguments:
+            - allowRegex: ^_
+          disabled: false
+        - name: unused-receiver
+          arguments:
+            - allowRegex: ^_
+          disabled: true
+        - name: useless-break
+          disabled: false
+        - name: waitgroup-by-value
+          disabled: false
+    rowserrcheck:
+      packages:
+        - github.com/jmoiron/sqlx
+    varnamelen:
+      min-name-length: 2
+      check-type-param: false
+      check-receiver: false
+      ignore-decls:
+        - g *goldie.Goldie
+    wsl:
+      allow-assign-and-anything: true
+      allow-multiline-assign: true
+      allow-cuddle-declarations: true
+      force-err-cuddling: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - govet
+        text: 'shadow: declaration of "(err|ctx)" shadows declaration at'
+      - linters:
+          - godot
+        source: (noinspection|TODO)
+      - linters:
+          - gocritic
+        source: //noinspection
+      - linters:
+          - bodyclose
+          - dupl
+          - funlen
+          - gochecknoglobals
+          - gochecknoinits
+          - gosec
+          - noctx
+          - wrapcheck
+        path: _test\.go$
+      - linters:
+          - forbidigo
+          - gochecknoglobals
+          - wrapcheck
+        path: magefile\.go$
+      - linters:
+          - forbidigo
+        path: testmain_test\.go$
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+      - ^pkg/goctx/testdata($|/)
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new: false
+  fix: false
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    gofumpt:
+      extra-rules: true
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

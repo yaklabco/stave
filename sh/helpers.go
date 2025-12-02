@@ -12,7 +12,7 @@ import (
 // an error if the target doesn't exist, only if the target cannot be removed.
 func Rm(path string) error {
 	if dryrun.IsDryRun() {
-		_, err := fmt.Println("DRYRUN: rm", path)
+		_, err := fmt.Println("DRYRUN: rm", path) //nolint:forbidigo // This is intentional console output.
 		return err
 	}
 
@@ -26,7 +26,7 @@ func Rm(path string) error {
 // Copy robustly copies the source file to the destination, overwriting the destination if necessary.
 func Copy(dst string, src string) error {
 	if dryrun.IsDryRun() {
-		_, err := fmt.Println("DRYRUN: cp", src, dst)
+		_, err := fmt.Println("DRYRUN: cp", src, dst) //nolint:forbidigo // This is intentional console output.
 		return err
 	}
 

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"time"
 )
 
 // Fn represents a function that can be run with st.Deps. Package, Name, and ID must combine to
@@ -71,7 +70,11 @@ func F(target interface{}, args ...interface{}) Fn {
 				if ret[0].IsNil() {
 					return nil
 				}
-				return ret[0].Interface().(error)
+				err, ok := ret[0].Interface().(error)
+				if !ok {
+					return fmt.Errorf("expected function to return an error, but got %T instead", ret[0].Interface())
+				}
+				return err
 			}
 			return nil
 		},
@@ -172,23 +175,3 @@ func checkF(target interface{}, args []interface{}) (bool, bool, error) {
 	}
 	return hasContext, isNamespace, nil
 }
-
-// Here we define the types that are supported as arguments/returns.
-var (
-	ctxType   = reflect.TypeOf(func(context.Context) {}).In(0)
-	errType   = reflect.TypeOf(func() error { return nil }).Out(0)
-	emptyType = reflect.TypeOf(struct{}{})
-
-	intType    = reflect.TypeOf(int(0))
-	stringType = reflect.TypeOf(string(""))
-	boolType   = reflect.TypeOf(bool(false))
-	durType    = reflect.TypeOf(time.Second)
-
-	// don't put ctx in here, this is for non-context types.
-	argTypes = map[reflect.Type]bool{
-		intType:    true,
-		boolType:   true,
-		stringType: true,
-		durType:    true,
-	}
-)

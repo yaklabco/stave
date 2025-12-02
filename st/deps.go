@@ -11,7 +11,8 @@ import (
 	"sync"
 )
 
-var logger = log.New(os.Stderr, "", 0)
+// TODO: Needs to be nuked in favor of context-based logger pattern.
+var logger = log.New(os.Stderr, "", 0) //nolint:gochecknoglobals // Until TODO handled.
 
 type onceMap struct {
 	mu *sync.Mutex
@@ -42,11 +43,6 @@ func (o *onceMap) LoadOrStore(theFunc Fn) *onceFun {
 	}
 	o.m[key] = one
 	return one
-}
-
-var onces = &onceMap{
-	mu: &sync.Mutex{},
-	m:  map[onceKey]*onceFun{},
 }
 
 // SerialDeps is like Deps except it runs each dependency serially, instead of
@@ -140,7 +136,7 @@ func checkFns(fns []interface{}) []Fn {
 		// Check if the target provided is a not function so we can give a clear warning
 		t := reflect.TypeOf(theFunc)
 		if t == nil || t.Kind() != reflect.Func {
-			panic(fmt.Errorf("non-function used as a target dependency: %T. The st.Deps, st.SerialDeps and st.CtxDeps functions accept function names, such as st.Deps(TargetA, TargetB)", theFunc))
+			panic(fmt.Errorf("non-function used as a target dependency: %T. The st.Deps, st.SerialDeps and st.CtxDeps functions accept function names, such as st.Deps(TargetA, TargetB)", theFunc)) //nolint:lll // Long string-literal.
 		}
 
 		funcs[iFunc] = F(theFunc)

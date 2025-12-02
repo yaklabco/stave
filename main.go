@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 
-	"github.com/yaklabco/stave/stave"
 	"os"
+
+	"github.com/yaklabco/stave/stave"
 )
 
 func main() {

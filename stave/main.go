@@ -2,17 +2,12 @@ package stave
 
 import (
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
 
-	"github.com/yaklabco/stave/internal"
-	"github.com/yaklabco/stave/internal/dryrun"
-	"github.com/yaklabco/stave/parse"
-	"github.com/yaklabco/stave/sh"
-	"github.com/yaklabco/stave/st"
 	"go/build"
 	"io"
 	"log"
@@ -24,9 +19,16 @@ import (
 	"sort"
 	"strings"
 	"syscall"
-	"text/template"
 	"time"
+
+	"github.com/yaklabco/stave/internal"
+	"github.com/yaklabco/stave/internal/dryrun"
+	"github.com/yaklabco/stave/parse"
+	"github.com/yaklabco/stave/sh"
+	"github.com/yaklabco/stave/st"
 )
+
+const longAgoShift = -time.Hour * 24 * 365 * 10
 
 // magicRebuildKey is used when hashing the output binary to ensure that we get
 // a new binary even if nothing in the input files or generated mainfile has
@@ -49,32 +51,6 @@ func lowerFirstWord(str string) string {
 	}
 	return strings.ToLower(str)
 }
-
-var mainfileTemplate = template.Must(template.New("").Funcs(map[string]interface{}{
-	"lower": strings.ToLower,
-	"lowerFirst": func(s string) string {
-		parts := strings.Split(s, ":")
-		for i, t := range parts {
-			parts[i] = lowerFirstWord(t)
-		}
-		return strings.Join(parts, ":")
-	},
-}).Parse(staveMainfileTplString))
-var initOutput = template.Must(template.New("").Parse(staveTpl))
-
-const (
-	mainfile = "stave_output_file.go"
-	initFile = "stavefile.go"
-)
-
-var debug = log.New(io.Discard, "DEBUG: ", log.Ltime|log.Lmicroseconds)
-
-// set by ldflags when you "stave build".
-var (
-	commitHash = "<not set>"
-	timestamp  = "<not set>"
-	gitTag     = "<not set>"
-)
 
 //go:generate stringer -type=Command
 
@@ -614,8 +590,12 @@ func Compile(ctx context.Context, params CompileParams) error {
 	debug.Println("compiling to", params.CompileTo)
 	debug.Println("compiling using gocmd:", params.GoCmd)
 	if params.Debug {
-		_ = internal.RunDebug(ctx, params.GoCmd, "version")
-		_ = internal.RunDebug(ctx, params.GoCmd, "env")
+		if err := internal.RunDebug(ctx, params.GoCmd, "version"); err != nil {
+			return err
+		}
+		if err := internal.RunDebug(ctx, params.GoCmd, "env"); err != nil {
+			return err
+		}
 	}
 	environ, err := internal.EnvWithGOOS(params.Goos, params.Goarch)
 	if err != nil {
@@ -629,7 +609,9 @@ func Compile(ctx context.Context, params CompileParams) error {
 	if params.Ldflags != "" {
 		buildArgs = append(buildArgs, "-ldflags", params.Ldflags)
 	}
-	args := append(buildArgs, params.Gofiles...)
+	args := make([]string, len(buildArgs), len(buildArgs)+len(params.Gofiles))
+	copy(args, buildArgs)
+	args = append(args, params.Gofiles...)
 
 	debug.Printf("running %s %s", params.GoCmd, strings.Join(args, " "))
 	theCmd := dryrun.Wrap(ctx, params.GoCmd, args...)
@@ -676,7 +658,7 @@ func GenerateMainfile(binaryName, path string, info *parse.PkgInfo) error {
 	}
 	// we set an old modtime on the generated mainfile so that the go tool
 	// won't think it has changed more recently than the compiled binary.
-	longAgo := time.Now().Add(-time.Hour * 24 * 365 * 10)
+	longAgo := time.Now().Add(longAgoShift)
 	if err := os.Chtimes(path, longAgo, longAgo); err != nil {
 		return fmt.Errorf("error setting old modtime on generated mainfile: %w", err)
 	}
@@ -696,13 +678,13 @@ func ExeName(ctx context.Context, goCmd, cacheDir string, files []string) (strin
 	}
 	// hash the mainfile template to ensure if it gets updated, we make a new
 	// binary.
-	hashes = append(hashes, fmt.Sprintf("%x", sha1.Sum([]byte(staveMainfileTplString))))
+	hashes = append(hashes, fmt.Sprintf("%x", sha256.Sum256([]byte(staveMainfileTplString))))
 	sort.Strings(hashes)
 	ver, err := internal.OutputDebug(ctx, goCmd, "version")
 	if err != nil {
 		return "", err
 	}
-	hash := sha1.Sum([]byte(strings.Join(hashes, "") + magicRebuildKey + ver))
+	hash := sha256.Sum256([]byte(strings.Join(hashes, "") + magicRebuildKey + ver))
 	filename := hex.EncodeToString(hash[:])
 
 	out := filepath.Join(cacheDir, filename)
@@ -719,7 +701,7 @@ func hashFile(fn string) (string, error) {
 	}
 	defer func() { _ = fd.Close() }()
 
-	h := sha1.New()
+	h := sha256.New()
 	if _, err := io.Copy(h, fd); err != nil {
 		return "", fmt.Errorf("can't write data to hash: %w", err)
 	}
@@ -757,8 +739,12 @@ func RunCompiled(ctx context.Context, inv Invocation, exePath string, errlog *lo
 	// to deal with it.
 	theCmd.Env = os.Environ()
 
-	// We don't want to actually allow dryrun in the outermost invocation of stave, since that will inhibit the very compilation of the stavefile & the use of the resulting binary.
-	// But every situation that's within such an execution is one in which dryrun is supported, so we set this environment variable which will be carried over throughout all such situations.
+	// We don't want to actually allow dryrun in the outermost invocation of
+	// stave, since that will inhibit the very compilation of the stavefile & the
+	// use of the resulting binary.
+	// But every situation that's within such an execution is one in which dryrun
+	// is supported, so we set this environment variable which will be carried
+	// over throughout all such situations.
 	theCmd.Env = append(theCmd.Env, "STAVEFILE_DRYRUN_POSSIBLE=1")
 
 	if inv.Verbose {

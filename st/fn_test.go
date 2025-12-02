@@ -136,7 +136,7 @@ func TestF(t *testing.T) {
 		dOut   time.Duration
 	)
 	theFunc := func(cctx context.Context, ii int, ss string, bb bool, dd time.Duration) error {
-		ctxOut = cctx
+		ctxOut = cctx //nolint:fatcontext // This is for the sake of the test.
 		iOut = ii
 		sOut = ss
 		bOut = bb
@@ -239,7 +239,10 @@ func TestFVariadic(t *testing.T) {
 
 	func() {
 		defer func() {
-			err, _ := recover().(error)
+			err, ok := recover().(error)
+			if !ok {
+				t.Fatalf("expected panic with an error value, but got %T instead", recover())
+			}
 			if err == nil || err.Error() != "too few arguments for target, got 0 for func(string, ...string)" {
 				t.Fatal(err)
 			}
