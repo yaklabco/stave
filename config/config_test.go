@@ -125,8 +125,8 @@ func TestLoad_LegacyEnvironmentVariables(t *testing.T) {
 	ResetGlobal()
 
 	// t.Setenv clears any existing value, so STAVEFILE_VERBOSE will be unset
-	// Set MAGEFILE_ to test legacy fallback
-	t.Setenv("MAGEFILE_VERBOSE", "true")
+	// Set STAVEFILE_ to test legacy fallback
+	t.Setenv("STAVEFILE_VERBOSE", "true")
 
 	cfg, err := Load(&LoadOptions{
 		SkipUserConfig:    true,
@@ -137,7 +137,7 @@ func TestLoad_LegacyEnvironmentVariables(t *testing.T) {
 	}
 
 	if !cfg.Verbose {
-		t.Error("Verbose should be true from legacy MAGEFILE_VERBOSE")
+		t.Error("Verbose should be true from legacy STAVEFILE_VERBOSE")
 	}
 }
 

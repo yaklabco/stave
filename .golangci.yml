@@ -431,7 +431,7 @@ linters:
       - third_party$
       - builtin$
       - examples$
-      - ^pkg/goctx/testdata($|/)
+      - ^pkg/stave/testdata($|/)
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

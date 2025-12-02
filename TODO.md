@@ -1,16 +1,21 @@
+# Misc. to-dos
+
 - [x] Go lint:
-  - [x] Bring over `.golangci.yml` from [goctx](https://github.com/preminger/goctx/)
+  - [x] Bring over `.golangci.yml` from [stave](https://github.com/preminger/stave/)
   - [x] Fix all lint that emerges after running with new config
 - [ ] Establish [CHANGELOG](https://keepachangelog.com/en/1.1.0/)
-- [ ] Bring over elements of build- & CI-configs from [goctx](https://github.com/preminger/goctx/):
+- [ ] Bring over elements of build- & CI-configs from [stave](https://github.com/preminger/stave/):
   - [ ] `nprocs.sh`
   - [ ] `.goreleaser.yaml`
-  - [ ] `.markdownlint.yaml`
+  - [x] `.markdownlint.yaml`
   - [ ] `.svu.yml`
   - [ ] `Brewfile`
-  - [ ] Merge goctx's `magefile.go` into stave's `magefile.go`
+  - [x] Merge stave's `magefile.go` into stave's `stavefile.go`
   - [ ] Hooks:
     - [ ] Husky setup
-    - [ ] Copy over CHANGELOG uber-hook from [goctx](https://github.com/preminger/goctx/)
-- [x] Merge goctx's `.gitignore` with stave's `.gitignore`
+    - [ ] Copy over CHANGELOG uber-hook from [stave](https://github.com/preminger/stave/)
+- [x] Merge stave's `.gitignore` with stave's `.gitignore`
 - [ ] Add STAVE_NUM_PROCESSORS / GOMAXPROCS setter
+- [ ] CLI framework:
+  - [ ] `cobra`-ify
+  - [ ] then, `fang`-ify

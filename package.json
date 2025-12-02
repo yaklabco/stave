@@ -1,0 +1,12 @@
+{
+  "name": "stave",
+  "private": true,
+  "description": "Developer tooling for git hooks via Husky",
+  "license": "Apache 2.0",
+  "devDependencies": {
+    "husky": "^9.0.0"
+  },
+  "scripts": {
+    "prepare": "husky"
+  }
+}
