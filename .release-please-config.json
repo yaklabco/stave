@@ -3,7 +3,7 @@
     "packages": {
         ".": {
             "release-type": "go",
-            "package-name": "staff",
+            "package-name": "stave",
             "bump-minor-pre-major": true,
             "bump-patch-for-minor-pre-major": true,
             "changelog-sections": [
