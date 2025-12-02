@@ -67,7 +67,7 @@ func main() {
 	fs.BoolVar(&args.Help, "h", parseBool("STAVEFILE_HELP"), "print out help for a specific target")
 	fs.DurationVar(&args.Timeout, "t", parseDuration("STAVEFILE_TIMEOUT"), "timeout in duration parsable format (e.g. 5m30s)")
 	fs.Usage = func() {
-		_fmt.Fprintf(os.Stdout, ` + "`" + `
+		_fmt.Fprintf(os.Stdout, `
 		%s [options] [target]
 
 	Commands:
@@ -79,7 +79,7 @@ func main() {
 		-t <string>
 			 timeout in duration parsable format (e.g. 5m30s)
 		-v    show verbose output when running targets
-		` + "`" + `[1:], _filepath.Base(os.Args[0]))
+		`[1:], _filepath.Base(os.Args[0]))
 	}
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		// flag will have printed out an error already.
@@ -219,7 +219,7 @@ func main() {
 	}
 
 	list := func() error {
-		{{with .Description}}_fmt.Println(` + "`{{.}}\n`" + `)
+		{{with .Description}}_fmt.Println(`{{.}}`+"\n")
 		{{- end}}
 		{{- $default := .DefaultFunc}}
 		targets := map[string]string{
