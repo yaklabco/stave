@@ -1,6 +1,6 @@
-- [ ] Go lint:
-  - [ ] Bring over `.golangci.yml` from [goctx](https://github.com/preminger/goctx/)
-  - [ ] Fix all lint that emerges after running with new config
+- [x] Go lint:
+  - [x] Bring over `.golangci.yml` from [goctx](https://github.com/preminger/goctx/)
+  - [x] Fix all lint that emerges after running with new config
 - [ ] Establish [CHANGELOG](https://keepachangelog.com/en/1.1.0/)
 - [ ] Bring over elements of build- & CI-configs from [goctx](https://github.com/preminger/goctx/):
   - [ ] `nprocs.sh`
