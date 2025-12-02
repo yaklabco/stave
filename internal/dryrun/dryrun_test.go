@@ -7,6 +7,8 @@ import (
 	"testing"
 )
 
+const trueStr = "true"
+
 // These tests verify dry-run behavior by spawning a fresh process of the
 // current test binary with purpose-built helper flags defined in this package's
 // TestMain (see testmain_test.go). Spawning a new process ensures the
@@ -19,7 +21,7 @@ func TestIsDryRunRequestedEnv(t *testing.T) {
 	if err != nil {
 		t.Fatalf("subprocess failed: %v", err)
 	}
-	if strings.TrimSpace(string(out)) != "true" {
+	if strings.TrimSpace(string(out)) != trueStr {
 		t.Fatalf("expected true, got %q", strings.TrimSpace(string(out)))
 	}
 }
@@ -31,7 +33,7 @@ func TestIsDryRunPossibleEnv(t *testing.T) {
 	if err != nil {
 		t.Fatalf("subprocess failed: %v", err)
 	}
-	if strings.TrimSpace(string(out)) != "true" {
+	if strings.TrimSpace(string(out)) != trueStr {
 		t.Fatalf("expected true, got %q", strings.TrimSpace(string(out)))
 	}
 }
@@ -66,7 +68,7 @@ func TestIsDryRunRequiresBoth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("subprocess failed: %v", err)
 	}
-	if strings.TrimSpace(string(out)) != "true" {
+	if strings.TrimSpace(string(out)) != trueStr {
 		t.Fatalf("expected true, got %q", strings.TrimSpace(string(out)))
 	}
 }

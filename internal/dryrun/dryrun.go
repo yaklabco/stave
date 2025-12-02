@@ -9,13 +9,17 @@
 //     i.  The env var `STAVEFILE_DRYRUN` was set at the point of the first call to IsRequested()
 //     ii. SetRequested(true) was called at some point prior to the IsPossible() call.
 //
-// This enables the "top-level" Mage run, which compiles the magefile into a binary, to always be carried out regardless of `-dryrun` (because `STAVEFILE_DRYRUN_POSSIBLE` will not be set in that situation), while still enabling true dryrun functionality for "inner" Mage runs (i.e., runs of the compiled magefile binary).
+// This enables the "top-level" Mage run, which compiles the magefile into a
+// binary, to always be carried out regardless of `-dryrun` (because
+// `STAVEFILE_DRYRUN_POSSIBLE` will not be set in that situation), while still
+// enabling true dryrun functionality for "inner" Mage runs (i.e., runs of the
+// compiled magefile binary).
 package dryrun
 
 import (
+	"context"
 	"os"
 	"os/exec"
-	"sync"
 )
 
 // RequestedEnv is the environment variable that indicates the user requested dryrun mode when running mage.
@@ -23,17 +27,6 @@ const RequestedEnv = "STAVEFILE_DRYRUN"
 
 // PossibleEnv is the environment variable that indicates we are in a context where a dry run is possible.
 const PossibleEnv = "STAVEFILE_DRYRUN_POSSIBLE"
-
-var (
-	// Once-protected variables for whether the user requested dryrun mode.
-	dryRunRequestedValue    bool
-	dryRunRequestedEnvValue bool
-	dryRunRequestedEnvOnce  sync.Once
-
-	// Once-protected variables for whether dryrun mode is possible.
-	dryRunPossible     bool
-	dryRunPossibleOnce sync.Once
-)
 
 // SetRequested sets the dryrun requested state to the specified boolean value.
 func SetRequested(value bool) {
@@ -63,13 +56,13 @@ func IsPossible() bool {
 // Wrap creates an *exec.Cmd to run a command or simulate it in dry-run mode.
 // If not in dry-run mode, it returns exec.Command(cmd, args...).
 // In dry-run mode, it returns a command that prints the simulated command.
-func Wrap(cmd string, args ...string) *exec.Cmd {
+func Wrap(ctx context.Context, cmd string, args ...string) *exec.Cmd {
 	if !IsDryRun() {
-		return exec.Command(cmd, args...)
+		return exec.CommandContext(ctx, cmd, args...)
 	}
 
 	// Return an *exec.Cmd that just prints the command that would have been run.
-	return exec.Command("echo", append([]string{"DRYRUN: " + cmd}, args...)...)
+	return exec.CommandContext(ctx, "echo", append([]string{"DRYRUN: " + cmd}, args...)...) //nolint:gosec // It's echo!
 }
 
 // IsDryRun determines if dry-run mode is both possible and requested.

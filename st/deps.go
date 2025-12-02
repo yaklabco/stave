@@ -11,7 +11,8 @@ import (
 	"sync"
 )
 
-var logger = log.New(os.Stderr, "", 0)
+// TODO: Needs to be nuked in favor of context-based logger pattern.
+var logger = log.New(os.Stderr, "", 0) //nolint:gochecknoglobals // Until TODO handled.
 
 type onceMap struct {
 	mu *sync.Mutex
@@ -23,13 +24,13 @@ type onceKey struct {
 	ID   string
 }
 
-func (o *onceMap) LoadOrStore(f Fn) *onceFun {
+func (o *onceMap) LoadOrStore(theFunc Fn) *onceFun {
 	defer o.mu.Unlock()
 	o.mu.Lock()
 
 	key := onceKey{
-		Name: f.Name(),
-		ID:   f.ID(),
+		Name: theFunc.Name(),
+		ID:   theFunc.ID(),
 	}
 	existing, ok := o.m[key]
 	if ok {
@@ -37,16 +38,11 @@ func (o *onceMap) LoadOrStore(f Fn) *onceFun {
 	}
 	one := &onceFun{
 		once:        &sync.Once{},
-		fn:          f,
-		displayName: displayName(f.Name()),
+		fn:          theFunc,
+		displayName: displayName(theFunc.Name()),
 	}
 	o.m[key] = one
 	return one
-}
-
-var onces = &onceMap{
-	mu: &sync.Mutex{},
-	m:  map[onceKey]*onceFun{},
 }
 
 // SerialDeps is like Deps except it runs each dependency serially, instead of
@@ -74,9 +70,9 @@ func SerialCtxDeps(ctx context.Context, fns ...interface{}) {
 // Dependencies must only be of type:
 //
 //	func()
-//	func() error
+//	error
 //	func(context.Context)
-//	func(context.Context) error
+//	error
 //
 // Or a similar method on a st.Namespace type.
 // Or an st.Fn interface.
@@ -102,14 +98,14 @@ func runDeps(ctx context.Context, fns []Fn) {
 		wg.Add(1)
 		go func() {
 			defer func() {
-				if v := recover(); v != nil {
+				if panicValue := recover(); panicValue != nil {
 					mu.Lock()
-					if err, ok := v.(error); ok {
+					if err, ok := panicValue.(error); ok {
 						exit = changeExit(exit, ExitStatus(err))
 					} else {
 						exit = changeExit(exit, 1)
 					}
-					errs = append(errs, fmt.Sprint(v))
+					errs = append(errs, fmt.Sprint(panicValue))
 					mu.Unlock()
 				}
 				wg.Done()
@@ -131,19 +127,19 @@ func runDeps(ctx context.Context, fns []Fn) {
 
 func checkFns(fns []interface{}) []Fn {
 	funcs := make([]Fn, len(fns))
-	for i, f := range fns {
-		if fn, ok := f.(Fn); ok {
-			funcs[i] = fn
+	for iFunc, theFunc := range fns {
+		if fn, ok := theFunc.(Fn); ok {
+			funcs[iFunc] = fn
 			continue
 		}
 
 		// Check if the target provided is a not function so we can give a clear warning
-		t := reflect.TypeOf(f)
+		t := reflect.TypeOf(theFunc)
 		if t == nil || t.Kind() != reflect.Func {
-			panic(fmt.Errorf("non-function used as a target dependency: %T. The st.Deps, st.SerialDeps and st.CtxDeps functions accept function names, such as st.Deps(TargetA, TargetB)", f))
+			panic(fmt.Errorf("non-function used as a target dependency: %T. The st.Deps, st.SerialDeps and st.CtxDeps functions accept function names, such as st.Deps(TargetA, TargetB)", theFunc)) //nolint:lll // Long string-literal.
 		}
 
-		funcs[i] = F(f)
+		funcs[iFunc] = F(theFunc)
 	}
 	return funcs
 }
@@ -152,9 +148,9 @@ func checkFns(fns []interface{}) []Fn {
 // only be of type:
 //
 //	func()
-//	func() error
+//	error
 //	func(context.Context)
-//	func(context.Context) error
+//	error
 //
 // Or a similar method on a st.Namespace type.
 // Or an st.Fn interface.
@@ -166,22 +162,22 @@ func Deps(fns ...interface{}) {
 	CtxDeps(context.Background(), fns...)
 }
 
-func changeExit(old, new int) int {
-	if new == 0 {
-		return old
+func changeExit(oldExitCode, newExitCode int) int {
+	if newExitCode == 0 {
+		return oldExitCode
 	}
-	if old == 0 {
-		return new
+	if oldExitCode == 0 {
+		return newExitCode
 	}
-	if old == new {
-		return old
+	if oldExitCode == newExitCode {
+		return oldExitCode
 	}
 	// both different and both non-zero, just set
 	// exit to 1. Nothing more we can do.
 	return 1
 }
 
-// funcName returns the unique name for the function
+// funcName returns the unique name for the function.
 func funcName(i interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 }

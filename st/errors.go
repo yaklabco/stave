@@ -5,12 +5,12 @@ import (
 	"fmt"
 )
 
-type fatalErr struct {
+type fatalError struct {
 	code int
 	error
 }
 
-func (f fatalErr) ExitStatus() int {
+func (f fatalError) ExitStatus() int {
 	return f.code
 }
 
@@ -21,7 +21,7 @@ type exitStatus interface {
 // Fatal returns an error that will cause stave to print out the
 // given args and exit with the given exit code.
 func Fatal(code int, args ...interface{}) error {
-	return fatalErr{
+	return fatalError{
 		code:  code,
 		error: errors.New(fmt.Sprint(args...)),
 	}
@@ -30,7 +30,7 @@ func Fatal(code int, args ...interface{}) error {
 // Fatalf returns an error that will cause stave to print out the
 // given message and exit with the given exit code.
 func Fatalf(code int, format string, args ...interface{}) error {
-	return fatalErr{
+	return fatalError{
 		code:  code,
 		error: fmt.Errorf(format, args...),
 	}

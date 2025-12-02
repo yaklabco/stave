@@ -21,7 +21,7 @@ func Example() {
 }
 
 func Say(something string) {
-	fmt.Println(something)
+	_, _ = fmt.Println(something)
 }
 
 func Bark() {

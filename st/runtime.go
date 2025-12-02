@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 
 	"github.com/yaklabco/stave/internal/dryrun"
 )
@@ -69,19 +70,17 @@ const EnableColorEnv = "STAVEFILE_ENABLE_COLOR"
 // - BrightBlue
 // - BrightStaventa
 // - BrightCyan
-// - BrightWhite
+// - BrightWhite.
 const TargetColorEnv = "STAVEFILE_TARGET_COLOR"
 
 // Verbose reports whether a stavefile was run with the verbose flag.
 func Verbose() bool {
-	b, _ := strconv.ParseBool(os.Getenv(VerboseEnv))
-	return b
+	return parseEnvBool(VerboseEnv)
 }
 
 // Debug reports whether a stavefile was run with the debug flag.
 func Debug() bool {
-	b, _ := strconv.ParseBool(os.Getenv(DebugEnv))
-	return b
+	return parseEnvBool(DebugEnv)
 }
 
 // GoCmd reports the command that Stave will use to build go code.  By default stave runs
@@ -96,15 +95,13 @@ func GoCmd() string {
 // HashFast reports whether the user has requested to use the fast hashing
 // mechanism rather than rely on go's rebuilding mechanism.
 func HashFast() bool {
-	b, _ := strconv.ParseBool(os.Getenv(HashFastEnv))
-	return b
+	return parseEnvBool(HashFastEnv)
 }
 
 // IgnoreDefault reports whether the user has requested to ignore the default target
 // in the stavefile.
 func IgnoreDefault() bool {
-	b, _ := strconv.ParseBool(os.Getenv(IgnoreDefaultEnv))
-	return b
+	return parseEnvBool(IgnoreDefaultEnv)
 }
 
 // CacheDir returns the directory where stave caches compiled binaries.  It
@@ -125,7 +122,20 @@ func CacheDir() string {
 
 // EnableColor reports whether the user has requested to enable a color output.
 func EnableColor() bool {
-	b, _ := strconv.ParseBool(os.Getenv(EnableColorEnv))
+	return parseEnvBool(EnableColorEnv)
+}
+
+func parseEnvBool(envVarName string) bool {
+	strVal := strings.TrimSpace(os.Getenv(envVarName))
+	if strVal == "" {
+		return false
+	}
+
+	b, err := strconv.ParseBool(strVal)
+	if err != nil {
+		return true
+	}
+
 	return b
 }
 
@@ -140,5 +150,5 @@ func TargetColor() string {
 	return DefaultTargetAnsiColor
 }
 
-// Namespace allows for the grouping of similar commands
+// Namespace allows for the grouping of similar commands.
 type Namespace struct{}

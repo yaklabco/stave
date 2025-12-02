@@ -53,23 +53,23 @@ func TestDepsOfDeps(t *testing.T) {
 
 func TestSerialDeps(t *testing.T) {
 	ch := make(chan string, 3)
-	// this->f->g->h
-	h := func() {
+	// this->funcF->funcG->funcH
+	funcH := func() {
 		ch <- "h"
 	}
-	g := func() {
+	funcG := func() {
 		ch <- "g"
 	}
-	f := func() {
-		SerialDeps(g, h)
+	funcF := func() {
+		SerialDeps(funcG, funcH)
 		ch <- "f"
 	}
-	Deps(f)
+	Deps(funcF)
 
 	res := <-ch + <-ch + <-ch
 
 	if res != "ghf" {
-		t.Fatal("expected g then h then f to run, but got " + res)
+		t.Fatal("expected funcG then funcH then funcF to run, but got " + res)
 	}
 }
 
@@ -77,7 +77,7 @@ func TestDepError(t *testing.T) {
 	// TODO: this test is ugly and relies on implementation details. It should
 	// be recreated as a full-stack test.
 
-	f := func() error {
+	theFunc := func() error {
 		return errors.New("ouch")
 	}
 	defer func() {
@@ -90,54 +90,54 @@ func TestDepError(t *testing.T) {
 			t.Fatalf(`expected to get "ouch" but got "%s"`, actual)
 		}
 	}()
-	Deps(f)
+	Deps(theFunc)
 }
 
 func TestDepFatal(t *testing.T) {
-	f := func() error {
+	theFunc := func() error {
 		return Fatal(99, "ouch!")
 	}
 	defer func() {
-		v := recover()
-		if v == nil {
+		panicValue := recover()
+		if panicValue == nil {
 			t.Fatal("expected panic, but didn't get one")
 		}
-		actual := fmt.Sprint(v)
+		actual := fmt.Sprint(panicValue)
 		if actual != "ouch!" {
 			t.Fatalf(`expected to get "ouch!" but got "%s"`, actual)
 		}
-		err, ok := v.(error)
+		err, ok := panicValue.(error)
 		if !ok {
-			t.Fatalf("expected recovered val to be error but was %T", v)
+			t.Fatalf("expected recovered val to be error but was %T", panicValue)
 		}
 		code := ExitStatus(err)
 		if code != 99 {
 			t.Fatalf("Expected exit status 99, but got %v", code)
 		}
 	}()
-	Deps(f)
+	Deps(theFunc)
 }
 
 func TestDepTwoFatal(t *testing.T) {
-	f := func() error {
+	funcF := func() error {
 		return Fatal(99, "ouch!")
 	}
-	g := func() error {
+	funcG := func() error {
 		return Fatal(11, "bang!")
 	}
 	defer func() {
-		v := recover()
-		if v == nil {
+		panicValue := recover()
+		if panicValue == nil {
 			t.Fatal("expected panic, but didn't get one")
 		}
-		actual := fmt.Sprint(v)
+		actual := fmt.Sprint(panicValue)
 		// order is non-deterministic, so check for both orders
 		if actual != "ouch!\nbang!" && actual != "bang!\nouch!" {
 			t.Fatalf(`expected to get "ouch!" and "bang!" but got "%s"`, actual)
 		}
-		err, ok := v.(error)
+		err, ok := panicValue.(error)
 		if !ok {
-			t.Fatalf("expected recovered val to be error but was %T", v)
+			t.Fatalf("expected recovered val to be error but was %T", panicValue)
 		}
 		code := ExitStatus(err)
 		// two different error codes returns, so we give up and just use error
@@ -146,7 +146,7 @@ func TestDepTwoFatal(t *testing.T) {
 			t.Fatalf("Expected exit status 1, but got %v", code)
 		}
 	}()
-	Deps(f, g)
+	Deps(funcF, funcG)
 }
 
 func TestDepWithUnhandledFunc(t *testing.T) {
@@ -157,7 +157,7 @@ func TestDepWithUnhandledFunc(t *testing.T) {
 			t.Fatalf("Expected type error from panic")
 		}
 	}()
-	var NotValid = func(a string) string {
+	var NotValid = func(a string) string { //nolint:gocritic,revive // Let's keep this as it is for the sake of the test.
 		return a
 	}
 	Deps(NotValid)
@@ -166,33 +166,33 @@ func TestDepWithUnhandledFunc(t *testing.T) {
 func TestDepsErrors(t *testing.T) {
 	var hRan, gRan, fRan int64
 
-	h := func() error {
+	funcH := func() error {
 		atomic.AddInt64(&hRan, 1)
 		return errors.New("oops")
 	}
-	g := func() {
-		Deps(h)
+	funcG := func() {
+		Deps(funcH)
 		atomic.AddInt64(&gRan, 1)
 	}
-	f := func() {
-		Deps(g, h)
+	funcF := func() {
+		Deps(funcG, funcH)
 		atomic.AddInt64(&fRan, 1)
 	}
 
 	defer func() {
 		err := recover()
 		if err == nil {
-			t.Fatal("expected f to panic")
+			t.Fatal("expected funcF to panic")
 		}
 		if hRan != 1 {
-			t.Fatalf("expected h to run once, but got %v", hRan)
+			t.Fatalf("expected funcH to run once, but got %v", hRan)
 		}
 		if gRan > 0 {
-			t.Fatalf("expected g to panic before incrementing gRan to run, but got %v", gRan)
+			t.Fatalf("expected funcG to panic before incrementing gRan to run, but got %v", gRan)
 		}
 		if fRan > 0 {
-			t.Fatalf("expected f to panic before incrementing fRan to run, but got %v", fRan)
+			t.Fatalf("expected funcF to panic before incrementing fRan to run, but got %v", fRan)
 		}
 	}()
-	f()
+	funcF()
 }

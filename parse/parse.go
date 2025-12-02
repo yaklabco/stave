@@ -1,13 +1,13 @@
 package parse
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"go/ast"
 	"go/doc"
 	"go/parser"
 	"go/token"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -15,13 +15,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yaklabco/stave/internal"
 	"golang.org/x/tools/go/packages"
+
+	"github.com/yaklabco/stave/internal"
 )
 
 const importTag = "stave:import"
-
-var debug = log.New(io.Discard, "DEBUG: ", log.Ltime|log.Lmicroseconds)
 
 // EnableDebug turns on debug logging.
 func EnableDebug() {
@@ -43,7 +42,7 @@ type PkgInfo struct {
 	Imports     Imports
 }
 
-// Function represents a job function from a stave file
+// Function represents a job function from a stave file.
 type Function struct {
 	PkgAlias   string
 	Package    string
@@ -119,44 +118,44 @@ func (f Function) ExecCode() string {
 	}
 
 	var parseargs string
-	for x, arg := range f.Args {
-		switch arg.Type {
+	for iArg, theArg := range f.Args {
+		switch theArg.Type {
 		case "string":
 			parseargs += fmt.Sprintf(`
-			arg%d := args.Args[x]
-			x++`, x)
+			theArg%d := args.Args[iArg]
+			iArg++`, iArg)
 		case "int":
 			parseargs += fmt.Sprintf(`
-				arg%d, err := strconv.Atoi(args.Args[x])
+				theArg%d, err := strconv.Atoi(args.Args[iArg])
 				if err != nil {
-					logger.Printf("can't convert argument %%q to int\n", args.Args[x])
+					logger.Printf("can't convert argument %%q to int\n", args.Args[iArg])
 					os.Exit(2)
 				}
-				x++`, x)
+				iArg++`, iArg)
 		case "float64":
 			parseargs += fmt.Sprintf(`
-				arg%d, err := strconv.ParseFloat(args.Args[x], 64)
+				theArg%d, err := strconv.ParseFloat(args.Args[iArg], 64)
 				if err != nil {
-					logger.Printf("can't convert argument %%q to float64\n", args.Args[x])
+					logger.Printf("can't convert argument %%q to float64\n", args.Args[iArg])
 					os.Exit(2)
 				}
-				x++`, x)
+				iArg++`, iArg)
 		case "bool":
 			parseargs += fmt.Sprintf(`
-				arg%d, err := strconv.ParseBool(args.Args[x])
+				theArg%d, err := strconv.ParseBool(args.Args[iArg])
 				if err != nil {
-					logger.Printf("can't convert argument %%q to bool\n", args.Args[x])
+					logger.Printf("can't convert argument %%q to bool\n", args.Args[iArg])
 					os.Exit(2)
 				}
-				x++`, x)
+				iArg++`, iArg)
 		case "time.Duration":
 			parseargs += fmt.Sprintf(`
-				arg%d, err := time.ParseDuration(args.Args[x])
+				theArg%d, err := time.ParseDuration(args.Args[iArg])
 				if err != nil {
-					logger.Printf("can't convert argument %%q to time.Duration\n", args.Args[x])
+					logger.Printf("can't convert argument %%q to time.Duration\n", args.Args[iArg])
 					os.Exit(2)
 				}
-				x++`, x)
+				iArg++`, iArg)
 		}
 	}
 
@@ -167,12 +166,12 @@ func (f Function) ExecCode() string {
 		out += "return "
 	}
 	out += name + "("
-	var args []string
+	args := make([]string, 0, len(f.Args)+1)
 	if f.IsContext {
 		args = append(args, "ctx")
 	}
-	for x := 0; x < len(f.Args); x++ {
-		args = append(args, fmt.Sprintf("arg%d", x))
+	for x := range len(f.Args) {
+		args = append(args, fmt.Sprintf("theArg%d", x))
 	}
 	out += strings.Join(args, ", ")
 	out += ")"
@@ -187,13 +186,13 @@ func (f Function) ExecCode() string {
 }
 
 // PrimaryPackage parses a package.  If files is non-empty, it will only parse the files given.
-func PrimaryPackage(gocmd, path string, files []string) (*PkgInfo, error) {
+func PrimaryPackage(ctx context.Context, gocmd, path string, files []string) (*PkgInfo, error) {
 	info, err := Package(path, files)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := setImports(gocmd, info); err != nil {
+	if err := setImports(ctx, gocmd, info); err != nil {
 		return nil, err
 	}
 
@@ -213,15 +212,15 @@ func checkDupes(info *PkgInfo, imports []*Import) error {
 			funcs[target] = append(funcs[target], f)
 		}
 	}
-	for alias, f := range info.Aliases {
-		if len(funcs[alias]) != 0 {
+	for theAlias, theFunc := range info.Aliases {
+		if len(funcs[theAlias]) != 0 {
 			var ids []string
-			for _, f := range funcs[alias] {
+			for _, f := range funcs[theAlias] {
 				ids = append(ids, f.ID())
 			}
-			return fmt.Errorf("alias %q duplicates existing target(s): %s", alias, strings.Join(ids, ", "))
+			return fmt.Errorf("alias %q duplicates existing target(s): %s", theAlias, strings.Join(ids, ", "))
 		}
-		funcs[alias] = append(funcs[alias], f)
+		funcs[theAlias] = append(funcs[theAlias], theFunc)
 	}
 	var dupes []string
 	for target, list := range funcs {
@@ -233,13 +232,13 @@ func checkDupes(info *PkgInfo, imports []*Import) error {
 		return nil
 	}
 	errs := make([]string, 0, len(dupes))
-	for _, d := range dupes {
+	for _, theDupe := range dupes {
 		var ids []string
-		for _, f := range funcs[d] {
+		for _, f := range funcs[theDupe] {
 			ids = append(ids, f.ID())
 		}
 		sort.Strings(ids)
-		errs = append(errs, fmt.Sprintf("%q target has multiple definitions: %s\n", d, strings.Join(ids, ", ")))
+		errs = append(errs, fmt.Sprintf("%q target has multiple definitions: %s\n", theDupe, strings.Join(ids, ", ")))
 	}
 	sort.Strings(errs)
 	return errors.New(strings.Join(errs, "\n"))
@@ -257,15 +256,15 @@ func Package(path string, files []string) (*PkgInfo, error) {
 		return nil, err
 	}
 	// Build documentation package from files to avoid relying on deprecated ast.Package
-	p, err := doc.NewFromFiles(fset, pkgFiles, "./")
+	thePackage, err := doc.NewFromFiles(fset, pkgFiles, "./")
 	if err != nil {
 		return nil, err
 	}
 	pi := &PkgInfo{
 		PkgName:     pkgName,
 		Files:       pkgFiles,
-		DocPkg:      p,
-		Description: toOneLine(p.Doc),
+		DocPkg:      thePackage,
+		Description: toOneLine(thePackage.Doc),
 	}
 
 	setNamespaces(pi)
@@ -274,33 +273,35 @@ func Package(path string, files []string) (*PkgInfo, error) {
 	hasDupes, names := checkDupeTargets(pi)
 	if hasDupes {
 		msg := "Build targets must be case insensitive, thus the following targets conflict:\n"
+		var msgSb277 strings.Builder
 		for _, v := range names {
 			if len(v) > 1 {
-				msg += "  " + strings.Join(v, ", ") + "\n"
+				msgSb277.WriteString("  " + strings.Join(v, ", ") + "\n")
 			}
 		}
+		msg += msgSb277.String()
 		return nil, errors.New(msg)
 	}
 
 	return pi, nil
 }
 
-func getNamedImports(gocmd string, pkgs map[string]string) ([]*Import, error) {
-	var imports []*Import
+func getNamedImports(ctx context.Context, gocmd string, pkgs map[string]string) ([]*Import, error) {
+	theImports := make([]*Import, 0, len(pkgs))
 	for pkg, alias := range pkgs {
 		debug.Printf("getting import package %q, alias %q", pkg, alias)
-		imp, err := getImport(gocmd, pkg, alias)
+		imp, err := getImport(ctx, gocmd, pkg, alias)
 		if err != nil {
 			return nil, err
 		}
-		imports = append(imports, imp)
+		theImports = append(theImports, imp)
 	}
-	return imports, nil
+	return theImports, nil
 }
 
 // getImport returns the metadata about a package that has been stave:import'ed.
-func getImport(gocmd, importpath, alias string) (*Import, error) {
-	out, err := internal.OutputDebug(gocmd, "list", "-f", "{{.Dir}}||{{.Name}}", importpath)
+func getImport(ctx context.Context, gocmd, importpath, alias string) (*Import, error) {
+	out, err := internal.OutputDebug(ctx, gocmd, "list", "-f", "{{.Dir}}||{{.Name}}", importpath)
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +315,7 @@ func getImport(gocmd, importpath, alias string) (*Import, error) {
 	// we use go list to get the list of files, since go/parser doesn't differentiate between
 	// go files with build tags etc, and go list does. This prevents weird problems if you
 	// have more than one package in a folder because of build tags.
-	out, err = internal.OutputDebug(gocmd, "list", "-f", `{{join .GoFiles "||"}}`, importpath)
+	out, err = internal.OutputDebug(ctx, gocmd, "list", "-f", `{{join .GoFiles "||"}}`, importpath)
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +333,7 @@ func getImport(gocmd, importpath, alias string) (*Import, error) {
 	return &Import{Alias: alias, Name: name, Path: importpath, Info: *info}, nil
 }
 
-// Import represents the data about a stave:import package
+// Import represents the data about a stave:import package.
 type Import struct {
 	Alias      string
 	Name       string
@@ -360,57 +361,57 @@ func (s Imports) Swap(i, j int) {
 }
 
 func setFuncs(pi *PkgInfo) {
-	for _, f := range pi.DocPkg.Funcs {
-		if f.Recv != "" {
-			debug.Printf("skipping method %s.%s", f.Recv, f.Name)
+	for _, theFunc := range pi.DocPkg.Funcs {
+		if theFunc.Recv != "" {
+			debug.Printf("skipping method %s.%s", theFunc.Recv, theFunc.Name)
 			// skip methods
 			continue
 		}
-		if !ast.IsExported(f.Name) {
-			debug.Printf("skipping non-exported function %s", f.Name)
+		if !ast.IsExported(theFunc.Name) {
+			debug.Printf("skipping non-exported function %s", theFunc.Name)
 			// skip non-exported functions
 			continue
 		}
-		fn, err := funcType(f.Decl.Type)
+		fn, err := funcType(theFunc.Decl.Type)
 		if err != nil {
-			debug.Printf("skipping function with invalid signature func %s: %v", f.Name, err)
+			debug.Printf("skipping function with invalid signature func %s: %v", theFunc.Name, err)
 			continue
 		}
-		debug.Printf("found target %v", f.Name)
-		fn.Name = f.Name
-		fn.Comment = toOneLine(f.Doc)
-		fn.Synopsis = sanitizeSynopsis(f)
+		debug.Printf("found target %v", theFunc.Name)
+		fn.Name = theFunc.Name
+		fn.Comment = toOneLine(theFunc.Doc)
+		fn.Synopsis = sanitizeSynopsis(theFunc)
 		pi.Funcs = append(pi.Funcs, fn)
 	}
 }
 
 func setNamespaces(pi *PkgInfo) {
-	for _, t := range pi.DocPkg.Types {
-		if !isNamespace(t) {
+	for _, theType := range pi.DocPkg.Types {
+		if !isNamespace(theType) {
 			continue
 		}
-		debug.Printf("found namespace %s %s", pi.DocPkg.ImportPath, t.Name)
-		for _, f := range t.Methods {
-			if !ast.IsExported(f.Name) {
+		debug.Printf("found namespace %s %s", pi.DocPkg.ImportPath, theType.Name)
+		for _, theMethod := range theType.Methods {
+			if !ast.IsExported(theMethod.Name) {
 				continue
 			}
-			fn, err := funcType(f.Decl.Type)
+			fn, err := funcType(theMethod.Decl.Type)
 			if err != nil {
-				debug.Printf("skipping invalid namespace method %s %s.%s: %v", pi.DocPkg.ImportPath, t.Name, f.Name, err)
+				debug.Printf("skipping invalid namespace method %s %s.%s: %v", pi.DocPkg.ImportPath, theType.Name, theMethod.Name, err)
 				continue
 			}
-			debug.Printf("found namespace method %s %s.%s", pi.DocPkg.ImportPath, t.Name, f.Name)
-			fn.Name = f.Name
-			fn.Comment = toOneLine(f.Doc)
-			fn.Synopsis = sanitizeSynopsis(f)
-			fn.Receiver = t.Name
+			debug.Printf("found namespace method %s %s.%s", pi.DocPkg.ImportPath, theType.Name, theMethod.Name)
+			fn.Name = theMethod.Name
+			fn.Comment = toOneLine(theMethod.Doc)
+			fn.Synopsis = sanitizeSynopsis(theMethod)
+			fn.Receiver = theType.Name
 
 			pi.Funcs = append(pi.Funcs, fn)
 		}
 	}
 }
 
-func setImports(gocmd string, pi *PkgInfo) error {
+func setImports(ctx context.Context, gocmd string, pi *PkgInfo) error {
 	var rootImports []string
 	importNames := map[string]string{}
 	for _, f := range pi.Files {
@@ -419,9 +420,12 @@ func setImports(gocmd string, pi *PkgInfo) error {
 			if !ok || gen.Tok != token.IMPORT {
 				continue
 			}
-			for j := 0; j < len(gen.Specs); j++ {
+			for j := range len(gen.Specs) {
 				spec := gen.Specs[j]
-				impspec := spec.(*ast.ImportSpec)
+				impspec, ok := spec.(*ast.ImportSpec)
+				if !ok {
+					return fmt.Errorf("expected *ast.ImportSpec, got %T instead", spec)
+				}
 				if len(gen.Specs) == 1 && gen.Lparen == token.NoPos && impspec.Doc == nil {
 					impspec.Doc = gen.Doc
 				}
@@ -439,12 +443,12 @@ func setImports(gocmd string, pi *PkgInfo) error {
 			}
 		}
 	}
-	imports, err := getNamedImports(gocmd, importNames)
+	imports, err := getNamedImports(ctx, gocmd, importNames)
 	if err != nil {
 		return err
 	}
 	for _, s := range rootImports {
-		imp, err := getImport(gocmd, s, "")
+		imp, err := getImport(ctx, gocmd, s, "")
 		if err != nil {
 			return err
 		}
@@ -473,22 +477,24 @@ func setImports(gocmd string, pi *PkgInfo) error {
 	return nil
 }
 
-func getImportPath(imp *ast.ImportSpec) (path, alias string, ok bool) {
+func getImportPath(imp *ast.ImportSpec) (string, string, bool) {
 	leadingVals := getImportPathFromCommentGroup(imp.Doc)
 	trailingVals := getImportPathFromCommentGroup(imp.Comment)
 
 	var vals []string
-	if len(leadingVals) > 0 {
+	switch {
+	case len(leadingVals) > 0:
 		vals = leadingVals
 		if len(trailingVals) > 0 {
 			log.Println("warning:", importTag, "specified both before and after, picking first")
 		}
-	} else if len(trailingVals) > 0 {
+	case len(trailingVals) > 0:
 		vals = trailingVals
-	} else {
+	default:
 		return "", "", false
 	}
-	path, ok = lit2string(imp.Path)
+
+	path, ok := lit2string(imp.Path)
 	if !ok {
 		return "", "", false
 	}
@@ -545,28 +551,29 @@ func isNamespace(t *doc.Type) bool {
 }
 
 // checkDupeTargets checks a package for duplicate target names.
-func checkDupeTargets(info *PkgInfo) (hasDupes bool, names map[string][]string) {
-	names = map[string][]string{}
+func checkDupeTargets(info *PkgInfo) (bool, map[string][]string) {
+	var hasDupes bool
+	names := map[string][]string{}
 	lowers := map[string]bool{}
-	for _, f := range info.Funcs {
-		low := strings.ToLower(f.Name)
-		if f.Receiver != "" {
-			low = strings.ToLower(f.Receiver) + ":" + low
+	for _, theFunc := range info.Funcs {
+		low := strings.ToLower(theFunc.Name)
+		if theFunc.Receiver != "" {
+			low = strings.ToLower(theFunc.Receiver) + ":" + low
 		}
 		if lowers[low] {
 			hasDupes = true
 		}
 		lowers[low] = true
-		names[low] = append(names[low], f.Name)
+		names[low] = append(names[low], theFunc.Name)
 	}
 	return hasDupes, names
 }
 
 // sanitizeSynopsis sanitizes function Doc to create a summary.
-func sanitizeSynopsis(f *doc.Func) string {
+func sanitizeSynopsis(theFunc *doc.Func) string {
 	// Create a minimal Package to use the non-deprecated Synopsis method
 	pkg := &doc.Package{}
-	synopsis := pkg.Synopsis(f.Doc)
+	synopsis := pkg.Synopsis(theFunc.Doc)
 
 	// If the synopsis begins with the function name, remove it. This is done to
 	// not repeat the text.
@@ -574,7 +581,7 @@ func sanitizeSynopsis(f *doc.Func) string {
 	// clean	Clean removes the temporarily generated files
 	// To:
 	// clean 	removes the temporarily generated files
-	if syns := strings.Split(synopsis, " "); strings.EqualFold(f.Name, syns[0]) {
+	if syns := strings.Split(synopsis, " "); strings.EqualFold(theFunc.Name, syns[0]) {
 		return strings.Join(syns[1:], " ")
 	}
 
@@ -582,12 +589,16 @@ func sanitizeSynopsis(f *doc.Func) string {
 }
 
 func setDefault(pi *PkgInfo) {
-	for _, v := range pi.DocPkg.Vars {
-		for x, name := range v.Names {
-			if name != "Default" {
+	for _, theValue := range pi.DocPkg.Vars {
+		for iName, theName := range theValue.Names {
+			if theName != "Default" {
 				continue
 			}
-			spec := v.Decl.Specs[x].(*ast.ValueSpec)
+			spec, ok := theValue.Decl.Specs[iName].(*ast.ValueSpec)
+			if !ok {
+				log.Printf("warning: expected *ast.ValueSpec, but got %T instead", theValue.Decl.Specs[iName])
+				continue
+			}
 			if len(spec.Values) != 1 {
 				log.Println("warning: default declaration has multiple values")
 			}
@@ -636,13 +647,13 @@ func setAliases(pi *PkgInfo) {
 					log.Printf("warning: alias declaration %q is not a map element", elem)
 					continue
 				}
-				k, ok := kv.Key.(*ast.BasicLit)
-				if !ok || k.Kind != token.STRING {
+				basicLit, ok := kv.Key.(*ast.BasicLit)
+				if !ok || basicLit.Kind != token.STRING {
 					log.Printf("warning: alias key is not a string literal %q", elem)
 					continue
 				}
 
-				alias, ok := lit2string(k)
+				alias, ok := lit2string(basicLit)
 				if !ok {
 					log.Println("warning: malformed name for alias", elem)
 					continue
@@ -661,82 +672,99 @@ func setAliases(pi *PkgInfo) {
 
 func getFunction(exp ast.Expr, pi *PkgInfo) (*Function, error) {
 	// selector expressions are in LIFO format.
-	// So, in  foo.bar.baz the first selector.Name is
-	// actually "baz", the second is "bar", and the last is "foo"
+	// So, in  foo.bar.baz the first selector.Name is actually "baz",
+	// the second is "bar", and the last is "foo".
 
-	var pkg, receiver, funcname string
-	switch v := exp.(type) {
-	case *ast.Ident:
-		// "foo" : Bar
-		funcname = v.Name
-	case *ast.SelectorExpr:
-		// need to handle
-		// namespace.Func
-		// import.Func
-		// import.namespace.Func
-
-		// "foo" : ?.bar
-		funcname = v.Sel.Name
-		switch x := v.X.(type) {
-		case *ast.Ident:
-			// "foo" : baz.bar
-			// this is either a namespace or package
-			firstname := x.Name
-			for _, f := range pi.Funcs {
-				if firstname == f.Receiver && funcname == f.Name {
-					return f, nil
-				}
+	// Small helpers to keep the control-flow simple and flat.
+	findLocal := func(receiver, name string) *Function {
+		for _, f := range pi.Funcs {
+			if f.Name == name && f.Receiver == receiver {
+				return f
 			}
-			// not a namespace, let's try imported packages
-			for _, imp := range pi.Imports {
-				if firstname == imp.Name {
-					for _, f := range imp.Info.Funcs {
-						if funcname == f.Name && f.Receiver == "" {
-							return f, nil
-						}
+		}
+		return nil
+	}
+
+	findImported := func(pkg, receiver, name string) *Function {
+		for _, imp := range pi.Imports {
+			if imp.Name == pkg {
+				for _, f := range imp.Info.Funcs {
+					if f.Name == name && f.Receiver == receiver {
+						return f
 					}
-					break
 				}
+				return nil
+			}
+		}
+		return nil
+	}
+
+	hasImport := func(pkg string) bool {
+		for _, imp := range pi.Imports {
+			if imp.Name == pkg {
+				return true
+			}
+		}
+		return false
+	}
+
+	switch theExpr := exp.(type) {
+	case *ast.Ident:
+		// Just a function name in the current package/namespace.
+		if f := findLocal("", theExpr.Name); f != nil {
+			return f, nil
+		}
+		return nil, fmt.Errorf("unknown function %s.%s", "", theExpr.Name)
+
+	case *ast.SelectorExpr:
+		// Cases to handle:
+		//   namespace.Func
+		//   import.Func
+		//   import.namespace.Func
+
+		funcname := theExpr.Sel.Name
+		switch x := theExpr.X.(type) {
+		case *ast.Ident:
+			// Either a local namespace (receiver) or an imported package
+			first := x.Name
+
+			if f := findLocal(first, funcname); f != nil { // namespace.Func
+				return f, nil
+			}
+
+			// Imported free function (no receiver)
+			if f := findImported(first, "", funcname); f != nil { // import.Func
+				return f, nil
 			}
 			return nil, fmt.Errorf("%q is not a known target", exp)
+
 		case *ast.SelectorExpr:
-			// "foo" : bar.Baz.Bat
-			// must be package.Namespace.Func
-			sel, ok := v.X.(*ast.SelectorExpr)
+			// import.namespace.Func — peel off the pieces
+			sel, ok := theExpr.X.(*ast.SelectorExpr)
 			if !ok {
-				return nil, fmt.Errorf("%q is must denote a target function but was %T", exp, v.X)
+				return nil, fmt.Errorf("%q is must denote a target function but was %T", exp, theExpr.X)
 			}
-			receiver = sel.Sel.Name
+			receiver := sel.Sel.Name
 			id, ok := sel.X.(*ast.Ident)
 			if !ok {
-				return nil, fmt.Errorf("%q is must denote a target function but was %T", exp, v.X)
+				return nil, fmt.Errorf("%q is must denote a target function but was %T", exp, theExpr.X)
 			}
-			pkg = id.Name
+			pkg := id.Name
+
+			if f := findImported(pkg, receiver, funcname); f != nil {
+				return f, nil
+			}
+			if hasImport(pkg) {
+				return nil, fmt.Errorf("unknown function %s.%s.%s", pkg, receiver, funcname)
+			}
+			return nil, fmt.Errorf("unknown package for function %q", exp)
+
 		default:
 			return nil, fmt.Errorf("%q is not valid", exp)
 		}
 	default:
 		return nil, fmt.Errorf("target %s is not a function", exp)
 	}
-	if pkg == "" {
-		for _, f := range pi.Funcs {
-			if f.Name == funcname && f.Receiver == receiver {
-				return f, nil
-			}
-		}
-		return nil, fmt.Errorf("unknown function %s.%s", receiver, funcname)
-	}
-	for _, imp := range pi.Imports {
-		if imp.Name == pkg {
-			for _, f := range imp.Info.Funcs {
-				if f.Name == funcname && f.Receiver == receiver {
-					return f, nil
-				}
-			}
-			return nil, fmt.Errorf("unknown function %s.%s.%s", pkg, receiver, funcname)
-		}
-	}
-	return nil, fmt.Errorf("unknown package for function %q", exp)
 }
 
 // getPackage parses a directory of Go files and retrieves package information.
@@ -748,16 +776,16 @@ func getPackage(path string, files []string, fset *token.FileSet) (string, []*as
 		var pkgName string
 		for _, name := range files {
 			full := filepath.Join(path, name)
-			f, err := parser.ParseFile(fset, full, nil, parser.ParseComments)
+			theASTFile, err := parser.ParseFile(fset, full, nil, parser.ParseComments)
 			if err != nil {
-				return "", nil, fmt.Errorf("failed to parse file %s: %v", name, err)
+				return "", nil, fmt.Errorf("failed to parse file %s: %w", name, err)
 			}
 			if pkgName == "" {
-				pkgName = f.Name.Name
-			} else if pkgName != f.Name.Name {
-				return "", nil, fmt.Errorf("multiple packages found in %s: %v", path, strings.Join([]string{pkgName, f.Name.Name}, ", "))
+				pkgName = theASTFile.Name.Name
+			} else if pkgName != theASTFile.Name.Name {
+				return "", nil, fmt.Errorf("multiple packages found in %s: %v", path, strings.Join([]string{pkgName, theASTFile.Name.Name}, ", "))
 			}
-			out = append(out, f)
+			out = append(out, theASTFile)
 		}
 		if pkgName == "" {
 			return "", nil, fmt.Errorf("no importable packages found in %s", path)
@@ -805,12 +833,12 @@ func getPackage(path string, files []string, fset *token.FileSet) (string, []*as
 	// similar to previous behavior before removing parser.ParseDir.
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to read directory: %v", err)
+		return "", nil, fmt.Errorf("failed to read directory: %w", err)
 	}
 	var (
-		filesInDir []string
+		filesInDir = make([]string, 0, len(entries))
 		pkgName    string
-		out        []*ast.File
+		out        = make([]*ast.File, 0, len(entries))
 		namesSet   = map[string]struct{}{}
 	)
 	for _, e := range entries {
@@ -826,15 +854,15 @@ func getPackage(path string, files []string, fset *token.FileSet) (string, []*as
 	sort.Strings(filesInDir)
 	for _, name := range filesInDir {
 		full := filepath.Join(path, name)
-		f, err := parser.ParseFile(fset, full, nil, parser.ParseComments)
+		theASTFile, err := parser.ParseFile(fset, full, nil, parser.ParseComments)
 		if err != nil {
-			return "", nil, fmt.Errorf("failed to parse file %s: %v", name, err)
+			return "", nil, fmt.Errorf("failed to parse file %s: %w", name, err)
 		}
-		namesSet[f.Name.Name] = struct{}{}
+		namesSet[theASTFile.Name.Name] = struct{}{}
 		if pkgName == "" {
-			pkgName = f.Name.Name
+			pkgName = theASTFile.Name.Name
 		}
-		out = append(out, f)
+		out = append(out, theASTFile)
 	}
 	if len(out) == 0 {
 		return "", nil, fmt.Errorf("no importable packages found in %s", path)
@@ -900,21 +928,21 @@ func hasErrorReturn(ft *ast.FuncType) (bool, error) {
 
 func funcType(ft *ast.FuncType) (*Function, error) {
 	var err error
-	f := &Function{}
-	f.IsContext, err = hasContextParam(ft)
+	theFunc := &Function{}
+	theFunc.IsContext, err = hasContextParam(ft)
 	if err != nil {
 		return nil, err
 	}
-	f.IsError, err = hasErrorReturn(ft)
+	theFunc.IsError, err = hasErrorReturn(ft)
 	if err != nil {
 		return nil, err
 	}
-	x := 0
-	if f.IsContext {
-		x++
+	iArg := 0
+	if theFunc.IsContext {
+		iArg++
 	}
-	for ; x < len(ft.Params.List); x++ {
-		param := ft.Params.List[x]
+	for ; iArg < len(ft.Params.List); iArg++ {
+		param := ft.Params.List[iArg]
 		t := fmt.Sprint(param.Type)
 		typ, ok := argTypes[t]
 		if !ok {
@@ -922,20 +950,12 @@ func funcType(ft *ast.FuncType) (*Function, error) {
 		}
 		// support for foo, bar string
 		for _, name := range param.Names {
-			f.Args = append(f.Args, Arg{Name: name.Name, Type: typ})
+			theFunc.Args = append(theFunc.Args, Arg{Name: name.Name, Type: typ})
 		}
 	}
-	return f, nil
+	return theFunc, nil
 }
 
 func toOneLine(s string) string {
 	return strings.TrimSpace(strings.ReplaceAll(s, "\n", " "))
-}
-
-var argTypes = map[string]string{
-	"string":           "string",
-	"int":              "int",
-	"float64":          "float64",
-	"&{time Duration}": "time.Duration",
-	"bool":             "bool",
 }

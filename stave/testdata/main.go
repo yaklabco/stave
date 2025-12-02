@@ -4,11 +4,12 @@
 package main
 
 import (
+	"context"
 	"os"
 
 	"github.com/yaklabco/stave/stave"
 )
 
 func main() {
-	os.Exit(stave.Main())
+	os.Exit(stave.Main(context.Background()))
 }

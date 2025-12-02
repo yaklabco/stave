@@ -22,15 +22,15 @@ func init() {
 func TestMain(m *testing.M) {
 	flag.Parse()
 	if printIsDryRunRequested {
-		fmt.Println(IsRequested())
+		_, _ = fmt.Println(IsRequested())
 		return
 	}
 	if printIsDryRunPossible {
-		fmt.Println(IsPossible())
+		_, _ = fmt.Println(IsPossible())
 		return
 	}
 	if printIsDryRun {
-		fmt.Println(IsDryRun())
+		_, _ = fmt.Println(IsDryRun())
 		return
 	}
 	os.Exit(m.Run())
