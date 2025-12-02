@@ -70,7 +70,6 @@ func TestAutoExpand(t *testing.T) {
 	if s != "baz" {
 		t.Fatalf(`Expected "baz" but got %q`, s)
 	}
-
 }
 
 func TestDryRunOutput(t *testing.T) {

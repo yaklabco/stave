@@ -16,7 +16,7 @@ import (
 	//stave:import
 	_ "github.com/yaklabco/stave/stave/testdata/staveimport/subdir1"
 	//stave:import zz
-	"github.com/yaklabco/stave/stave/testdata/staveimport/subdir2"
+	stave "github.com/yaklabco/stave/stave/testdata/staveimport/subdir2"
 )
 
 var Aliases = map[string]interface{}{

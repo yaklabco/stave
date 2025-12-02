@@ -8,17 +8,19 @@ import (
 	"time"
 )
 
+const futureShift = time.Hour * 24 * 365 * 250
+
 var (
 	// errNewer is an ugly sentinel error to cause filepath.Walk to abort
-	// as soon as a newer file is encountered
-	errNewer = fmt.Errorf("newer item encountered")
+	// as soon as a newer file is encountered.
+	errNewer = errors.New("newer item encountered")
 )
 
 // DirNewer reports whether any item in sources is newer than the target time.
 // Sources are searched recursively and searching stops as soon as any entry
 // is newer than the target.
 func DirNewer(target time.Time, sources ...string) (bool, error) {
-	walkFn := func(path string, info os.FileInfo, err error) error {
+	walkFn := func(_ string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -43,15 +45,15 @@ func DirNewer(target time.Time, sources ...string) (bool, error) {
 
 // GlobNewer performs glob expansion on each source and passes the results to
 // PathNewer for inspection. It returns the first time PathNewer encounters a
-// newer file
+// newer file.
 func GlobNewer(target time.Time, sources ...string) (bool, error) {
-	for _, g := range sources {
-		files, err := filepath.Glob(g)
+	for _, globPattern := range sources {
+		files, err := filepath.Glob(globPattern)
 		if err != nil {
 			return false, err
 		}
 		if len(files) == 0 {
-			return false, fmt.Errorf("glob didn't match any files: %s", g)
+			return false, fmt.Errorf("glob didn't match any files: %s", globPattern)
 		}
 		newer, err := PathNewer(target, files...)
 		if err != nil {
@@ -82,45 +84,45 @@ func PathNewer(target time.Time, sources ...string) (bool, error) {
 }
 
 // OldestModTime recurses a list of target filesystem objects and finds the
-// the oldest ModTime among them.
+// oldest ModTime among them.
 func OldestModTime(targets ...string) (time.Time, error) {
-	t := time.Now().Add(time.Hour * 100000)
+	oldestTime := time.Now().Add(futureShift)
 	for _, target := range targets {
 		walkFn := func(_ string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
 			mTime := info.ModTime()
-			if mTime.Before(t) {
-				t = mTime
+			if mTime.Before(oldestTime) {
+				oldestTime = mTime
 			}
 			return nil
 		}
 		if err := filepath.Walk(target, walkFn); err != nil {
-			return t, err
+			return oldestTime, err
 		}
 	}
-	return t, nil
+	return oldestTime, nil
 }
 
 // NewestModTime recurses a list of target filesystem objects and finds the
-// the newest ModTime among them.
+// newest ModTime among them.
 func NewestModTime(targets ...string) (time.Time, error) {
-	t := time.Time{}
+	newestTime := time.Time{}
 	for _, target := range targets {
 		walkFn := func(_ string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
 			mTime := info.ModTime()
-			if mTime.After(t) {
-				t = mTime
+			if mTime.After(newestTime) {
+				newestTime = mTime
 			}
 			return nil
 		}
 		if err := filepath.Walk(target, walkFn); err != nil {
-			return t, err
+			return newestTime, err
 		}
 	}
-	return t, nil
+	return newestTime, nil
 }

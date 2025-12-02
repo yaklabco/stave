@@ -2,8 +2,10 @@ package sh
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
+
 	"io"
 	"log"
 	"os"
@@ -59,7 +61,7 @@ func RunV(cmd string, args ...string) error {
 }
 
 // RunWith runs the given command, directing stderr to this program's stderr and
-// printing stdout to stdout if stave was run with -v.  It adds adds env to the
+// printing stdout to stdout if stave was run with -v.  It adds env to the
 // environment variables for the command being run. Environment variables should
 // be in the format name=value.
 func RunWith(env map[string]string, cmd string, args ...string) error {
@@ -104,7 +106,7 @@ func OutputWith(env map[string]string, cmd string, args ...string) (string, erro
 // Ran reports if the command ran (rather than was not found or not executable).
 // Code reports the exit code the command returned if it ran. If err == nil, ran
 // is always true and code is always 0.
-func Exec(env map[string]string, stdout, stderr io.Writer, cmd string, args ...string) (ran bool, err error) {
+func Exec(env map[string]string, stdout, stderr io.Writer, cmd string, args ...string) (bool, error) {
 	expand := func(s string) string {
 		s2, ok := env[s]
 		if ok {
@@ -123,20 +125,21 @@ func Exec(env map[string]string, stdout, stderr io.Writer, cmd string, args ...s
 	if ran {
 		return ran, st.Fatalf(code, `running "%s %s" failed with exit code %d`, cmd, strings.Join(args, " "), code)
 	}
-	return ran, fmt.Errorf(`failed to run "%s %s: %v"`, cmd, strings.Join(args, " "), err)
+	return ran, fmt.Errorf(`failed to run "%s %s: %w"`, cmd, strings.Join(args, " "), err)
 }
 
-func run(env map[string]string, stdout, stderr io.Writer, cmd string, args ...string) (ran bool, code int, err error) {
-	c := dryrun.Wrap(cmd, args...)
-	c.Env = os.Environ()
+func run(env map[string]string, stdout, stderr io.Writer, cmd string, args ...string) (bool, int, error) {
+	ctx := context.Background()
+	theCmd := dryrun.Wrap(ctx, cmd, args...)
+	theCmd.Env = os.Environ()
 	for k, v := range env {
-		c.Env = append(c.Env, k+"="+v)
+		theCmd.Env = append(theCmd.Env, k+"="+v)
 	}
-	c.Stderr = stderr
-	c.Stdout = stdout
-	c.Stdin = os.Stdin
+	theCmd.Stderr = stderr
+	theCmd.Stdout = stdout
+	theCmd.Stdin = os.Stdin
 
-	var quoted []string
+	quoted := make([]string, 0, len(args))
 	for i := range args {
 		quoted = append(quoted, fmt.Sprintf("%q", args[i]))
 	}
@@ -144,7 +147,8 @@ func run(env map[string]string, stdout, stderr io.Writer, cmd string, args ...st
 	if st.Verbose() {
 		log.Println("exec:", cmd, strings.Join(quoted, " "))
 	}
-	err = c.Run()
+	err := theCmd.Run()
+
 	return CmdRan(err), ExitStatus(err), err
 }
 

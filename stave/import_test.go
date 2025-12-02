@@ -1,3 +1,4 @@
+//nolint:lll // Long string-literals.
 package stave
 
 import (
@@ -6,6 +7,7 @@ import (
 )
 
 func TestStaveImportsList(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -15,7 +17,7 @@ func TestStaveImportsList(t *testing.T) {
 		List:   true,
 	}
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
 	}
@@ -39,6 +41,7 @@ Targets:
 }
 
 func TestStaveImportsHelp(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -49,7 +52,7 @@ func TestStaveImportsHelp(t *testing.T) {
 		Args:   []string{"buildSubdir"},
 	}
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
 	}
@@ -71,6 +74,7 @@ Usage:
 }
 
 func TestStaveImportsHelpNamed(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -81,7 +85,7 @@ func TestStaveImportsHelpNamed(t *testing.T) {
 		Args:   []string{"zz:buildSubdir2"},
 	}
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
 	}
@@ -103,6 +107,7 @@ Usage:
 }
 
 func TestStaveImportsHelpNamedNS(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -113,7 +118,7 @@ func TestStaveImportsHelpNamedNS(t *testing.T) {
 		Args:   []string{"zz:ns:deploy2"},
 	}
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
 	}
@@ -137,6 +142,7 @@ Aliases: nsd2
 }
 
 func TestStaveImportsRoot(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -146,7 +152,7 @@ func TestStaveImportsRoot(t *testing.T) {
 		Args:   []string{"root"},
 	}
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
 	}
@@ -158,6 +164,7 @@ func TestStaveImportsRoot(t *testing.T) {
 }
 
 func TestStaveImportsNamedNS(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -167,7 +174,7 @@ func TestStaveImportsNamedNS(t *testing.T) {
 		Args:   []string{"zz:nS:deploy2"},
 	}
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
 	}
@@ -179,6 +186,7 @@ func TestStaveImportsNamedNS(t *testing.T) {
 }
 
 func TestStaveImportsNamedRoot(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -188,7 +196,7 @@ func TestStaveImportsNamedRoot(t *testing.T) {
 		Args:   []string{"zz:buildSubdir2"},
 	}
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
 	}
@@ -203,6 +211,7 @@ func TestStaveImportsNamedRoot(t *testing.T) {
 }
 
 func TestStaveImportsRootImportNS(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -212,7 +221,7 @@ func TestStaveImportsRootImportNS(t *testing.T) {
 		Args:   []string{"nS:deploy"},
 	}
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
 	}
@@ -224,6 +233,7 @@ func TestStaveImportsRootImportNS(t *testing.T) {
 }
 
 func TestStaveImportsRootImport(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -233,7 +243,7 @@ func TestStaveImportsRootImport(t *testing.T) {
 		Args:   []string{"buildSubdir"},
 	}
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
 	}
@@ -245,6 +255,7 @@ func TestStaveImportsRootImport(t *testing.T) {
 }
 
 func TestStaveImportsAliasToNS(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -254,7 +265,7 @@ func TestStaveImportsAliasToNS(t *testing.T) {
 		Args:   []string{"nsd2"},
 	}
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
 	}
@@ -266,6 +277,7 @@ func TestStaveImportsAliasToNS(t *testing.T) {
 }
 
 func TestStaveImportsOneLine(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -275,7 +287,7 @@ func TestStaveImportsOneLine(t *testing.T) {
 		Args:   []string{"build"},
 	}
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
 	}
@@ -286,6 +298,7 @@ func TestStaveImportsOneLine(t *testing.T) {
 	}
 }
 func TestStaveImportsTrailing(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -295,7 +308,7 @@ func TestStaveImportsTrailing(t *testing.T) {
 		Args:   []string{"build"},
 	}
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
 	}
@@ -307,6 +320,7 @@ func TestStaveImportsTrailing(t *testing.T) {
 }
 
 func TestStaveImportsTaggedPackage(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -316,7 +330,7 @@ func TestStaveImportsTaggedPackage(t *testing.T) {
 		List:   true,
 	}
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 1 {
 		t.Fatalf("expected to exit with code 1, but got %v, stdout:\n%s\nstderr:\n%s", code, stdout, stderr)
 	}
@@ -334,6 +348,7 @@ Error parsing stavefiles: error running "go list -f {{.Dir}}||{{.Name}} github.c
 }
 
 func TestStaveImportsSameNamespaceUniqueTargets(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -343,7 +358,7 @@ func TestStaveImportsSameNamespaceUniqueTargets(t *testing.T) {
 		List:   true,
 	}
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
 	}
@@ -362,6 +377,7 @@ Targets:
 }
 
 func TestStaveImportsSameNamespaceDupTargets(t *testing.T) {
+	ctx := t.Context()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	inv := Invocation{
@@ -371,7 +387,7 @@ func TestStaveImportsSameNamespaceDupTargets(t *testing.T) {
 		List:   true,
 	}
 
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 1 {
 		t.Fatalf("expected to exit with code 1, but got %v, stderr:\n%s", code, stderr)
 	}

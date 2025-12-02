@@ -135,8 +135,8 @@ func TestF(t *testing.T) {
 		bOut   bool
 		dOut   time.Duration
 	)
-	f := func(cctx context.Context, ii int, ss string, bb bool, dd time.Duration) error {
-		ctxOut = cctx
+	theFunc := func(cctx context.Context, ii int, ss string, bb bool, dd time.Duration) error {
+		ctxOut = cctx //nolint:fatcontext // This is for the sake of the test.
 		iOut = ii
 		sOut = ss
 		bOut = bb
@@ -145,25 +145,25 @@ func TestF(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	i := 1776
-	s := "abc124"
-	b := true
-	d := time.Second
+	iVal := 1776
+	sVal := "abc124"
+	bVal := true
+	dVal := time.Second
 
-	CtxDeps(ctx, F(f, i, s, b, d))
+	CtxDeps(ctx, F(theFunc, iVal, sVal, bVal, dVal))
 	if ctxOut != ctx {
 		t.Error(ctxOut)
 	}
-	if iOut != i {
+	if iOut != iVal {
 		t.Error(iOut)
 	}
-	if bOut != b {
+	if bOut != bVal {
 		t.Error(bOut)
 	}
-	if dOut != d {
+	if dOut != dVal {
 		t.Error(dOut)
 	}
-	if sOut != s {
+	if sOut != sVal {
 		t.Error(sOut)
 	}
 }
@@ -182,7 +182,7 @@ func TestFTwice(t *testing.T) {
 
 func ExampleF() {
 	f := func(i int) {
-		fmt.Println(i)
+		_, _ = fmt.Println(i)
 	}
 
 	// we use SerialDeps here to ensure consistent output, but this works with all Deps functions.
@@ -225,13 +225,13 @@ func TestFVariadic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fn = F(func(a string, b ...string) {}, "a", "b1", "b2")
+	fn = F(func(a string, b ...string) {}, "a", "b1", "b2") //nolint:revive // Let's keep this as it is for the sake of the test.
 	err = fn.Run(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fn = F(func(a ...string) {})
+	fn = F(func(a ...string) {}) //nolint:revive // Let's keep this as it is for the sake of the test.
 	err = fn.Run(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -239,12 +239,15 @@ func TestFVariadic(t *testing.T) {
 
 	func() {
 		defer func() {
-			err, _ := recover().(error)
+			err, ok := recover().(error)
+			if !ok {
+				t.Fatalf("expected panic with an error value, but got %T instead", recover())
+			}
 			if err == nil || err.Error() != "too few arguments for target, got 0 for func(string, ...string)" {
 				t.Fatal(err)
 			}
 		}()
-		F(func(a string, b ...string) {})
+		F(func(a string, b ...string) {}) //nolint:revive // Let's keep this as it is for the sake of the test.
 	}()
 }
 
@@ -258,6 +261,6 @@ func (Foo) BareCtx(context.Context) {}
 
 func (Foo) CtxError(context.Context) error { return nil }
 
-func (Foo) CtxErrorArgs(ctx context.Context, i int, s string, b bool, d time.Duration) error {
+func (Foo) CtxErrorArgs(ctx context.Context, i int, s string, b bool, d time.Duration) error { //nolint:revive // Let's keep this as it is for the sake of the test.
 	return nil
 }

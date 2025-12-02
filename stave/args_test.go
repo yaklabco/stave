@@ -6,6 +6,7 @@ import (
 )
 
 func TestArgs(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
@@ -14,7 +15,7 @@ func TestArgs(t *testing.T) {
 		Stdout: stdout,
 		Args:   []string{"status", "say", "hi", "bob", "count", "5", "status", "wait", "5ms", "cough", "false", "doubleIt", "3.1"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Log(stderr.String())
 		t.Fatalf("expected 0, but got %v", code)
@@ -34,6 +35,7 @@ not coughing
 }
 
 func TestBadIntArg(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
@@ -42,7 +44,7 @@ func TestBadIntArg(t *testing.T) {
 		Stdout: stdout,
 		Args:   []string{"count", "abc123"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 2 {
 		t.Log("stderr:", stderr)
 		t.Log("stdout:", stdout)
@@ -57,6 +59,7 @@ func TestBadIntArg(t *testing.T) {
 }
 
 func TestBadBoolArg(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
@@ -65,7 +68,7 @@ func TestBadBoolArg(t *testing.T) {
 		Stdout: stdout,
 		Args:   []string{"cough", "abc123"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 2 {
 		t.Log("stderr:", stderr)
 		t.Log("stdout:", stdout)
@@ -80,6 +83,7 @@ func TestBadBoolArg(t *testing.T) {
 }
 
 func TestBadDurationArg(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
@@ -88,7 +92,7 @@ func TestBadDurationArg(t *testing.T) {
 		Stdout: stdout,
 		Args:   []string{"wait", "abc123"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 2 {
 		t.Log("stderr:", stderr)
 		t.Log("stdout:", stdout)
@@ -103,6 +107,7 @@ func TestBadDurationArg(t *testing.T) {
 }
 
 func TestBadFloat64Arg(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
@@ -111,7 +116,7 @@ func TestBadFloat64Arg(t *testing.T) {
 		Stdout: stdout,
 		Args:   []string{"doubleIt", "abc123"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 2 {
 		t.Log("stderr:", stderr)
 		t.Log("stdout:", stdout)
@@ -126,6 +131,7 @@ func TestBadFloat64Arg(t *testing.T) {
 }
 
 func TestMissingArgs(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
@@ -134,7 +140,7 @@ func TestMissingArgs(t *testing.T) {
 		Stdout: stdout,
 		Args:   []string{"say", "hi"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 2 {
 		t.Log("stderr:", stderr)
 		t.Log("stdout:", stdout)
@@ -149,6 +155,7 @@ func TestMissingArgs(t *testing.T) {
 }
 
 func TestDocs(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
@@ -158,7 +165,7 @@ func TestDocs(t *testing.T) {
 		Help:   true,
 		Args:   []string{"say"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Log("stderr:", stderr)
 		t.Log("stdout:", stdout)
@@ -180,6 +187,7 @@ Aliases: speak
 }
 
 func TestMgF(t *testing.T) {
+	ctx := t.Context()
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	inv := Invocation{
@@ -188,7 +196,7 @@ func TestMgF(t *testing.T) {
 		Stdout: stdout,
 		Args:   []string{"HasDep"},
 	}
-	code := Invoke(inv)
+	code := Invoke(ctx, inv)
 	if code != 0 {
 		t.Log("stderr:", stderr)
 		t.Log("stdout:", stdout)

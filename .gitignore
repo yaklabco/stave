@@ -1,35 +1,55 @@
+# If you prefer the allow list template instead of the deny list, see community template:
+# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
+#
 # Binaries for programs and plugins
 *.exe
+*.exe~
 *.dll
 *.so
 *.dylib
 
-# Test binary, build with `go test -c`
+# macOS shenanigans
+.DS_Store
+
+# Test binary, built with `go test -c`
 *.test
 
-# Output of the go coverage tool, specifically when used with LiteIDE
+# Code coverage profiles and other test artifacts
 *.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# env file
+.env
+
+# goreleaser dist/ directory
+/dist
+
+# Editor/IDE
+/.idea
+/.vscode
+*.iml
+*.sw[op]
+Session.vim
+*~
+
+node_modules
+
+/schemas/goreleaser.schema.json
 
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
 
 # Stavefile output
 stave_output_file.go
-
-# VScode
-.vscode
-
-# stupid osx
-.DS_Store
-
-# Goland
-.idea
-*.iml
-
-# Vim
-*.sw[op]
-Session.vim
-*~
 
 # GNU Screen
 .screenrc
