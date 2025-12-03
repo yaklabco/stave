@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-
 	"os"
 
 	"github.com/yaklabco/stave/stave"

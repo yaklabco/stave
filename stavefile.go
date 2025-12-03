@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/samber/lo"
-
+	"github.com/yaklabco/stave/internal/dryrun"
 	"github.com/yaklabco/stave/sh"
 	"github.com/yaklabco/stave/st"
 	"github.com/yaklabco/stave/ui"
@@ -134,7 +134,7 @@ func TestGo() error { // mage:help=Run Go tests with coverage (coverage.out, cov
 	// Unset STAVEFILE_DRYRUN_POSSIBLE - which will be set by this point, normally -
 	// so that tests *of* the dryrun functionality work as though they were run
 	// from a bare `go test` command-line.
-	if err := os.Unsetenv("STAVEFILE_DRYRUN_POSSIBLE"); err != nil {
+	if err := os.Unsetenv(dryrun.PossibleEnv); err != nil {
 		return err
 	}
 

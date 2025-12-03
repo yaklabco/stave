@@ -7,7 +7,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-
 	"go/build"
 	"io"
 	"log"
@@ -23,6 +22,8 @@ import (
 
 	"github.com/yaklabco/stave/internal"
 	"github.com/yaklabco/stave/internal/dryrun"
+	"github.com/yaklabco/stave/internal/env"
+	"github.com/yaklabco/stave/internal/parallelism"
 	"github.com/yaklabco/stave/parse"
 	"github.com/yaklabco/stave/sh"
 	"github.com/yaklabco/stave/st"
@@ -464,7 +465,7 @@ type mainfileTemplateData struct {
 
 // listGoFiles returns a list of all .go files in a given directory,
 // matching the provided tag.
-func listGoFiles(stavePath, tag string, envStr []string) ([]string, error) {
+func listGoFiles(stavePath, tag string, envMap map[string]string) ([]string, error) {
 	origStavePath := stavePath
 	if !filepath.IsAbs(stavePath) {
 		cwd, err := os.Getwd()
@@ -474,20 +475,15 @@ func listGoFiles(stavePath, tag string, envStr []string) ([]string, error) {
 		stavePath = filepath.Join(cwd, stavePath)
 	}
 
-	env, err := internal.SplitEnv(envStr)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing environment variables: %w", err)
-	}
-
 	bctx := build.Default
 	bctx.BuildTags = []string{tag}
 
-	if _, ok := env["GOOS"]; ok {
-		bctx.GOOS = env["GOOS"]
+	if _, ok := envMap["GOOS"]; ok {
+		bctx.GOOS = envMap["GOOS"]
 	}
 
-	if _, ok := env["GOARCH"]; ok {
-		bctx.GOARCH = env["GOARCH"]
+	if _, ok := envMap["GOARCH"]; ok {
+		bctx.GOARCH = envMap["GOARCH"]
 	}
 
 	pkg, err := bctx.Import(".", stavePath, 0)
@@ -524,13 +520,10 @@ func Stavefiles(stavePath, goos, goarch string, isStavefilesDirectory bool) ([]s
 		debug.Println("time to scan for Stavefiles:", time.Since(start))
 	}()
 
-	env, err := internal.EnvWithGOOS(goos, goarch)
-	if err != nil {
-		return nil, err
-	}
+	envMap := internal.EnvWithGOOS(goos, goarch)
 
 	debug.Println("getting all files including those with stave tag in", stavePath)
-	staveFiles, err := listGoFiles(stavePath, "stave", env)
+	staveFiles, err := listGoFiles(stavePath, "stave", envMap)
 	if err != nil {
 		return nil, fmt.Errorf("listing stave files: %w", err)
 	}
@@ -546,7 +539,7 @@ func Stavefiles(stavePath, goos, goarch string, isStavefilesDirectory bool) ([]s
 	// that have the stave build tag and ignore those that don't.
 
 	debug.Println("getting all files without stave tag in", stavePath)
-	nonStaveFiles, err := listGoFiles(stavePath, "", env)
+	nonStaveFiles, err := listGoFiles(stavePath, "", envMap)
 	if err != nil {
 		return nil, fmt.Errorf("listing non-stave files: %w", err)
 	}
@@ -597,34 +590,37 @@ func Compile(ctx context.Context, params CompileParams) error {
 			return err
 		}
 	}
-	environ, err := internal.EnvWithGOOS(params.Goos, params.Goarch)
-	if err != nil {
-		return err
-	}
+
+	envMap := internal.EnvWithGOOS(params.Goos, params.Goarch)
+
 	// strip off the path since we're setting the path in the build command
 	for i := range params.Gofiles {
 		params.Gofiles[i] = filepath.Base(params.Gofiles[i])
 	}
+
 	buildArgs := []string{"build", "-o", params.CompileTo}
 	if params.Ldflags != "" {
 		buildArgs = append(buildArgs, "-ldflags", params.Ldflags)
 	}
+
 	args := make([]string, len(buildArgs), len(buildArgs)+len(params.Gofiles))
 	copy(args, buildArgs)
 	args = append(args, params.Gofiles...)
 
 	debug.Printf("running %s %s", params.GoCmd, strings.Join(args, " "))
 	theCmd := dryrun.Wrap(ctx, params.GoCmd, args...)
-	theCmd.Env = environ
+	theCmd.Env = env.ToAssignments(envMap)
 	theCmd.Stderr = params.Stderr
 	theCmd.Stdout = params.Stdout
 	theCmd.Dir = params.StavePath
+
 	start := time.Now()
-	err = theCmd.Run()
+	err := theCmd.Run()
 	debug.Println("time to compile Stavefile:", time.Since(start))
 	if err != nil {
 		return errors.New("error compiling stavefiles")
 	}
+
 	return nil
 }
 
@@ -735,9 +731,27 @@ func RunCompiled(ctx context.Context, inv Invocation, exePath string, errlog *lo
 		theCmd.Dir = inv.WorkDir
 	}
 
-	// intentionally pass through unaltered os.Environ here.. your stavefile has
-	// to deal with it.
-	theCmd.Env = os.Environ()
+	envMap, err := setupEnv(inv)
+	if err != nil {
+		errlog.Printf("error setting up environment for stavefile: %v", err)
+		return 1
+	}
+	theCmd.Env = env.ToAssignments(envMap)
+
+	debug.Print("running stavefile with stave vars:\n", strings.Join(filter(theCmd.Env, "STAVEFILE"), "\n"))
+	// catch SIGINT to allow stavefile to handle them
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT)
+	defer signal.Stop(sigCh)
+	err = theCmd.Run()
+	if !sh.CmdRan(err) {
+		errlog.Printf("failed to run compiled stavefile: %v", err)
+	}
+	return sh.ExitStatus(err)
+}
+
+func setupEnv(inv Invocation) (map[string]string, error) {
+	envMap := env.GetMap()
 
 	// We don't want to actually allow dryrun in the outermost invocation of
 	// stave, since that will inhibit the very compilation of the stavefile & the
@@ -745,39 +759,35 @@ func RunCompiled(ctx context.Context, inv Invocation, exePath string, errlog *lo
 	// But every situation that's within such an execution is one in which dryrun
 	// is supported, so we set this environment variable which will be carried
 	// over throughout all such situations.
-	theCmd.Env = append(theCmd.Env, "STAVEFILE_DRYRUN_POSSIBLE=1")
+	envMap["STAVEFILE_DRYRUN_POSSIBLE"] = "1"
 
 	if inv.Verbose {
-		theCmd.Env = append(theCmd.Env, "STAVEFILE_VERBOSE=1")
+		envMap["STAVEFILE_VERBOSE"] = "1"
 	}
 	if inv.List {
-		theCmd.Env = append(theCmd.Env, "STAVEFILE_LIST=1")
+		envMap["STAVEFILE_LIST"] = "1"
 	}
 	if inv.Help {
-		theCmd.Env = append(theCmd.Env, "STAVEFILE_HELP=1")
+		envMap["STAVEFILE_HELP"] = "1"
 	}
 	if inv.Debug {
-		theCmd.Env = append(theCmd.Env, "STAVEFILE_DEBUG=1")
+		envMap["STAVEFILE_DEBUG"] = "1"
 	}
 	if inv.GoCmd != "" {
-		theCmd.Env = append(theCmd.Env, "STAVEFILE_GOCMD="+inv.GoCmd)
+		envMap["STAVEFILE_GOCMD"] = inv.GoCmd
 	}
 	if inv.Timeout > 0 {
-		theCmd.Env = append(theCmd.Env, "STAVEFILE_TIMEOUT="+inv.Timeout.String())
+		envMap["STAVEFILE_TIMEOUT"] = inv.Timeout.String()
 	}
 	if inv.DryRun {
-		theCmd.Env = append(theCmd.Env, "STAVEFILE_DRYRUN=1")
+		envMap["STAVEFILE_DRYRUN"] = "1"
 	}
-	debug.Print("running stavefile with stave vars:\n", strings.Join(filter(theCmd.Env, "STAVEFILE"), "\n"))
-	// catch SIGINT to allow stavefile to handle them
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT)
-	defer signal.Stop(sigCh)
-	err := theCmd.Run()
-	if !sh.CmdRan(err) {
-		errlog.Printf("failed to run compiled stavefile: %v", err)
+
+	if err := parallelism.Apply(envMap); err != nil {
+		return nil, err
 	}
-	return sh.ExitStatus(err)
+
+	return envMap, nil
 }
 
 func filter(list []string, prefix string) []string {
@@ -810,5 +820,6 @@ func removeContents(dir string) error {
 			return err
 		}
 	}
+
 	return nil
 }

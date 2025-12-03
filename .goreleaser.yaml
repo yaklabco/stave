@@ -42,6 +42,9 @@ builds:
       - goos: openbsd
         goarch: arm
         goarm: 6
+      - goos: windows
+        goarch: arm
+        goarm: 6
 
 archives:
   - id: default

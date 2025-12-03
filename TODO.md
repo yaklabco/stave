@@ -3,19 +3,20 @@
 - [x] Go lint:
   - [x] Bring over `.golangci.yml` from [stave](https://github.com/preminger/stave/)
   - [x] Fix all lint that emerges after running with new config
-- [ ] Establish [CHANGELOG](https://keepachangelog.com/en/1.1.0/)
-- [ ] Bring over elements of build- & CI-configs from [stave](https://github.com/preminger/stave/):
-  - [ ] `nprocs.sh`
-  - [ ] `.goreleaser.yaml`
+- [x] Establish [CHANGELOG](https://keepachangelog.com/en/1.1.0/)
+- [x] Bring over elements of build- & CI-configs from [stave](https://github.com/preminger/stave/):
+  - [x] `nprocs.sh`
+  - [x] `.goreleaser.yaml`
   - [x] `.markdownlint.yaml`
-  - [ ] `.svu.yml`
-  - [ ] `Brewfile`
+  - [x] `.svu.yml`
+  - [x] `Brewfile`
   - [x] Merge stave's `magefile.go` into stave's `stavefile.go`
-  - [ ] Hooks:
-    - [ ] Husky setup
-    - [ ] Copy over CHANGELOG uber-hook from [stave](https://github.com/preminger/stave/)
+  - [x] Hooks:
+    - [x] Husky setup
+    - [x] Copy over CHANGELOG uber-hook from [stave](https://github.com/preminger/stave/)
 - [x] Merge stave's `.gitignore` with stave's `.gitignore`
-- [ ] Add STAVE_NUM_PROCESSORS / GOMAXPROCS setter
+- [x] Add STAVE_NUM_PROCESSORS / GOMAXPROCS setter
 - [ ] CLI framework:
   - [ ] `cobra`-ify
   - [ ] then, `fang`-ify
+- [ ] Redo logging properly

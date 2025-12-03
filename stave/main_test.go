@@ -26,10 +26,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/yaklabco/stave/internal"
 	"github.com/yaklabco/stave/st"
-
-	"github.com/stretchr/testify/require"
 )
 
 const (

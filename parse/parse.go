@@ -15,9 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/tools/go/packages"
-
 	"github.com/yaklabco/stave/internal"
+	"golang.org/x/tools/go/packages"
 )
 
 const importTag = "stave:import"
