@@ -20,9 +20,9 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/yaklabco/stave/internal/dryrun"
-	"github.com/yaklabco/stave/sh"
-	"github.com/yaklabco/stave/st"
-	"github.com/yaklabco/stave/ui"
+	"github.com/yaklabco/stave/pkg/sh"
+	"github.com/yaklabco/stave/pkg/st"
+	"github.com/yaklabco/stave/pkg/ui"
 )
 
 var Aliases = map[string]interface{}{
@@ -352,7 +352,7 @@ func flags() string {
 	if tag == "" {
 		tag = "dev"
 	}
-	return fmt.Sprintf(`-X "github.com/yaklabco/stave/stave.timestamp=%s" -X "github.com/yaklabco/stave/stave.commitHash=%s" -X "github.com/yaklabco/stave/stave.gitTag=%s"`, timestamp, hash, tag)
+	return fmt.Sprintf(`-X "github.com/yaklabco/stave/pkg/stave.timestamp=%s" -X "github.com/yaklabco/stave/pkg/stave.commitHash=%s" -X "github.com/yaklabco/stave/pkg/stave.gitTag=%s"`, timestamp, hash, tag)
 }
 
 // tag returns the git tag for the current branch or "" if none.

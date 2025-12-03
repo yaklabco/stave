@@ -3,7 +3,7 @@
 
 package main
 
-import "github.com/yaklabco/stave/st"
+import "github.com/yaklabco/stave/pkg/st"
 
 type Build st.Namespace
 

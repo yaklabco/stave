@@ -5,7 +5,7 @@ package main
 import (
 	"os"
 
-	"github.com/yaklabco/stave/stave"
+	"github.com/yaklabco/stave/pkg/stave"
 )
 
 // This is a bootstrap builder, to build stave when you don't already *have* stave.

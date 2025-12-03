@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 package main
 
 import (
@@ -8,6 +11,5 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
-	os.Exit(stave.Main(ctx))
+	os.Exit(stave.Main(context.Background()))
 }
