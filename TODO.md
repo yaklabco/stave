@@ -16,6 +16,7 @@
     - [x] Copy over CHANGELOG uber-hook from [stave](https://github.com/preminger/stave/)
 - [x] Merge stave's `.gitignore` with stave's `.gitignore`
 - [x] Add STAVE_NUM_PROCESSORS / GOMAXPROCS setter
+- [x] Modernize package layout
 - [ ] CLI framework:
   - [ ] `cobra`-ify
   - [ ] then, `fang`-ify

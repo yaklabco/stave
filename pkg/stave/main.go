@@ -24,7 +24,7 @@ import (
 	"github.com/yaklabco/stave/internal/dryrun"
 	"github.com/yaklabco/stave/internal/env"
 	"github.com/yaklabco/stave/internal/parallelism"
-	"github.com/yaklabco/stave/parse"
+	"github.com/yaklabco/stave/internal/parse"
 	"github.com/yaklabco/stave/pkg/sh"
 	"github.com/yaklabco/stave/pkg/st"
 )

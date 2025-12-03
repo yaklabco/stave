@@ -105,7 +105,7 @@ func TestParse(t *testing.T) {
 
 func TestGetImportSelf(t *testing.T) {
 	ctx := t.Context()
-	imp, err := getImport(ctx, "go", "github.com/yaklabco/stave/parse/testdata/importself", "")
+	imp, err := getImport(ctx, "go", "github.com/yaklabco/stave/internal/parse/testdata/importself", "")
 	if err != nil {
 		t.Fatal(err)
 	}

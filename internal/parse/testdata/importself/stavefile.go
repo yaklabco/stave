@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	//stave:import
-	_ "github.com/yaklabco/stave/parse/testdata/importself"
+	_ "github.com/yaklabco/stave/internal/parse/testdata/importself"
 )
 
 func Build() {
