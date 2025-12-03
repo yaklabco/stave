@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"os"
 
 	"github.com/yaklabco/stave/pkg/stave"
@@ -15,5 +16,5 @@ import (
 
 func main() {
 	os.Args = []string{os.Args[0], "-v", "install"}
-	os.Exit(stave.Main())
+	os.Exit(stave.Main(context.Background()))
 }
