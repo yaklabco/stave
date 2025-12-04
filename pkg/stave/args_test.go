@@ -9,6 +9,12 @@ import (
 )
 
 func TestArgs(t *testing.T) {
+	t.Parallel()
+	testDataDir := "./testdata/args"
+	mu := mutexByDir(testDataDir)
+	mu.Lock()
+	defer mu.Unlock()
+
 	ctx := t.Context()
 
 	stderr := &bytes.Buffer{}
@@ -16,7 +22,7 @@ func TestArgs(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     "./testdata/args",
+		Dir:     testDataDir,
 		Stderr:  stderr,
 		Stdout:  stdout,
 		Args:    []string{"status", "say", "hi", "bob", "count", "5", "status", "wait", "5ms", "cough", "false", "doubleIt", "3.1"},
@@ -37,6 +43,12 @@ not coughing
 }
 
 func TestBadIntArg(t *testing.T) {
+	t.Parallel()
+	testDataDir := "./testdata/args"
+	mu := mutexByDir(testDataDir)
+	mu.Lock()
+	defer mu.Unlock()
+
 	ctx := t.Context()
 
 	stderr := &bytes.Buffer{}
@@ -44,7 +56,7 @@ func TestBadIntArg(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     "./testdata/args",
+		Dir:     testDataDir,
 		Stderr:  stderr,
 		Stdout:  stdout,
 		Args:    []string{"count", "abc123"},
@@ -58,6 +70,12 @@ func TestBadIntArg(t *testing.T) {
 }
 
 func TestBadBoolArg(t *testing.T) {
+	t.Parallel()
+	testDataDir := "./testdata/args"
+	mu := mutexByDir(testDataDir)
+	mu.Lock()
+	defer mu.Unlock()
+
 	ctx := t.Context()
 
 	stderr := &bytes.Buffer{}
@@ -65,7 +83,7 @@ func TestBadBoolArg(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     "./testdata/args",
+		Dir:     testDataDir,
 		Stderr:  stderr,
 		Stdout:  stdout,
 		Args:    []string{"cough", "abc123"},
@@ -79,6 +97,12 @@ func TestBadBoolArg(t *testing.T) {
 }
 
 func TestBadDurationArg(t *testing.T) {
+	t.Parallel()
+	testDataDir := "./testdata/args"
+	mu := mutexByDir(testDataDir)
+	mu.Lock()
+	defer mu.Unlock()
+
 	ctx := t.Context()
 
 	stderr := &bytes.Buffer{}
@@ -86,7 +110,7 @@ func TestBadDurationArg(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     "./testdata/args",
+		Dir:     testDataDir,
 		Stderr:  stderr,
 		Stdout:  stdout,
 		Args:    []string{"wait", "abc123"},
@@ -100,6 +124,12 @@ func TestBadDurationArg(t *testing.T) {
 }
 
 func TestBadFloat64Arg(t *testing.T) {
+	t.Parallel()
+	testDataDir := "./testdata/args"
+	mu := mutexByDir(testDataDir)
+	mu.Lock()
+	defer mu.Unlock()
+
 	ctx := t.Context()
 
 	stderr := &bytes.Buffer{}
@@ -107,7 +137,7 @@ func TestBadFloat64Arg(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     "./testdata/args",
+		Dir:     testDataDir,
 		Stderr:  stderr,
 		Stdout:  stdout,
 		Args:    []string{"doubleIt", "abc123"},
@@ -121,6 +151,12 @@ func TestBadFloat64Arg(t *testing.T) {
 }
 
 func TestMissingArgs(t *testing.T) {
+	t.Parallel()
+	testDataDir := "./testdata/args"
+	mu := mutexByDir(testDataDir)
+	mu.Lock()
+	defer mu.Unlock()
+
 	ctx := t.Context()
 
 	stderr := &bytes.Buffer{}
@@ -128,7 +164,7 @@ func TestMissingArgs(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     "./testdata/args",
+		Dir:     testDataDir,
 		Stderr:  stderr,
 		Stdout:  stdout,
 		Args:    []string{"say", "hi"},
@@ -142,6 +178,12 @@ func TestMissingArgs(t *testing.T) {
 }
 
 func TestDocs(t *testing.T) {
+	t.Parallel()
+	testDataDir := "./testdata/args"
+	mu := mutexByDir(testDataDir)
+	mu.Lock()
+	defer mu.Unlock()
+
 	ctx := t.Context()
 
 	stderr := &bytes.Buffer{}
@@ -149,7 +191,7 @@ func TestDocs(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     "./testdata/args",
+		Dir:     testDataDir,
 		Stderr:  stderr,
 		Stdout:  stdout,
 		Info:    true,
@@ -172,6 +214,12 @@ Aliases: speak
 }
 
 func TestMgF(t *testing.T) {
+	t.Parallel()
+	testDataDir := "./testdata/args"
+	mu := mutexByDir(testDataDir)
+	mu.Lock()
+	defer mu.Unlock()
+
 	ctx := t.Context()
 
 	stderr := &bytes.Buffer{}
@@ -179,7 +227,7 @@ func TestMgF(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     "./testdata/args",
+		Dir:     testDataDir,
 		Stderr:  stderr,
 		Stdout:  stdout,
 		Args:    []string{"HasDep"},

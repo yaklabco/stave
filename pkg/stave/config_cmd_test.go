@@ -11,6 +11,8 @@ import (
 )
 
 func TestRunConfigCommand_Show(t *testing.T) {
+	t.Parallel()
+
 	// Reset global config state
 	config.ResetGlobal()
 
@@ -33,6 +35,8 @@ func TestRunConfigCommand_Show(t *testing.T) {
 }
 
 func TestRunConfigCommand_ShowExplicit(t *testing.T) {
+	t.Parallel()
+
 	// Reset global config state
 	config.ResetGlobal()
 
@@ -52,6 +56,8 @@ func TestRunConfigCommand_ShowExplicit(t *testing.T) {
 }
 
 func TestRunConfigCommand_Path(t *testing.T) {
+	t.Parallel()
+
 	// Reset global config state
 	config.ResetGlobal()
 
@@ -136,6 +142,8 @@ func TestRunConfigCommand_InitAlreadyExists(t *testing.T) {
 }
 
 func TestRunConfigCommand_UnknownSubcommand(t *testing.T) {
+	t.Parallel()
+
 	var stdout, stderr bytes.Buffer
 
 	// Run 'stave config unknown'
@@ -152,6 +160,8 @@ func TestRunConfigCommand_UnknownSubcommand(t *testing.T) {
 }
 
 func TestRunConfigCommand_Help(t *testing.T) {
+	t.Parallel()
+
 	var stdout, stderr bytes.Buffer
 
 	// Run 'stave config -h'

@@ -415,6 +415,7 @@ linters:
           - funlen
           - gochecknoglobals
           - gochecknoinits
+          - goconst
           - gosec
           - noctx
           - wrapcheck
