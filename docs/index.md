@@ -1,95 +1,74 @@
-# Stave Documentation
+# Stave
 
-Stave is a Go-native, make-like build tool. Write plain Go functions, and Stave automatically exposes them as runnable targets.
+Stave is a make-like build tool using Go. Write plain Go functions, and Stave automatically exposes them as runnable targets. It is a fork of [Mage](https://github.com/magefile/mage) with additional features including dry-run mode, XDG-compliant configuration, and parallelism control.
 
-Stave is a fork of [Mage](https://github.com/magefile/mage) with additional features and improvements.
+## Installation
 
-## Why Stave?
-
-- **Pure Go** - No new syntax to learn. Your build scripts are just Go code.
-- **No dependencies** - Stave compiles your build scripts into a binary with zero runtime dependencies.
-- **Cross-platform** - Works on Linux, macOS, and Windows.
-- **Fast** - Compiled binaries are cached for instant subsequent runs.
-- **Parallel** - Dependencies run in parallel by default with `st.Deps()`.
+```bash
+go install github.com/yaklabco/stave@latest
+```
 
 ## Quick Example
 
-Create a `stavefile.go`:
+Create `stavefile.go`:
 
 ```go
 //go:build stave
 
 package main
 
-import (
-    "fmt"
-    "github.com/yaklabco/stave/pkg/sh"
-    "github.com/yaklabco/stave/pkg/st"
-)
+import "github.com/yaklabco/stave/pkg/st"
 
-// Build compiles the application.
+// Build compiles the project.
 func Build() error {
-    st.Deps(Lint, Test)
-    fmt.Println("Building...")
-    return sh.Run("go", "build", "-o", "myapp", ".")
+    st.Deps(Generate)
+    return sh.Run("go", "build", "./...")
 }
 
-// Lint runs the linter.
-func Lint() error {
-    return sh.Run("golangci-lint", "run")
-}
-
-// Test runs the test suite.
-func Test() error {
-    return sh.Run("go", "test", "./...")
+// Generate runs code generation.
+func Generate() error {
+    return sh.Run("go", "generate", "./...")
 }
 ```
 
-Then run:
+Run targets:
 
 ```bash
-stave build    # Runs Lint and Test in parallel, then Build
-stave -l       # List all available targets
-stave -h build # Show help for Build target
+stave build    # Run Build target
+stave -l       # List available targets
 ```
 
-## Documentation Sections
+## Documentation
 
 ### Getting Started
 
-- [Installation](getting-started/installation.md) - Install Stave on your system
+- [Installation](getting-started/installation.md) - Install Stave via `go install` or from source
 - [Quickstart](getting-started/quickstart.md) - Create your first stavefile
-- [Migration from Mage](getting-started/migration-from-mage.md) - Guide for Mage users
+- [Migration from Mage](getting-started/migration-from-mage.md) - Guide for existing Mage users
 
 ### User Guide
 
-- [Stavefiles](user-guide/stavefiles.md) - How stavefiles work
-- [Targets](user-guide/targets.md) - Defining build targets
-- [Dependencies](user-guide/dependencies.md) - Managing target dependencies
-- [Namespaces](user-guide/namespaces.md) - Organizing targets into groups
-- [Arguments](user-guide/arguments.md) - Passing arguments to targets
-- [Configuration](user-guide/configuration.md) - Configuration files and environment variables
-- [Shell Commands](user-guide/shell-commands.md) - Running external commands
-- [File Targets](user-guide/file-targets.md) - Incremental builds
+- [Stavefiles](user-guide/stavefiles.md) - File conventions and build tags
+- [Targets](user-guide/targets.md) - Defining target functions
+- [Dependencies](user-guide/dependencies.md) - `st.Deps` and execution order
+- [Namespaces](user-guide/namespaces.md) - Organizing targets with `st.Namespace`
+- [Arguments](user-guide/arguments.md) - Typed target arguments
+- [Configuration](user-guide/configuration.md) - Config files and environment variables
+- [Shell Commands](user-guide/shell-commands.md) - Running external commands with `pkg/sh`
+- [File Targets](user-guide/file-targets.md) - Incremental builds with `pkg/target`
+- [Advanced Topics](user-guide/advanced.md) - Cross-compilation, dry-run, CI, debugging
 
 ### API Reference
 
-- [CLI Reference](api-reference/cli.md) - Command-line options
-- [pkg/st](api-reference/st/index.md) - Core Stave API
-- [pkg/sh](api-reference/sh/index.md) - Shell command helpers
-- [pkg/target](api-reference/target/index.md) - File target utilities
+- [CLI Reference](api-reference/cli.md) - Command-line flags and subcommands
+- [pkg/st](api-reference/st.md) - Dependency management and runtime utilities
+- [pkg/sh](api-reference/sh.md) - Shell command execution
+- [pkg/target](api-reference/target.md) - File modification time utilities
 
 ### Contributing
 
-- [Development Setup](contributing/development-setup.md) - Set up your development environment
-- [Architecture](contributing/architecture.md) - Codebase overview
-- [Testing](contributing/testing.md) - Running and writing tests
-- [Pull Requests](contributing/pull-requests.md) - Contribution workflow
-
-## Getting Help
-
-- [GitHub Issues](https://github.com/yaklabco/stave/issues) - Report bugs or request features
-- [GitHub Discussions](https://github.com/yaklabco/stave/discussions) - Ask questions
+- [Development Setup](contributing/development.md) - Setting up a development environment
+- [Architecture](contributing/architecture.md) - Codebase structure and design
 
 ## License
 

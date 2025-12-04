@@ -1,39 +1,51 @@
 # Quickstart
 
-Get up and running with Stave in under 5 minutes.
+[Home](../index.md) > Getting Started > Quickstart
 
-## Create Your First Stavefile
+This guide walks through creating a stavefile and running targets.
 
-Create a file named `stavefile.go` in your project root:
+## Create a Stavefile
+
+Create `stavefile.go` in your project root:
 
 ```go
 //go:build stave
 
 package main
 
-import "fmt"
+import (
+    "fmt"
 
-// Hello prints a greeting.
-func Hello() {
-    fmt.Println("Hello from Stave!")
-}
+    "github.com/yaklabco/stave/pkg/sh"
+    "github.com/yaklabco/stave/pkg/st"
+)
 
 // Build compiles the project.
 func Build() error {
+    st.Deps(Generate)
     fmt.Println("Building...")
-    return nil
+    return sh.Run("go", "build", "-o", "myapp", ".")
+}
+
+// Test runs the test suite.
+func Test() error {
+    return sh.RunV("go", "test", "./...")
+}
+
+// Generate runs code generators.
+func Generate() error {
+    return sh.Run("go", "generate", "./...")
+}
+
+// Clean removes build artifacts.
+func Clean() error {
+    return sh.Rm("myapp")
 }
 ```
 
-Key points:
-- The `//go:build stave` directive marks this as a stavefile
-- The package must be `main`
-- Exported functions become targets
-- Function comments become target descriptions
+The `//go:build stave` directive marks this file for Stave. The package must be `main`.
 
-## Run Your First Target
-
-List available targets:
+## List Targets
 
 ```bash
 stave -l
@@ -43,179 +55,46 @@ Output:
 
 ```
 Targets:
-  build    compiles the project.
-  hello    prints a greeting.
+  build       compiles the project.
+  clean       removes build artifacts.
+  generate    runs code generators.
+  test        runs the test suite.
 ```
 
-Run a target:
-
-```bash
-stave hello
-```
-
-Output:
-
-```
-Hello from Stave!
-```
-
-## Add Dependencies
-
-Modify your stavefile to use dependencies:
-
-```go
-//go:build stave
-
-package main
-
-import (
-    "fmt"
-
-    "github.com/yaklabco/stave/pkg/st"
-)
-
-// Lint runs the linter.
-func Lint() error {
-    fmt.Println("Running linter...")
-    return nil
-}
-
-// Test runs tests.
-func Test() error {
-    fmt.Println("Running tests...")
-    return nil
-}
-
-// Build compiles the project after linting and testing.
-func Build() error {
-    st.Deps(Lint, Test)  // Run Lint and Test in parallel
-    fmt.Println("Building...")
-    return nil
-}
-```
-
-Run build:
+## Run a Target
 
 ```bash
 stave build
 ```
 
-Output (order of Lint/Test may vary due to parallel execution):
-
-```
-Running linter...
-Running tests...
-Building...
-```
+Stave compiles the stavefile into a binary (cached for subsequent runs), then executes the `Build` function. Because `Build` calls `st.Deps(Generate)`, the `Generate` target runs first.
 
 ## Set a Default Target
 
-Add a `Default` variable to specify which target runs when no target is given:
+Add a `Default` variable to run a target when no arguments are provided:
 
 ```go
-//go:build stave
-
-package main
-
-import (
-    "fmt"
-
-    "github.com/yaklabco/stave/pkg/st"
-)
-
-// Default is the target to run when none is specified.
 var Default = Build
-
-func Lint() error {
-    fmt.Println("Running linter...")
-    return nil
-}
-
-func Test() error {
-    fmt.Println("Running tests...")
-    return nil
-}
-
-// Build is the default target.
-func Build() error {
-    st.Deps(Lint, Test)
-    fmt.Println("Building...")
-    return nil
-}
 ```
 
-Now simply run:
+Now `stave` with no arguments runs `Build`.
 
-```bash
-stave
-```
-
-This runs the `Build` target.
-
-## Run Shell Commands
-
-Use the `sh` package to run external commands:
+## Add Parallel Dependencies
 
 ```go
-//go:build stave
-
-package main
-
-import (
-    "github.com/yaklabco/stave/pkg/sh"
-    "github.com/yaklabco/stave/pkg/st"
-)
-
-func Lint() error {
-    return sh.Run("golangci-lint", "run", "./...")
-}
-
-func Test() error {
-    return sh.Run("go", "test", "-v", "./...")
-}
-
-func Build() error {
-    st.Deps(Lint, Test)
-    return sh.Run("go", "build", "-o", "myapp", ".")
+func All() {
+    st.Deps(Build, Test)  // Build and Test run in parallel
 }
 ```
 
-## Using Verbose Mode
+Each dependency runs exactly once, even if referenced multiple times in the dependency graph.
 
-Run with `-v` to see more output:
+---
 
-```bash
-stave -v build
-```
+## See Also
 
-This shows which dependencies are running and command execution details.
-
-## Project Structure
-
-A typical project with Stave:
-
-```
-myproject/
-  stavefile.go      # Build targets
-  main.go           # Application code
-  ...
-```
-
-For larger projects, you can use a `stavefiles/` directory:
-
-```
-myproject/
-  stavefiles/
-    stavefile.go    # Main targets
-    helpers.go      # Helper functions (no build tag needed)
-  main.go
-  ...
-```
-
-## Next Steps
-
-- [Stavefiles](../user-guide/stavefiles.md) - Learn more about stavefile structure
-- [Dependencies](../user-guide/dependencies.md) - Advanced dependency management
-- [Shell Commands](../user-guide/shell-commands.md) - Running external commands
-- [Configuration](../user-guide/configuration.md) - Customizing Stave behavior
+- [Installation](installation.md) - Installing Stave
+- [Stavefiles](../user-guide/stavefiles.md) - File conventions
+- [Dependencies](../user-guide/dependencies.md) - Dependency execution
+- [Home](../index.md)
 

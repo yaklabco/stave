@@ -1,30 +1,22 @@
 # Installation
 
-This guide covers various methods to install Stave on your system.
+[Home](../index.md) > Getting Started > Installation
 
-## Prerequisites
+Stave requires Go 1.25.4 or later.
 
-- Go 1.21 or later
+## Using go install
 
-## Install with Go
-
-The simplest way to install Stave is using `go install`:
+The recommended installation method:
 
 ```bash
 go install github.com/yaklabco/stave@latest
 ```
 
-This installs the `stave` binary to your `$GOBIN` directory (typically `$GOPATH/bin` or `$HOME/go/bin`).
+This installs the `stave` binary to `$GOBIN` (or `$GOPATH/bin` if `GOBIN` is unset).
 
-Verify the installation:
+## Building from Source
 
-```bash
-stave --version
-```
-
-## Build from Source
-
-To build Stave from source:
+Clone the repository and run the bootstrap script:
 
 ```bash
 git clone https://github.com/yaklabco/stave.git
@@ -32,77 +24,34 @@ cd stave
 go run bootstrap.go
 ```
 
-The `bootstrap.go` script compiles and installs Stave to your `$GOBIN` directory.
+The bootstrap script compiles and installs Stave with version metadata embedded in the binary.
 
-Alternatively, if you already have Stave installed:
-
-```bash
-git clone https://github.com/yaklabco/stave.git
-cd stave
-stave install
-```
-
-## Verify Installation
-
-After installation, verify Stave is working:
+## Verifying Installation
 
 ```bash
-# Check version
 stave --version
-
-# Show help
-stave --help
 ```
 
-## Cache Directory
+This prints the version, commit hash, and build timestamp.
 
-Stave caches compiled binaries to speed up subsequent runs. The default cache location is:
+## Upgrading
 
-| Platform | Location |
-|----------|----------|
-| Linux    | `~/.stavefile/` |
-| macOS    | `~/Library/Caches/stave/` |
-| Windows  | `%HOMEDRIVE%%HOMEPATH%\stavefile\` |
-
-You can override this with the `STAVEFILE_CACHE` environment variable:
-
-```bash
-export STAVEFILE_CACHE=/path/to/cache
-```
-
-Or in a configuration file (see [Configuration](../user-guide/configuration.md)).
-
-## Updating Stave
-
-To update to the latest version:
+To upgrade to the latest version:
 
 ```bash
 go install github.com/yaklabco/stave@latest
 ```
 
-Or if building from source:
+To upgrade to a specific version:
 
 ```bash
-cd stave
-git pull
-go run bootstrap.go
+go install github.com/yaklabco/stave@v0.1.0
 ```
 
-## Uninstalling
+---
 
-To uninstall Stave:
-
-```bash
-# Remove the binary
-rm $(which stave)
-
-# Optionally, remove the cache directory
-rm -rf ~/.stavefile  # Linux
-rm -rf ~/Library/Caches/stave  # macOS
-```
-
-## Next Steps
+## See Also
 
 - [Quickstart](quickstart.md) - Create your first stavefile
-- [Migration from Mage](migration-from-mage.md) - If you're coming from Mage
+- [Home](../index.md)
 
