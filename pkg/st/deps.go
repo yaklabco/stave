@@ -137,6 +137,11 @@ func checkFns(fns []interface{}) []Fn {
 
 		funcs[iFunc] = F(theFunc)
 	}
+
+	if err := checkForCycle(funcs); err != nil {
+		panic(fmt.Errorf("checking for cycles in dependency graph: %w", err))
+	}
+
 	return funcs
 }
 
@@ -175,7 +180,11 @@ func changeExit(oldExitCode, newExitCode int) int {
 
 // funcName returns the unique name for the function.
 func funcName(i interface{}) string {
-	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+	return funcObj(i).Name()
+}
+
+func funcObj(i interface{}) *runtime.Func {
+	return runtime.FuncForPC(reflect.ValueOf(i).Pointer())
 }
 
 func displayName(name string) string {
