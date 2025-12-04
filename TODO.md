@@ -1,16 +1,28 @@
+# Misc. to-dos
+
 - [x] Go lint:
   - [x] Bring over `.golangci.yml` from [goctx](https://github.com/preminger/goctx/)
   - [x] Fix all lint that emerges after running with new config
-- [ ] Establish [CHANGELOG](https://keepachangelog.com/en/1.1.0/)
-- [ ] Bring over elements of build- & CI-configs from [goctx](https://github.com/preminger/goctx/):
-  - [ ] `nprocs.sh`
-  - [ ] `.goreleaser.yaml`
-  - [ ] `.markdownlint.yaml`
-  - [ ] `.svu.yml`
-  - [ ] `Brewfile`
-  - [ ] Merge goctx's `magefile.go` into stave's `magefile.go`
-  - [ ] Hooks:
-    - [ ] Husky setup
-    - [ ] Copy over CHANGELOG uber-hook from [goctx](https://github.com/preminger/goctx/)
-- [x] Merge goctx's `.gitignore` with stave's `.gitignore`
-- [ ] Add STAVE_NUM_PROCESSORS / GOMAXPROCS setter
+- [x] Establish [CHANGELOG](https://keepachangelog.com/en/1.1.0/)
+- [x] Bring over elements of build- & CI-configs from [goctx](https://github.com/preminger/goctx/):
+  - [x] `nprocs.sh`
+  - [x] `.goreleaser.yaml`
+  - [x] `.markdownlint.yaml`
+  - [x] `.svu.yml`
+  - [x] `Brewfile`
+  - [x] Merge stave's `magefile.go` into stave's `stavefile.go`
+  - [x] Hooks:
+    - [x] Husky setup
+    - [x] Copy over CHANGELOG uber-hook from [goctx](https://github.com/preminger/goctx/)
+- [x] Merge stave's `.gitignore` with stave's `.gitignore`
+- [x] Add STAVE_NUM_PROCESSORS / GOMAXPROCS setter
+- [x] Modernize package layout
+- [x] Modernize testing code (`stretchr/testify` tools, etc.)
+- [x] CLI framework:
+  - [x] `cobra`-ify
+  - [x] then, `fang`-ify
+- [x] Figure out what the deal is with `lowerFirstWord(...)` (when getting to this, remember the existence of `lo.Words(...)`)
+- [x] Redo logging properly
+- [x] Parallelize tests w/locking mechanism to prevent parallel tests in same testdata subdir
+- [x] Bring in CI from `goctx` with the fancy caching
+- [x] Validate that every target is run in its own Goroutine

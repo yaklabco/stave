@@ -135,7 +135,7 @@ type LoadOptions struct {
 //  1. Defaults
 //  2. User config file (~/.config/stave/config.yaml)
 //  3. Project config file (./stave.yaml)
-//  4. Environment variables (STAVEFILE_* and MAGEFILE_*)
+//  4. Environment variables (STAVEFILE_* and STAVEFILE_*)
 //
 // If opts is nil, default options are used.
 func Load(opts *LoadOptions) (*Config, error) {
@@ -230,7 +230,7 @@ func Load(opts *LoadOptions) (*Config, error) {
 }
 
 // applyEnvironmentOverrides applies environment variable overrides to the config.
-// It supports both STAVEFILE_* (preferred) and MAGEFILE_* (legacy) prefixes.
+// It supports both STAVEFILE_* (preferred) and STAVEFILE_* (legacy) prefixes.
 // Environment variables take precedence over config file values.
 func applyEnvironmentOverrides(cfg *Config) {
 	// Helper to get env with fallback
@@ -256,28 +256,28 @@ func applyEnvironmentOverrides(cfg *Config) {
 	}
 
 	// Apply overrides
-	if v, ok := getEnv("STAVEFILE_CACHE", "MAGEFILE_CACHE"); ok {
+	if v, ok := getEnv("STAVEFILE_CACHE", "STAVEFILE_CACHE"); ok {
 		cfg.CacheDir = v
 	}
-	if v, ok := getEnv("STAVEFILE_GOCMD", "MAGEFILE_GOCMD"); ok {
+	if v, ok := getEnv("STAVEFILE_GOCMD", "STAVEFILE_GOCMD"); ok {
 		cfg.GoCmd = v
 	}
-	if v, ok := getBoolEnv("STAVEFILE_VERBOSE", "MAGEFILE_VERBOSE"); ok {
+	if v, ok := getBoolEnv("STAVEFILE_VERBOSE", "STAVEFILE_VERBOSE"); ok {
 		cfg.Verbose = v
 	}
-	if v, ok := getBoolEnv("STAVEFILE_DEBUG", "MAGEFILE_DEBUG"); ok {
+	if v, ok := getBoolEnv("STAVEFILE_DEBUG", "STAVEFILE_DEBUG"); ok {
 		cfg.Debug = v
 	}
-	if v, ok := getBoolEnv("STAVEFILE_HASHFAST", "MAGEFILE_HASHFAST"); ok {
+	if v, ok := getBoolEnv("STAVEFILE_HASHFAST", "STAVEFILE_HASHFAST"); ok {
 		cfg.HashFast = v
 	}
-	if v, ok := getBoolEnv("STAVEFILE_IGNOREDEFAULT", "MAGEFILE_IGNOREDEFAULT"); ok {
+	if v, ok := getBoolEnv("STAVEFILE_IGNOREDEFAULT", "STAVEFILE_IGNOREDEFAULT"); ok {
 		cfg.IgnoreDefault = v
 	}
-	if v, ok := getBoolEnv("STAVEFILE_ENABLE_COLOR", "MAGEFILE_ENABLE_COLOR"); ok {
+	if v, ok := getBoolEnv("STAVEFILE_ENABLE_COLOR", "STAVEFILE_ENABLE_COLOR"); ok {
 		cfg.EnableColor = v
 	}
-	if v, ok := getEnv("STAVEFILE_TARGET_COLOR", "MAGEFILE_TARGET_COLOR"); ok {
+	if v, ok := getEnv("STAVEFILE_TARGET_COLOR", "STAVEFILE_TARGET_COLOR"); ok {
 		cfg.TargetColor = v
 	}
 }

@@ -4,111 +4,100 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
-	"os"
+	"log/slog"
 	"runtime"
 	"strings"
 
 	"github.com/yaklabco/stave/internal/dryrun"
+	"github.com/yaklabco/stave/internal/env"
+	"github.com/yaklabco/stave/internal/log"
 )
 
-func SetDebug(l *log.Logger) {
-	debug = l
-}
+const (
+	GoOSEnvVar   = "GOOS"
+	GoArchEnvVar = "GOARCH"
+)
 
 func RunDebug(ctx context.Context, cmd string, args ...string) error {
-	env, err := EnvWithCurrentGOOS()
-	if err != nil {
+	envMap := EnvWithCurrentGOOS()
+
+	outBuf := &bytes.Buffer{}
+	errBuf := &bytes.Buffer{}
+
+	slog.Debug("running command", slog.String(log.Cmd, cmd), slog.Any(log.Args, args))
+	theCmd := dryrun.Wrap(ctx, cmd, args...)
+	theCmd.Env = env.ToAssignments(envMap)
+	theCmd.Stderr = errBuf
+	theCmd.Stdout = outBuf
+
+	if err := theCmd.Run(); err != nil {
+		slog.Debug(
+			"error running command",
+			slog.String(log.Cmd, cmd),
+			slog.Any(log.Args, args),
+			slog.Any(log.Error, err),
+			slog.String(log.Stderr, errBuf.String()),
+		)
 		return err
 	}
-	buf := &bytes.Buffer{}
-	errbuf := &bytes.Buffer{}
-	debug.Println("running", cmd, strings.Join(args, " "))
-	c := dryrun.Wrap(ctx, cmd, args...)
-	c.Env = env
-	c.Stderr = errbuf
-	c.Stdout = buf
-	if err := c.Run(); err != nil {
-		debug.Print("error running '", cmd, strings.Join(args, " "), "': ", err, ": ", errbuf)
-		return err
-	}
-	debug.Println(buf)
+
+	slog.Debug(
+		"command ran successfully",
+		slog.String(log.Cmd, cmd),
+		slog.Any(log.Args, args),
+		slog.String(log.Stdout, outBuf.String()),
+	)
+
 	return nil
 }
 
 func OutputDebug(ctx context.Context, cmd string, args ...string) (string, error) {
-	env, err := EnvWithCurrentGOOS()
-	if err != nil {
-		return "", err
-	}
-	buf := &bytes.Buffer{}
-	errbuf := &bytes.Buffer{}
-	debug.Println("running", cmd, strings.Join(args, " "))
-	c := dryrun.Wrap(ctx, cmd, args...)
-	c.Env = env
-	c.Stderr = errbuf
-	c.Stdout = buf
-	if err := c.Run(); err != nil {
-		errMsg := strings.TrimSpace(errbuf.String())
-		debug.Print("error running '", cmd, strings.Join(args, " "), "': ", err, ": ", errMsg)
+	envMap := EnvWithCurrentGOOS()
+
+	outBuf := &bytes.Buffer{}
+	errBuf := &bytes.Buffer{}
+
+	slog.Debug("running command", slog.String(log.Cmd, cmd), slog.Any(log.Args, args))
+	theCmd := dryrun.Wrap(ctx, cmd, args...)
+	theCmd.Env = env.ToAssignments(envMap)
+	theCmd.Stderr = errBuf
+	theCmd.Stdout = outBuf
+
+	if err := theCmd.Run(); err != nil {
+		errMsg := strings.TrimSpace(errBuf.String())
+		slog.Debug(
+			"error running command",
+			slog.String(log.Cmd, cmd),
+			slog.Any(log.Args, args),
+			slog.Any(log.Error, err),
+			slog.String(log.Stderr, errBuf.String()),
+		)
 		return "", fmt.Errorf("error running \"%s %s\": %w\n%s", cmd, strings.Join(args, " "), err, errMsg)
 	}
-	return strings.TrimSpace(buf.String()), nil
+
+	return strings.TrimSpace(outBuf.String()), nil
 }
 
-// SplitEnv takes the results from os.Environ() (a []string of foo=bar values)
-// and makes a map[string]string out of it.
-func SplitEnv(env []string) (map[string]string, error) {
-	out := map[string]string{}
-
-	for _, s := range env {
-		parts := strings.SplitN(s, "=", 2)
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("badly formatted environment variable: %v", s)
-		}
-		out[parts[0]] = parts[1]
-	}
-	return out, nil
+// EnvWithCurrentGOOS creates an env map using the current GOOS and GOARCH.
+func EnvWithCurrentGOOS() map[string]string {
+	return EnvWithGOOS(runtime.GOOS, runtime.GOARCH)
 }
 
-// joinEnv converts the given map into a list of foo=bar environment variables,
-// such as that outputted by os.Environ().
-func joinEnv(env map[string]string) []string {
-	vals := make([]string, 0, len(env))
-	for k, v := range env {
-		vals = append(vals, k+"="+v)
-	}
-	return vals
-}
-
-// EnvWithCurrentGOOS returns a copy of os.Environ with the GOOS and GOARCH set
-// to runtime.GOOS and runtime.GOARCH.
-func EnvWithCurrentGOOS() ([]string, error) {
-	vals, err := SplitEnv(os.Environ())
-	if err != nil {
-		return nil, err
-	}
-	vals["GOOS"] = runtime.GOOS
-	vals["GOARCH"] = runtime.GOARCH
-	return joinEnv(vals), nil
-}
-
-// EnvWithGOOS returns the os.Environ() values with GOOS and/or GOARCH either set
-// to their runtime value, or the given value if non-empty.
-func EnvWithGOOS(goos, goarch string) ([]string, error) {
-	env, err := SplitEnv(os.Environ())
-	if err != nil {
-		return nil, err
-	}
+// EnvWithGOOS creates an env map with GOOS and GOARCH values set explicitly.
+// If goos or goarch is empty, defaults to runtime.GOOS or runtime.GOARCH.
+// Returns a modified environment map based on input and current settings.
+func EnvWithGOOS(goos, goarch string) map[string]string {
+	envMap := env.GetMap()
 	if goos == "" {
-		env["GOOS"] = runtime.GOOS
+		envMap[GoOSEnvVar] = runtime.GOOS
 	} else {
-		env["GOOS"] = goos
+		envMap[GoOSEnvVar] = goos
 	}
 	if goarch == "" {
-		env["GOARCH"] = runtime.GOARCH
+		envMap[GoArchEnvVar] = runtime.GOARCH
 	} else {
-		env["GOARCH"] = goarch
+		envMap[GoArchEnvVar] = goarch
 	}
-	return joinEnv(env), nil
+
+	return envMap
 }

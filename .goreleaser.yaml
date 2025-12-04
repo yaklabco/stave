@@ -1,0 +1,95 @@
+# GoReleaser configuration for stave
+# See https://goreleaser.com for detailed docs.
+
+version: 2
+
+project_name: stave
+
+env:
+  - CGO_ENABLED=0
+
+before:
+  hooks:
+    # Keep modules tidy before building artifacts
+    - go mod tidy
+
+builds:
+  - id: stave
+    main: .
+    binary: stave
+    flags:
+      - -trimpath
+    ldflags:
+      # Keep it minimal and safe; no package vars assumed.
+      - -s -w
+      # Inject version metadata so the binary can print it without shelling out.
+      - -X github.com/yaklabco/stave/cmd/stave/version.Version={{ .Version }}
+      - -X github.com/yaklabco/stave/cmd/stave/version.Commit={{ .FullCommit }}
+      - -X github.com/yaklabco/stave/cmd/stave/version.BuildDate={{ .Date }}
+    goos:
+      - darwin
+      - linux
+      - windows
+      - freebsd
+      - netbsd
+      - openbsd
+      - dragonfly
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    ignore:
+      - goos: openbsd
+        goarch: arm
+        goarm: 6
+      - goos: windows
+        goarch: arm
+        goarm: 6
+
+archives:
+  - id: default
+    ids:
+      - stave
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - NOTICE
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ .Tag }}-dev"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      # Adjusted filter to ensure consistency (included the colon for 'test')
+      - '^docs:'
+      - '^chore:'
+      - '^test:'
+
+homebrew_casks:
+  - name: stave
+    ids:
+      - default
+    repository:
+      owner: yaklabco
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    commit_author:
+      name: YakLabs
+      email: official@yaklab.org
+    homepage: "https://github.com/yaklabco/stave"
+    description: "Make(file) replacement that is pure Go based (a fork of `makefile/mage`)."
+    license: "Apache 2.0"
+    # GoReleaser automatically generates the appropriate test block for the Cask.
+
+release:
+  # By default, GoReleaser infers GitHub/GitLab repo from the git remote.
+  # This section can be extended if needed (e.g., to set draft, discussion category, etc.).
+  draft: false
+  github: 
+    owner: yaklabco
+    name: stave

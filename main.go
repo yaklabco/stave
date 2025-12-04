@@ -2,13 +2,25 @@ package main
 
 import (
 	"context"
-
+	"fmt"
 	"os"
 
-	"github.com/yaklabco/stave/stave"
+	"github.com/yaklabco/stave/cmd/stave"
 )
 
 func main() {
+	os.Exit(actualMain())
+}
+
+func actualMain() int {
 	ctx := context.Background()
-	os.Exit(stave.Main(ctx))
+
+	rootCmd := stave.NewRootCmd(ctx)
+
+	if err := stave.ExecuteWithFang(ctx, rootCmd); err != nil {
+		_, _ = fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+
+	return 0
 }

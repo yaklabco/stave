@@ -3,9 +3,10 @@
 package main
 
 import (
+	"context"
 	"os"
 
-	"github.com/yaklabco/stave/stave"
+	"github.com/yaklabco/stave/pkg/stave"
 )
 
 // This is a bootstrap builder, to build stave when you don't already *have* stave.
@@ -15,5 +16,5 @@ import (
 
 func main() {
 	os.Args = []string{os.Args[0], "-v", "install"}
-	os.Exit(stave.Main())
+	os.Exit(stave.Run(context.Background()))
 }

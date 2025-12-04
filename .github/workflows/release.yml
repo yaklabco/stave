@@ -1,0 +1,128 @@
+name: release
+
+env:
+  HOMEBREW_NO_ANALYTICS: '1'
+
+defaults:
+  run:
+    shell: bash
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  release:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          # If your repo has a go.mod, this will pick the version from it.
+          go-version-file: go.mod
+          cache: true
+
+      - name: Cache Homebrew downloads
+        id: brew_dl
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/Homebrew
+          key: brew-cache-${{ runner.os }}-${{ hashFiles('Brewfile') }}
+          restore-keys: |
+            brew-cache-${{ runner.os }}-
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@main
+
+      - name: Detect Homebrew prefix
+        id: brew
+        run: echo "prefix=$(brew --prefix)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Homebrew installation
+        id: brew_install
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ steps.brew.outputs.prefix }}/Cellar
+            ${{ steps.brew.outputs.prefix }}/opt
+            ${{ steps.brew.outputs.prefix }}/bin
+            ${{ steps.brew.outputs.prefix }}/sbin
+            ${{ steps.brew.outputs.prefix }}/lib
+            ${{ steps.brew.outputs.prefix }}/include
+            ${{ steps.brew.outputs.prefix }}/share
+            ${{ steps.brew.outputs.prefix }}/etc
+            ${{ steps.brew.outputs.prefix }}/var
+            ${{ steps.brew.outputs.prefix }}/Homebrew/Library/Taps
+          key: brew-install-${{ runner.os }}-${{ hashFiles('Brewfile') }}
+          restore-keys: |
+            brew-install-${{ runner.os }}-
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Get Node version
+        id: nodever
+        run: echo "v=$(node -v)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore node_modules
+        id: nodemod
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-mod-${{ runner.os }}-${{ steps.nodever.outputs.v }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install deps (only on cache miss)
+        if: steps.nodemod.outputs.cache-hit != 'true'
+        run: npm ci --no-audit --no-fund
+
+      - name: Save node_modules (optional; actions/cache auto-saves on miss)
+        if: steps.nodemod.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-mod-${{ runner.os }}-${{ steps.nodever.outputs.v }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Homebrew tools (only if cache miss)
+        if: steps.brew_install.outputs.cache-hit != 'true'
+        run: brew bundle --no-upgrade --file=Brewfile
+
+      - name: Self-install
+        run: go run main.go install
+
+      - name: Parallelism check
+        run: stave parallelismcheck
+
+      - name: Project init (CI-safe)
+        run: stave init
+
+      - name: Run tests
+        run: stave test
+
+      - name: Configure git user
+        run: |
+          set -euo pipefail
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Perform release
+        run: stave release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
