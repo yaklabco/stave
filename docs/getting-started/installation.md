@@ -54,4 +54,3 @@ go install github.com/yaklabco/stave@v0.1.0
 
 - [Quickstart](quickstart.md) - Create your first stavefile
 - [Home](../index.md)
-

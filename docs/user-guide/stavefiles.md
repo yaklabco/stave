@@ -30,7 +30,7 @@ Stave generates a `main()` function that dispatches to your targets.
 
 Any `.go` file with the `stave` build tag is treated as a stavefile. The conventional name is `stavefile.go`, but any name works:
 
-```
+```text
 stavefile.go       # conventional
 build.go           # also valid if it has the build tag
 tasks.go           # also valid if it has the build tag
@@ -40,7 +40,7 @@ tasks.go           # also valid if it has the build tag
 
 Multiple stavefiles in the same directory are compiled together:
 
-```
+```text
 stavefile.go       # defines Build, Test
 deploy.go          # defines Deploy, Rollback (with stave tag)
 ```
@@ -51,7 +51,7 @@ All exported functions from all files become available targets.
 
 If a `stavefiles/` subdirectory exists, Stave uses it as the source directory. In this case, all `.go` files in `stavefiles/` are included regardless of build tags:
 
-```
+```text
 project/
 ├── stavefiles/
 │   ├── stavefile.go      # main targets
@@ -113,4 +113,3 @@ import (
 - [Targets](targets.md) - Defining target functions
 - [Quickstart](../getting-started/quickstart.md) - First stavefile tutorial
 - [Home](../index.md)
-

@@ -1,14 +1,13 @@
 ---
 name: Feature Request
 about: Suggest a new feature for Stave
-title: 'Enhancement: <description>'
+title: "Enhancement: <description>"
 labels: ":sparkles: enhancement"
-assignees: ''
-
+assignees: ""
 ---
 
 **Describe the feature**
-A clear and concise description of what the feature should do.  Focus more on behavior than specific names, flags, etc.
+A clear and concise description of what the feature should do. Focus more on behavior than specific names, flags, etc.
 
 **What problem does this feature address?**
 How does this benefit users of Stave?

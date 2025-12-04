@@ -36,6 +36,7 @@ brew bundle --file=Brewfile
 ```
 
 This installs:
+
 - `golangci-lint` - Go linter
 - `gotestsum` - Test runner
 - `goreleaser` - Release automation
@@ -113,7 +114,7 @@ Runs `Init`, `Test`, then `Build`.
 
 ## Project Layout
 
-```
+```text
 stave/
 ├── main.go                 # Binary entrypoint
 ├── bootstrap.go            # Bootstrap installer
@@ -176,7 +177,7 @@ go tool cover -html=coverage.out -o coverage.html
 
 Use conventional commit format:
 
-```
+```text
 type(scope): description
 
 [optional body]
@@ -185,6 +186,7 @@ type(scope): description
 ```
 
 Types:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation
@@ -193,6 +195,7 @@ Types:
 - `test`: Test additions/changes
 
 Examples:
+
 - `feat(config): add XDG-compliant configuration system`
 - `fix(parse): handle empty function bodies`
 - `docs: update installation instructions`
@@ -206,6 +209,7 @@ Examples:
 5. Open a pull request against `main`
 
 Ensure:
+
 - Tests pass: `stave test`
 - Linter passes: `stave lint`
 - Commit messages follow conventions
@@ -217,4 +221,3 @@ Ensure:
 
 - [Architecture](architecture.md) - Codebase structure
 - [Home](../index.md)
-

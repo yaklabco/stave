@@ -1,4 +1,4 @@
-## Stave Features Beyond Mage
+# Stave Features Beyond Mage
 
 This document tracks **Stave functionality that does not exist in upstream Mage**, focusing on substantive behavioral differences rather than implementation details or UI polish.
 
@@ -24,7 +24,7 @@ All features listed below are introduced in commits after that fork in `yaklabco
   - `internal/dryrun` exposes:
     - `IsPossible()` – checks `STAVEFILE_DRYRUN_POSSIBLE`.
     - `IsRequested()` / `SetRequested(...)` – track a requested dry-run.
-    - `IsDryRun()` – true only when both *possible* and *requested*.
+    - `IsDryRun()` – true only when both _possible_ and _requested_.
     - `Wrap(ctx, cmd, args...)` – returns either a real `exec.Cmd` or an `echo "DRYRUN: ..."` command.
   - All `sh.Run*` helpers honor `dryrun.IsDryRun()` and print `DRYRUN: ...` lines instead of executing commands when in dry-run mode.
 - **Why this is new vs Mage**:
@@ -52,7 +52,7 @@ All features listed below are introduced in commits after that fork in `yaklabco
     - `verbose`, `debug`, `hash_fast`, `ignore_default`, `enable_color`, `target_color`, etc.
   - **CLI subcommands** (`stave config`):
     - `stave config` / `stave config show`:
-      - Prints the *effective* configuration, including the file it was loaded from (if any).
+      - Prints the _effective_ configuration, including the file it was loaded from (if any).
     - `stave config init`:
       - Writes a default `~/.config/stave/config.yaml`.
     - `stave config path`:
@@ -119,6 +119,7 @@ All features listed below are introduced in commits after that fork in `yaklabco
 The following changes are important for maintainability and UX but are **not** counted as “new functionality” in the sense of capabilities that Mage did not have:
 
 - **Cobra-style CLI surface**:
+
   - **Commits**: `ce22920 feat: cobra-ify!`, `804ad4d chore: mimic spf13/cobra in mainfile_tmpl.go without adding 3rd-party dependency`, and related.
   - Effect: more structured flag parsing and help output, but conceptually similar commands and options to Mage.
 
@@ -142,5 +143,3 @@ The following items have been discussed as differentiators but are **not yet** f
     - How this differs from Mage’s current behavior.
 
 This section is intended as a staging area for upcoming work so that the Stave-vs-Mage feature delta remains easy to track over time.
-
-

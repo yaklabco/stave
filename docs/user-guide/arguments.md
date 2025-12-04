@@ -35,7 +35,7 @@ stave greet Alice 3
 
 Output:
 
-```
+```text
 Hello, Alice!
 Hello, Alice!
 Hello, Alice!
@@ -45,13 +45,13 @@ Hello, Alice!
 
 Arguments are parsed according to their declared type:
 
-| Type | Example Input | Parsed Value |
-|------|---------------|--------------|
-| `string` | `hello` | `"hello"` |
-| `int` | `42` | `42` |
-| `bool` | `true`, `false`, `1`, `0` | `true`, `false` |
-| `float64` | `3.14` | `3.14` |
-| `time.Duration` | `5m30s` | `5*time.Minute + 30*time.Second` |
+| Type            | Example Input             | Parsed Value                     |
+| --------------- | ------------------------- | -------------------------------- |
+| `string`        | `hello`                   | `"hello"`                        |
+| `int`           | `42`                      | `42`                             |
+| `bool`          | `true`, `false`, `1`, `0` | `true`, `false`                  |
+| `float64`       | `3.14`                    | `3.14`                           |
+| `time.Duration` | `5m30s`                   | `5*time.Minute + 30*time.Second` |
 
 ## Arguments with Context
 
@@ -116,7 +116,7 @@ stave -i greet
 
 Output:
 
-```
+```text
 Usage:
 
     stave greet <name> <times>
@@ -129,4 +129,3 @@ Usage:
 - [Targets](targets.md) - Defining targets
 - [Dependencies](dependencies.md) - Using `st.F` with arguments
 - [Home](../index.md)
-

@@ -16,5 +16,10 @@ import (
 
 func main() {
 	os.Args = []string{os.Args[0], "-v", "install"}
-	os.Exit(stave.Run(context.Background()))
+	err := stave.Run(stave.RunParams{
+		BaseCtx: context.Background(),
+	})
+	if err != nil {
+		os.Exit(1)
+	}
 }

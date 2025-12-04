@@ -91,6 +91,7 @@ func Exec(env map[string]string, stdout, stderr io.Writer, cmd string, args ...s
 Execute a command with full control over I/O.
 
 Parameters:
+
 - `env`: Additional environment variables (merged with current environment)
 - `stdout`: Writer for standard output (nil to discard)
 - `stderr`: Writer for standard error
@@ -98,6 +99,7 @@ Parameters:
 - `args`: Command arguments
 
 Returns:
+
 - `bool`: Whether the command ran (false if not found or not executable)
 - `error`: Execution error, if any
 
@@ -221,4 +223,3 @@ When `--dryrun` is active, all functions print `DRYRUN: cmd args...` instead of 
 - [Shell Commands](../user-guide/shell-commands.md) - Usage guide
 - [Advanced Topics](../user-guide/advanced.md) - Dry-run mode
 - [Home](../index.md)
-

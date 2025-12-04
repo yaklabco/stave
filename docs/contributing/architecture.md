@@ -89,6 +89,7 @@ Core runtime that orchestrates stavefile compilation and execution.
 #### Templates
 
 `templates/mainfile_tmpl.go`: Go text/template that generates:
+
 - Flag parsing
 - Target listing (`-l`)
 - Target info (`-i`)
@@ -102,6 +103,7 @@ User-facing API imported in stavefiles.
 #### deps.go
 
 Dependency execution:
+
 - `Deps()`, `CtxDeps()`: Parallel execution
 - `SerialDeps()`, `SerialCtxDeps()`: Sequential execution
 - `runDeps()`: Spawns goroutines, collects errors
@@ -110,6 +112,7 @@ Dependency execution:
 #### fn.go
 
 `F(target, args...)` wraps functions for use in `Deps`:
+
 - Validates signature
 - JSON-encodes args for identity
 - Returns `Fn` interface
@@ -135,6 +138,7 @@ Shell command execution.
 - `RunCmd()`, `OutCmd()`: Command factories
 
 All functions:
+
 1. Expand `$VAR` in arguments
 2. Check `dryrun.IsDryRun()` and print instead of execute if true
 3. Wrap errors with `st.Fatalf` for proper exit codes
@@ -183,6 +187,7 @@ Stavefile AST analysis.
 #### parse.go
 
 `PrimaryPackage()`:
+
 1. Parse Go files with `go/parser`
 2. Build `doc.Package` for documentation extraction
 3. `setNamespaces()`: Find `st.Namespace` types
@@ -192,6 +197,7 @@ Stavefile AST analysis.
 7. `setDefault()`: Find `Default` variable
 
 `Function` struct contains all metadata needed for code generation:
+
 - Name, Receiver, Package, ImportPath
 - IsContext, IsError
 - Args (name and type)
@@ -267,12 +273,13 @@ stateDiagram-v2
 
 Compiled binaries are cached by content hash:
 
-```
+```text
 hash = SHA256(file_contents + mainfile_template + go_version + stave_version)
 path = ~/.cache/stave/<hash>
 ```
 
 Cache is invalidated when:
+
 - Any stavefile changes
 - Go version changes
 - Stave version changes
@@ -282,6 +289,7 @@ Cache is invalidated when:
 ## Error Handling
 
 Errors flow through:
+
 1. `st.Fatal(code, msg)` in user code
 2. `sh.Exec` wraps command failures with exit codes
 3. `st.Deps` aggregates errors from parallel dependencies
@@ -295,4 +303,3 @@ Errors flow through:
 - [pkg/st API](../api-reference/st.md)
 - [pkg/sh API](../api-reference/sh.md)
 - [Home](../index.md)
-

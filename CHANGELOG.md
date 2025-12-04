@@ -63,6 +63,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `bootstrap.go` now uses the updated `stave.Run` API with `RunParams` struct
+- Markdown linting issues across documentation files
+
 ## [0.1.0] - 2025-12-02
 
 ### Added

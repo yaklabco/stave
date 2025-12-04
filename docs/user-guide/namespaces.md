@@ -45,7 +45,7 @@ stave -l
 
 Output:
 
-```
+```text
 Targets:
   build:binary    builds a native binary.
   build:docker    builds a Docker image.
@@ -94,7 +94,7 @@ func (Deploy) Production() error { /* ... */ }
 
 Targets:
 
-```
+```text
 build:all
 test:unit
 test:integration
@@ -120,4 +120,3 @@ func (Docker) Build() error { /* ... */ }  // stave docker:build
 - [Targets](targets.md) - Defining targets
 - [Dependencies](dependencies.md) - Using dependencies
 - [Home](../index.md)
-

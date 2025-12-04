@@ -176,7 +176,7 @@ stave --dryrun build
 
 Output:
 
-```
+```text
 DRYRUN: go build ./...
 ```
 
@@ -189,4 +189,3 @@ The `sh.Rm` and `sh.Copy` helpers also respect dry-run mode.
 - [pkg/sh API](../api-reference/sh.md) - Function reference
 - [Advanced Topics](advanced.md) - Dry-run mode details
 - [Home](../index.md)
-

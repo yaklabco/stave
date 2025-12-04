@@ -134,4 +134,3 @@ Running `stave all`:
 - [Arguments](arguments.md) - Targets with arguments
 - [pkg/st API](../api-reference/st.md) - Function reference
 - [Home](../index.md)
-

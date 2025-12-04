@@ -26,43 +26,43 @@ Change the build tag from `mage` to `stave`:
 
 Replace Mage imports with Stave equivalents:
 
-| Mage Import | Stave Import |
-|-------------|--------------|
-| `github.com/magefile/mage/mg` | `github.com/yaklabco/stave/pkg/st` |
-| `github.com/magefile/mage/sh` | `github.com/yaklabco/stave/pkg/sh` |
+| Mage Import                       | Stave Import                           |
+| --------------------------------- | -------------------------------------- |
+| `github.com/magefile/mage/mg`     | `github.com/yaklabco/stave/pkg/st`     |
+| `github.com/magefile/mage/sh`     | `github.com/yaklabco/stave/pkg/sh`     |
 | `github.com/magefile/mage/target` | `github.com/yaklabco/stave/pkg/target` |
 
 ### 4. Rename Package References
 
 Update function calls:
 
-| Mage | Stave |
-|------|-------|
-| `mg.Deps()` | `st.Deps()` |
-| `mg.CtxDeps()` | `st.CtxDeps()` |
-| `mg.SerialDeps()` | `st.SerialDeps()` |
+| Mage                 | Stave                |
+| -------------------- | -------------------- |
+| `mg.Deps()`          | `st.Deps()`          |
+| `mg.CtxDeps()`       | `st.CtxDeps()`       |
+| `mg.SerialDeps()`    | `st.SerialDeps()`    |
 | `mg.SerialCtxDeps()` | `st.SerialCtxDeps()` |
-| `mg.F()` | `st.F()` |
-| `mg.Namespace` | `st.Namespace` |
-| `mg.Fatal()` | `st.Fatal()` |
-| `mg.Fatalf()` | `st.Fatalf()` |
+| `mg.F()`             | `st.F()`             |
+| `mg.Namespace`       | `st.Namespace`       |
+| `mg.Fatal()`         | `st.Fatal()`         |
+| `mg.Fatalf()`        | `st.Fatalf()`        |
 
 ## Feature Comparison
 
 Stave maintains compatibility with Mage features and adds:
 
-| Feature | Mage | Stave |
-|---------|------|-------|
-| Target functions | Yes | Yes |
-| Dependencies (`Deps`) | Yes | Yes |
-| Namespaces | Yes | Yes |
-| Target arguments | Yes | Yes |
-| Aliases | Yes | Yes |
-| `stave:import` | Yes | Yes |
-| Dry-run mode | No | Yes |
-| XDG configuration | No | Yes |
-| `stave config` command | No | Yes |
-| `STAVE_NUM_PROCESSORS` | No | Yes |
+| Feature                | Mage | Stave |
+| ---------------------- | ---- | ----- |
+| Target functions       | Yes  | Yes   |
+| Dependencies (`Deps`)  | Yes  | Yes   |
+| Namespaces             | Yes  | Yes   |
+| Target arguments       | Yes  | Yes   |
+| Aliases                | Yes  | Yes   |
+| `stave:import`         | Yes  | Yes   |
+| Dry-run mode           | No   | Yes   |
+| XDG configuration      | No   | Yes   |
+| `stave config` command | No   | Yes   |
+| `STAVE_NUM_PROCESSORS` | No   | Yes   |
 
 ## Stave-Only Features
 
@@ -101,4 +101,3 @@ STAVE_NUM_PROCESSORS=4 stave build
 - [Quickstart](quickstart.md) - First stavefile tutorial
 - [Configuration](../user-guide/configuration.md) - Configuration system
 - [Home](../index.md)
-

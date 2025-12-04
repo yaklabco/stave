@@ -18,11 +18,11 @@ The compiled binary can run on machines without Go installed.
 
 ### Flags
 
-| Flag | Description |
-|------|-------------|
-| `--compile=PATH` | Output path for compiled binary |
-| `--goos=OS` | Target operating system |
-| `--goarch=ARCH` | Target architecture |
+| Flag              | Description                                     |
+| ----------------- | ----------------------------------------------- |
+| `--compile=PATH`  | Output path for compiled binary                 |
+| `--goos=OS`       | Target operating system                         |
+| `--goarch=ARCH`   | Target architecture                             |
 | `--ldflags=FLAGS` | Linker flags (e.g., `-s -w` for smaller binary) |
 
 ### Example
@@ -71,9 +71,9 @@ stave --dryrun build
 
 ### Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `STAVEFILE_DRYRUN` | Set to `1` to enable dry-run |
+| Variable                    | Description                                    |
+| --------------------------- | ---------------------------------------------- |
+| `STAVEFILE_DRYRUN`          | Set to `1` to enable dry-run                   |
 | `STAVEFILE_DRYRUN_POSSIBLE` | Set internally; indicates dry-run is supported |
 
 ### Checking Dry-Run in Code
@@ -107,7 +107,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: "1.21"
 
       - name: Install Stave
         run: go install github.com/yaklabco/stave@latest
@@ -124,10 +124,10 @@ jobs:
 Cache the Stave binary cache to speed up CI:
 
 ```yaml
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/stave
-          key: stave-${{ runner.os }}-${{ hashFiles('stavefile.go') }}
+- uses: actions/cache@v4
+  with:
+    path: ~/.cache/stave
+    key: stave-${{ runner.os }}-${{ hashFiles('stavefile.go') }}
 ```
 
 ### Parallelism Control
@@ -135,10 +135,10 @@ Cache the Stave binary cache to speed up CI:
 Limit parallelism in resource-constrained environments:
 
 ```yaml
-      - name: Build
-        env:
-          STAVE_NUM_PROCESSORS: 2
-        run: stave build
+- name: Build
+  env:
+    STAVE_NUM_PROCESSORS: 2
+  run: stave build
 ```
 
 ### GitLab CI
@@ -215,4 +215,3 @@ This section will be expanded as issues are reported.
 - [CLI Reference](../api-reference/cli.md) - All command-line flags
 - [Shell Commands](shell-commands.md) - Command execution details
 - [Home](../index.md)
-

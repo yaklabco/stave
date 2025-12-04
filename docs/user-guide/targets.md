@@ -40,7 +40,7 @@ func Build() error {
 
 Output of `stave -l`:
 
-```
+```text
 Targets:
   build    compiles the application.
 ```
@@ -124,4 +124,3 @@ func Deploy() error {
 - [Namespaces](namespaces.md) - Grouping targets
 - [Arguments](arguments.md) - Typed arguments
 - [Home](../index.md)
-

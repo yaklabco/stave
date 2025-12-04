@@ -1,10 +1,10 @@
+# Stave
 
+<!-- markdownlint-disable MD033 -->
 <p align="center">
   <img src="../pics/logo.png" alt="Stave logo" width="200">
 </p>
-
-
-# Stave
+<!-- markdownlint-enable MD033 -->
 
 Stave is a make-like build tool using Go. Write plain Go functions, and Stave automatically exposes them as runnable targets. It is a fork of [Mage](https://github.com/magefile/mage) with additional features including dry-run mode, XDG-compliant configuration, and parallelism control.
 
@@ -79,4 +79,3 @@ stave -l       # List available targets
 ## License
 
 Apache License 2.0 - see [LICENSE](../LICENSE) for details.
-

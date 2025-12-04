@@ -27,6 +27,7 @@ func Build() error {
 ```
 
 `target.Path` returns `true` if:
+
 - The destination does not exist, or
 - Any source is newer than the destination
 
@@ -152,4 +153,3 @@ func Build() error {
 - [pkg/target API](../api-reference/target.md) - Function reference
 - [Shell Commands](shell-commands.md) - Running build commands
 - [Home](../index.md)
-

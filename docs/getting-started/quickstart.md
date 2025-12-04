@@ -53,7 +53,7 @@ stave -l
 
 Output:
 
-```
+```text
 Targets:
   build       compiles the project.
   clean       removes build artifacts.
@@ -97,4 +97,3 @@ Each dependency runs exactly once, even if referenced multiple times in the depe
 - [Stavefiles](../user-guide/stavefiles.md) - File conventions
 - [Dependencies](../user-guide/dependencies.md) - Dependency execution
 - [Home](../index.md)
-
