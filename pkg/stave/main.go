@@ -30,6 +30,7 @@ import (
 	"github.com/yaklabco/stave/internal/parse"
 	"github.com/yaklabco/stave/pkg/sh"
 	"github.com/yaklabco/stave/pkg/st"
+	"github.com/yaklabco/stave/pkg/stave/prettylog"
 )
 
 const (
@@ -84,7 +85,10 @@ func (i RunParams) UsesStavefiles() bool {
 // function to allow it to be used from other programs, specifically so you can
 // go run a simple file that run's stave's Run.
 func Run(params RunParams) error {
-	logHandler := setupLogger(params)
+	if params.WriterForLogger == nil {
+		params.WriterForLogger = params.Stderr
+	}
+	logHandler := prettylog.SetupPrettyLogger(params.WriterForLogger)
 
 	if params.Debug {
 		logHandler.SetLevel(cblog.DebugLevel)
@@ -122,24 +126,6 @@ func Run(params RunParams) error {
 	}
 
 	return stave(ctx, params)
-}
-
-func setupLogger(params RunParams) *cblog.Logger {
-	if params.WriterForLogger == nil {
-		params.WriterForLogger = params.Stderr
-	}
-
-	logHandler := cblog.NewWithOptions(
-		params.WriterForLogger,
-		cblog.Options{
-			Level:           cblog.WarnLevel, // Setting this to lowest possible value, since slog will handle the actual filtering.
-			ReportTimestamp: true,
-			ReportCaller:    true,
-		},
-	)
-	logger := slog.New(logHandler)
-	slog.SetDefault(logger)
-	return logHandler
 }
 
 func stave(ctx context.Context, params RunParams) error {

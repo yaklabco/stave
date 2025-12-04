@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"runtime"
 )
 
 // Fn represents a function that can be run with st.Deps. Package, Name, and ID must combine to
@@ -23,6 +24,9 @@ type Fn interface {
 
 	// Run should run the function.
 	Run(ctx context.Context) error
+
+	// Underlying should return the original, wrapped function object.
+	Underlying() *runtime.Func
 }
 
 // F takes a function that is compatible as a stave target, and any args that need to be passed to
@@ -78,13 +82,15 @@ func F(target interface{}, args ...interface{}) Fn {
 			}
 			return nil
 		},
+		underlying: funcObj(target),
 	}
 }
 
 type fn struct {
-	name string
-	id   string
-	f    func(ctx context.Context) error
+	name       string
+	id         string
+	f          func(ctx context.Context) error
+	underlying *runtime.Func
 }
 
 // Name returns the fully qualified name of the function.
@@ -100,6 +106,11 @@ func (f fn) ID() string {
 // Run runs the function.
 func (f fn) Run(ctx context.Context) error {
 	return f.f(ctx)
+}
+
+// Underlying returns the original, wrapped function object.
+func (f fn) Underlying() *runtime.Func {
+	return f.underlying
 }
 
 func checkF(target interface{}, args []interface{}) (bool, bool, error) {

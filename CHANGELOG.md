@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `--dryrun` mode.
+
+- Automated detection of circular dependencies among stavefile targets.
+
 - `CHANGELOG.md`! (And first formally-versioned release of Stave.)
 
 [unreleased]: https://github.com/yaklabco/stave/compare/v0.1.0...HEAD

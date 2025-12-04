@@ -26,3 +26,4 @@
 - [x] Parallelize tests w/locking mechanism to prevent parallel tests in same testdata subdir
 - [x] Bring in CI from `goctx` with the fancy caching
 - [x] Validate that every target is run in its own Goroutine
+- [x] Dependency cycle detection
