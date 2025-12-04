@@ -104,8 +104,7 @@ jobs:
         run: brew bundle --no-upgrade --file=Brewfile
 
       - name: Self-install
-        run: |
-          set -o pipefail; go run main.go install 2> >(sed '/^fatal: No names found, cannot describe anything.$/d' >&2)
+        run: go run main.go install
 
       - name: Parallelism check
         run: stave parallelismcheck
