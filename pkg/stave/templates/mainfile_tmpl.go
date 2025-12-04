@@ -62,10 +62,19 @@ func main() {
 	fs.SetOutput(os.Stdout)
 
 	// default flag set with ExitOnError and auto generated PrintDefaults should be sufficient
+	var verboseLong bool
 	fs.BoolVar(&args.Verbose, "v", parseBool("STAVEFILE_VERBOSE"), "show verbose output when running targets")
+	fs.BoolVar(&verboseLong, "verbose", parseBool("STAVEFILE_VERBOSE"), "show verbose output when running targets")
+	var listLong bool
 	fs.BoolVar(&args.List, "l", parseBool("STAVEFILE_LIST"), "list targets for this binary")
+	fs.BoolVar(&listLong, "list", parseBool("STAVEFILE_LIST"), "list targets for this binary")
+	var infoLong bool
 	fs.BoolVar(&args.Info, "i", parseBool("STAVEFILE_INFO"), "print out docstring for a specific target")
+	fs.BoolVar(&infoLong, "info", parseBool("STAVEFILE_INFO"), "print out docstring for a specific target")
+	var timeoutLong time.Duration
 	fs.DurationVar(&args.Timeout, "t", parseDuration("STAVEFILE_TIMEOUT"), "timeout in duration parsable format (e.g. 5m30s)")
+	fs.DurationVar(&timeoutLong, "timeout", parseDuration("STAVEFILE_TIMEOUT"), "timeout in duration parsable format (e.g. 5m30s)")
+
 	fs.Usage = func() {
 		_fmt.Fprintf(os.Stdout, `
 		%s [options] [target]
@@ -86,6 +95,18 @@ func main() {
 		return
 	}
 	args.Args = fs.Args()
+	if verboseLong != parseBool("STAVEFILE_VERBOSE") {
+		args.Verbose = verboseLong
+	}
+	if listLong != parseBool("STAVEFILE_LIST") {
+		args.List = listLong
+	}
+	if infoLong != parseBool("STAVEFILE_INFO") {
+		args.Info = infoLong
+	}
+	if timeoutLong != parseDuration("STAVEFILE_TIMEOUT") {
+		args.Timeout = timeoutLong
+	}
 	if args.Info && len(args.Args) == 0 {
 		fs.Usage()
 		return
