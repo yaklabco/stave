@@ -1,7 +1,6 @@
 package toposort
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -61,7 +60,7 @@ func TestSort_SelfCycle(t *testing.T) {
 
 	_, err := Sort(nodes, false)
 	require.Error(t, err)
-	require.True(t, errors.Is(err, ErrCircularDependency))
+	require.ErrorIs(t, err, ErrCircularDependency)
 }
 
 func TestSort_TwoNodeCycle(t *testing.T) {
@@ -72,17 +71,17 @@ func TestSort_TwoNodeCycle(t *testing.T) {
 
 	_, err := Sort(nodes, false)
 	require.Error(t, err)
-	require.True(t, errors.Is(err, ErrCircularDependency))
+	require.ErrorIs(t, err, ErrCircularDependency)
 }
 
 func TestSort_Empty(t *testing.T) {
 	var nodes []testNode
 	out, err := Sort(nodes, false)
 	require.NoError(t, err)
-	require.Len(t, out, 0)
+	require.Empty(t, out)
 }
 
-// helper to extract ids
+// helper to extract ids.
 func ids[T interface{ TopoSortable }](items []T) []string {
 	out := make([]string, len(items))
 	for i, it := range items {

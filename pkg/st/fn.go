@@ -108,7 +108,7 @@ func (f fn) Run(ctx context.Context) error {
 	return f.f(ctx)
 }
 
-// Underlying returns the original, wrapped function object
+// Underlying returns the original, wrapped function object.
 func (f fn) Underlying() *runtime.Func {
 	return f.underlying
 }

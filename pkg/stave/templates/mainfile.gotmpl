@@ -9,6 +9,7 @@ import (
 	_fmt "fmt"
 	_ioutil "io/ioutil"
 	_log "log"
+	_slog "log/slog"
 	"os"
 	"os/signal"
 	_filepath "path/filepath"
@@ -26,6 +27,7 @@ func main() {
 	// Use local types and functions in order to avoid name conflicts with additional stavefiles.
 	type arguments struct {
 		Verbose bool          // print out log statements
+		Debug   bool          // print out more detailed logs
 		List    bool          // print out a list of targets
 		Info    bool          // print out docstring for a specific target
 		Timeout time.Duration // set a timeout to running the targets
@@ -65,6 +67,9 @@ func main() {
 	var verboseLong bool
 	fs.BoolVar(&args.Verbose, "v", parseBool("STAVEFILE_VERBOSE"), "show verbose output when running targets")
 	fs.BoolVar(&verboseLong, "verbose", parseBool("STAVEFILE_VERBOSE"), "show verbose output when running targets")
+	var debugLong bool
+	fs.BoolVar(&args.Debug, "d", parseBool("STAVEFILE_DEBUG"), "print out more detailed logs")
+	fs.BoolVar(&debugLong, "debug", parseBool("STAVEFILE_DEBUG"), "print out more detailed logs")
 	var listLong bool
 	fs.BoolVar(&args.List, "l", parseBool("STAVEFILE_LIST"), "list targets for this binary")
 	fs.BoolVar(&listLong, "list", parseBool("STAVEFILE_LIST"), "list targets for this binary")
@@ -80,14 +85,15 @@ func main() {
 		%s [options] [target]
 
 	Commands:
-		-l --list   list targets in this binary
-		-h --info   show this help
+		-l --list      list targets in this binary
+		-h --info      show this help
 
 	Options:
-		-i --info   show description of a target
-		-t          <string>
-                timeout in duration parsable format (e.g. 5m30s)
-		-v          show verbose output when running targets
+		-i --info      show description of a target
+		-t             <string>
+                   timeout in duration parsable format (e.g. 5m30s)
+		-v --verbose   show verbose output when running targets
+		-d --debug     emit detailed logs
 		`[1:], _filepath.Base(os.Args[0]))
 	}
 	if err := fs.Parse(os.Args[1:]); err != nil {
@@ -97,6 +103,9 @@ func main() {
 	args.Args = fs.Args()
 	if verboseLong != parseBool("STAVEFILE_VERBOSE") {
 		args.Verbose = verboseLong
+	}
+	if debugLong != parseBool("STAVEFILE_DEBUG") {
+		args.Debug = debugLong
 	}
 	if listLong != parseBool("STAVEFILE_LIST") {
 		args.List = listLong
@@ -359,6 +368,25 @@ func main() {
 	} else {
 		os.Setenv("STAVEFILE_VERBOSE", "0")
 	}
+
+	// Set STAVEFILE_DEBUG so st.Debug() reflects the flag value.
+	var slogLevel _slog.Level
+	if args.Debug {
+		os.Setenv("STAVEFILE_DEBUG", "1")
+		slogLevel = _slog.LevelDebug
+	} else {
+		os.Setenv("STAVEFILE_DEBUG", "0")
+		if args.Verbose {
+			slogLevel = _slog.LevelInfo
+		} else {
+			slogLevel = _slog.LevelWarn
+		}
+	}
+
+	_slog.SetDefault(_slog.New(_slog.NewTextHandler(os.Stdout, &_slog.HandlerOptions{
+		AddSource:   false,
+		Level:       slogLevel,
+	})))
 
 	_log.SetFlags(0)
 	if !args.Verbose {

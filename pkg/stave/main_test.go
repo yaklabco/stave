@@ -601,8 +601,10 @@ func TestVerbose(t *testing.T) {
 	err = Run(runParams)
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 
-	expectedRegexp := `Running target: TestVerbose\n.*hi!\n`
-	assert.Regexp(t, expectedRegexp, stderr.String())
+	expectedOutRegexp := `\bhi!\n`
+	assert.Regexp(t, expectedOutRegexp, stdout.String())
+	expectedErrRegexp := `\bRunning target: TestVerbose\b`
+	assert.Regexp(t, expectedErrRegexp, stderr.String())
 }
 
 func TestList(t *testing.T) {
@@ -1021,11 +1023,13 @@ func TestMultipleTargets(t *testing.T) {
 
 	err := Run(runParams)
 	require.NoError(t, err, "stderr was: %s", stderr.String())
-	expectedRegexp := `Running target: TestVerbose\n.*hi!\nRunning target: ReturnsNilError\n`
-	assert.Regexp(t, expectedRegexp, stderr.String())
+	expectedOutRegexp := `\bhi!`
+	assert.Regexp(t, expectedOutRegexp, stdout.String())
+	expectedErrRegexp := `Running target: TestVerbose\n(.*\n)*Running target: ReturnsNilError\n`
+	assert.Regexp(t, expectedErrRegexp, stderr.String())
 
 	expectedOutStr := "stuff\n"
-	assert.Equal(t, expectedOutStr, stdout.String())
+	assert.Contains(t, stdout.String(), expectedOutStr)
 }
 
 func TestFirstTargetFails(t *testing.T) {
@@ -1364,7 +1368,7 @@ func TestCompiledFlags(t *testing.T) {
 	err = run(stdout, stderr, name, "-v", "testverbose")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want = hiExclam
-	assert.Contains(t, stderr.String(), want)
+	assert.Contains(t, stdout.String(), want)
 
 	// pass list flag -l
 	err = run(stdout, stderr, name, "-l")
@@ -1441,7 +1445,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 	err = run(stdout, stderr, name, st.VerboseEnv+"=1", "testverbose")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want = hiExclam
-	assert.Contains(t, stderr.String(), want)
+	assert.Contains(t, stdout.String(), want)
 
 	err = run(stdout, stderr, name, "STAVEFILE_LIST=1")
 	require.NoError(t, err, "stderr was: %s", stderr.String())

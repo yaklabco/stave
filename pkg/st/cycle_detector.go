@@ -10,9 +10,14 @@ import (
 	"github.com/yaklabco/stave/pkg/toposort"
 )
 
+const (
+	// maxStackDepthToCheck defines the maximum stack depth for runtime caller inspection.
+	maxStackDepthToCheck = 32
+)
+
 var (
-	depsByID      = make(map[string]toposort.TopoSortable)
-	depsByIDMutex sync.RWMutex
+	depsByID      = make(map[string]toposort.TopoSortable) //nolint:gochecknoglobals // Part of a mutexed pattern.
+	depsByIDMutex sync.RWMutex                             //nolint:gochecknoglobals // Part of a mutexed pattern.
 )
 
 func firstExternalCaller() *runtime.Frame {
@@ -26,7 +31,7 @@ func firstExternalCaller() *runtime.Frame {
 	// Skip: runtime.Callers (1), myFunc (2), the function calling myFunc (3)
 	const skip = 2
 
-	pc := make([]uintptr, 32)
+	pc := make([]uintptr, maxStackDepthToCheck)
 	n := runtime.Callers(skip, pc)
 	frames := runtime.CallersFrames(pc[:n])
 

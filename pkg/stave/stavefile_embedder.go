@@ -2,5 +2,5 @@ package stave
 
 import _ "embed"
 
-//go:embed templates/stavefile_tmpl.go
+//go:embed templates/initial_stavefile.go
 var staveTpl string

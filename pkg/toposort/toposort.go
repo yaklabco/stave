@@ -26,21 +26,21 @@ var (
 // If ignoreMissingDeps is true, dependencies that are not present in the provided
 // items slice are ignored instead of causing an error.
 func Sort[T interface{ TopoSortable }](items []T, ignoreMissingDeps bool) ([]T, error) {
-	n := len(items)
-	if n == 0 {
+	nItems := len(items)
+	if nItems == 0 {
 		return nil, nil
 	}
 
 	// Build ID -> item map and indegree counts based on dependencies.
-	idToItem := make(map[string]T, n)
+	idToItem := make(map[string]T, nItems)
 	for _, it := range items {
 		id := it.TPID()
 		idToItem[id] = it
 	}
 
 	// adjacency list: dep -> list of nodes that depend on it
-	adj := make(map[string][]string, n)
-	indeg := make(map[string]int, n)
+	adj := make(map[string][]string, nItems)
+	indeg := make(map[string]int, nItems)
 
 	// initialize indegree for each node
 	for id := range idToItem {
@@ -70,7 +70,7 @@ func Sort[T interface{ TopoSortable }](items []T, ignoreMissingDeps bool) ([]T, 
 	}
 
 	// Collect nodes with zero indegree and keep deterministic order.
-	zeros := make([]string, 0, n)
+	zeros := make([]string, 0, nItems)
 	for id, d := range indeg {
 		if d == 0 {
 			zeros = append(zeros, id)
@@ -78,7 +78,7 @@ func Sort[T interface{ TopoSortable }](items []T, ignoreMissingDeps bool) ([]T, 
 	}
 	sort.Strings(zeros)
 
-	result := make([]T, 0, n)
+	result := make([]T, 0, nItems)
 
 	for len(zeros) > 0 {
 		// pop the first (lexicographically smallest) for determinism
@@ -95,9 +95,9 @@ func Sort[T interface{ TopoSortable }](items []T, ignoreMissingDeps bool) ([]T, 
 		sort.Strings(zeros)
 	}
 
-	if len(result) != n {
+	if len(result) != nItems {
 		// find remaining nodes (those with indegree > 0)
-		remaining := make([]string, 0, n-len(result))
+		remaining := make([]string, 0, nItems-len(result))
 		for id, d := range indeg {
 			if d > 0 {
 				remaining = append(remaining, id)
