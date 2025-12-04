@@ -424,7 +424,7 @@ linters:
           - forbidigo
           - gochecknoglobals
           - wrapcheck
-        path: magefile\.go$
+        path: stavefile\.go$
       - linters:
           - forbidigo
         path: testmain_test\.go$

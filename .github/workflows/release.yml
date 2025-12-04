@@ -111,16 +111,15 @@ jobs:
         if: steps.brew_install.outputs.cache-hit != 'true'
         run: brew bundle --no-upgrade --file=Brewfile
 
-      - name: Run Mage
-        uses: magefile/mage-action@v3
-        with:
-          install-only: true
+      - name: Self-install
+        run: |
+          set -o pipefail; go run main.go install 2> >(sed '/^fatal: No names found, cannot describe anything.$/d' >&2)
 
       - name: Project init (CI-safe)
-        run: mage init
+        run: stave init
 
       - name: Run tests
-        run: mage test
+        run: stave test
 
       - name: Configure git user
         run: |
@@ -129,7 +128,7 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Perform release
-        run: mage release
+        run: stave release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
