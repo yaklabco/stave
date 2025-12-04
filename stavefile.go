@@ -6,6 +6,7 @@
 package main
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -14,7 +15,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 
@@ -41,16 +41,6 @@ func All() error {
 
 // Init installs required tools and sets up git hooks and modules.
 func Init() error { // stave:help=Install dev tools (Brewfile), setup husky hooks, and tidy modules
-	nCores, err := getNumberOfCores()
-	if err != nil {
-		return err
-	}
-
-	// Set GOMAXPROCS env var.
-	if err := os.Setenv("GOMAXPROCS", strconv.Itoa(nCores)); err != nil {
-		return err
-	}
-
 	// Install tools from Brewfile.
 	if err := sh.Run("brew", "bundle", "--file=Brewfile"); err != nil {
 		return err
@@ -136,11 +126,7 @@ func Test() { // stave:help=Run lint and Go tests with coverage
 func TestGo() error { // stave:help=Run Go tests with coverage (coverage.out, coverage.html)
 	st.Deps(Init)
 
-	nCores, err := getNumberOfCores()
-	if err != nil {
-		return err
-	}
-	nCoresStr := strconv.Itoa(nCores)
+	nCoresStr := cmp.Or(os.Getenv("STAVE_NUM_PROCESSORS"), "1")
 
 	// Unset STAVEFILE_DRYRUN_POSSIBLE - which will be set by this point, normally -
 	// so that tests *of* the dryrun functionality work as though they were run
@@ -165,16 +151,13 @@ func TestGo() error { // stave:help=Run Go tests with coverage (coverage.out, co
 func Build() error { // stave:help=Build artifacts using goreleaser (snapshot)
 	st.Deps(Init)
 
-	nCores, err := getNumberOfCores()
-	if err != nil {
-		return err
-	}
+	nCoresStr := cmp.Or(os.Getenv("STAVE_NUM_PROCESSORS"), "1")
 
 	if err := sh.RunV("goreleaser", "check"); err != nil {
 		return err
 	}
 
-	return sh.RunV("goreleaser", "--parallelism", strconv.Itoa(nCores), "build", "--snapshot", "--clean")
+	return sh.RunV("goreleaser", "--parallelism", nCoresStr, "build", "--snapshot", "--clean")
 }
 
 // Release tags the next version with svu and runs goreleaser release.
@@ -222,12 +205,14 @@ func Release() error { // stave:help=Create and push a new tag with svu, then go
 		return err
 	}
 
-	nCores, err := getNumberOfCores()
-	if err != nil {
-		return err
-	}
+	nCoresStr := cmp.Or(os.Getenv("STAVE_NUM_PROCESSORS"), "1")
 
-	return sh.Run("goreleaser", "--parallelism", strconv.Itoa(nCores), "release", "--clean")
+	return sh.Run("goreleaser", "--parallelism", nCoresStr, "release", "--clean")
+}
+
+func ParallelismCheck() {
+	fmt.Printf("STAVE_NUM_PROCESSORS=%q\n", os.Getenv("STAVE_NUM_PROCESSORS"))
+	fmt.Printf("GOMAXPROCS=%q\n", os.Getenv("GOMAXPROCS"))
 }
 
 // setSkipSVUChangelogCheck sets the SKIP_SVU_CHANGELOG_CHECK environment variable.
@@ -252,34 +237,6 @@ func getRepoRoot() (string, error) {
 	}
 
 	return strings.TrimSpace(out), nil
-}
-
-// getNumberOfCores tries to detect number of processors using nprocs.sh. Falls back to 1.
-func getNumberOfCores() (int, error) {
-	root, err := getRepoRoot()
-	if err != nil {
-		return 1, err
-	}
-
-	utility := filepath.Join(root, "nprocs.sh")
-	out, err := sh.Output("bash", utility)
-	if err != nil {
-		slog.Warn("error running nprocs utility", slog.String("path", utility), slog.Any("error", err))
-		return 1, nil
-	}
-	out = strings.TrimSpace(out)
-	if out == "" {
-		slog.Warn("nprocs utility returned empty string", slog.String("path", utility))
-		return 1, nil
-	}
-
-	intVal, err := strconv.Atoi(out)
-	if err != nil {
-		slog.Warn("nprocs utility returned invalid value", slog.String("path", utility), slog.Any("error", err))
-		return 1, nil
-	}
-
-	return intVal, nil
 }
 
 // Say says something.

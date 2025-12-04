@@ -20,14 +20,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set MAKEFLAGS for parallel builds
-        run: |
-          cores="$(bash ./nprocs.sh 2>/dev/null || true)"
-          if [ -z "$cores" ]; then cores=1; fi
-          echo "MAKEFLAGS=-j${cores}" >> "$GITHUB_ENV"
-          echo "GOMAXPROCS=${cores}" >> "$GITHUB_ENV"
-          echo "Number of cores: ${cores}"
-
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -105,6 +97,9 @@ jobs:
       - name: Self-install
         run: |
           set -o pipefail; go run main.go install 2> >(sed '/^fatal: No names found, cannot describe anything.$/d' >&2)
+
+      - name: Parallelism check
+        run: stave parallelismcheck
 
       - name: Project init (CI-safe)
         run: stave init
