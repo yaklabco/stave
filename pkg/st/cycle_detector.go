@@ -12,7 +12,7 @@ import (
 
 const (
 	// maxStackDepthToCheck defines the maximum stack depth for runtime caller inspection.
-	maxStackDepthToCheck = 32
+	maxStackDepthToCheck = 64
 )
 
 var (
@@ -21,18 +21,18 @@ var (
 )
 
 func firstExternalCaller() *runtime.Frame {
-	thisPC, _, _, ok := runtime.Caller(0)
+	thisProgCtr, _, _, ok := runtime.Caller(0)
 	if !ok {
 		return nil
 	}
-	thisFunc := runtime.FuncForPC(thisPC)
+	thisFunc := runtime.FuncForPC(thisProgCtr)
 	pkgPrefix := getPackagePath(thisFunc)
 
 	// runtime.Callers (0), firstExternalCaller (1), the function calling firstExternalCaller (2)
 	const skip = 2
-	pc := make([]uintptr, maxStackDepthToCheck)
-	n := runtime.Callers(skip, pc)
-	frames := runtime.CallersFrames(pc[:n])
+	progCtrsAboveUs := make([]uintptr, maxStackDepthToCheck)
+	nProgCtrsAboveUs := runtime.Callers(skip, progCtrsAboveUs)
+	frames := runtime.CallersFrames(progCtrsAboveUs[:nProgCtrsAboveUs])
 
 	for {
 		frame, more := frames.Next()
