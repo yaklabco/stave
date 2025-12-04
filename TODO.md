@@ -17,6 +17,7 @@
 - [x] Merge stave's `.gitignore` with stave's `.gitignore`
 - [x] Add STAVE_NUM_PROCESSORS / GOMAXPROCS setter
 - [x] Modernize package layout
+- [x] Modernize testing code (`stretchr/testify` tools, etc.)
 - [x] CLI framework:
   - [x] `cobra`-ify
   - [x] then, `fang`-ify
