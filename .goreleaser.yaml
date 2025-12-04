@@ -23,9 +23,9 @@ builds:
       # Keep it minimal and safe; no package vars assumed.
       - -s -w
       # Inject version metadata so the binary can print it without shelling out.
-      - -X github.com/preminger/stave/cmd/stave.Version={{ .Version }}
-      - -X github.com/preminger/stave/cmd/stave.Commit={{ .FullCommit }}
-      - -X github.com/preminger/stave/cmd/stave.BuildDate={{ .Date }}
+      - -X github.com/yaklabco/stave/cmd/stave.Version={{ .Version }}
+      - -X github.com/yaklabco/stave/cmd/stave.Commit={{ .FullCommit }}
+      - -X github.com/yaklabco/stave/cmd/stave.BuildDate={{ .Date }}
     goos:
       - darwin
       - linux
@@ -81,7 +81,7 @@ homebrew_casks:
     commit_author:
       name: YakLabs
       email: official@yaklab.org
-    homepage: "https://github.com/preminger/stave"
+    homepage: "https://github.com/yaklabco/stave"
     description: "Make(file) replacement that is pure Go based (a fork of `makefile/mage`)."
     license: "Apache 2.0"
     # GoReleaser automatically generates the appropriate test block for the Cask.
