@@ -1155,7 +1155,7 @@ func TestCompiledFlags(t *testing.T) {
 	dir := testdataCompiled
 	compileDir, err := os.MkdirTemp(dir, "")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
-	name := filepath.Join(compileDir, "stave_out")
+	name := filepath.Join(compileDir, "stave_test_out")
 	if runtime.GOOS == windows {
 		name += dotExe
 	}
@@ -1229,7 +1229,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 	compileDir, err := os.MkdirTemp(dir, "")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 
-	name := filepath.Join(compileDir, "stave_out")
+	name := filepath.Join(compileDir, "stave_test_out")
 	if runtime.GOOS == windows {
 		name += dotExe
 	}
@@ -1302,7 +1302,7 @@ func TestCompiledVerboseFlag(t *testing.T) {
 	dir := testdataCompiled
 	compileDir, err := os.MkdirTemp(dir, "")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
-	filename := filepath.Join(compileDir, "stave_out")
+	filename := filepath.Join(compileDir, "stave_test_out")
 	if runtime.GOOS == windows {
 		filename += dotExe
 	}
@@ -1363,7 +1363,7 @@ func TestSignals(t *testing.T) {
 	dir := "./testdata/signals"
 	compileDir, err := os.MkdirTemp(dir, "")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
-	name := filepath.Join(compileDir, "stave_out")
+	name := filepath.Join(compileDir, "stave_test_out")
 
 	// The CompileOut directory is relative to the
 	// invocation directory, so chop off the invocation dir.
@@ -1456,7 +1456,7 @@ func TestCompiledDeterministic(t *testing.T) {
 	for iRun, runLabel := range []string{"one", "two", "three", "four"} {
 		t.Run(runLabel, func(t *testing.T) {
 			// probably don't run this parallel
-			filename := filepath.Join(compileDir, "stave_out")
+			filename := filepath.Join(compileDir, "stave_test_out")
 			if runtime.GOOS == windows {
 				filename += dotExe
 			}

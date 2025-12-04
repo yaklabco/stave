@@ -51,6 +51,9 @@ node_modules
 # Stavefile output
 stave_output_file.go
 
+# Stave test binaries
+stave_test_out
+
 # GNU Screen
 .screenrc
 
