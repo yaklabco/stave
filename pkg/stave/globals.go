@@ -4,25 +4,25 @@ package stave
 import (
 	"io"
 	"log"
-	"regexp"
+	"math"
 	"strings"
 	"text/template"
+
+	"github.com/samber/lo"
 )
 
-// (Aaaa)(Bbbb) -> aaaaBbbb.
-var firstWordRx = regexp.MustCompile(`^([[:upper:]][^[:upper:]]+)([[:upper:]].*)$`)
-
-// (AAAA)(Bbbb) -> aaaaBbbb.
-var firstAbbrevRx = regexp.MustCompile(`^([[:upper:]]+)([[:upper:]][^[:upper:]].*)$`)
-
 func lowerFirstWord(str string) string {
-	if match := firstWordRx.FindStringSubmatch(str); match != nil {
-		return strings.ToLower(match[1]) + match[2]
+	words := lo.Words(str)
+	if len(words) == 0 {
+		return str
 	}
-	if match := firstAbbrevRx.FindStringSubmatch(str); match != nil {
-		return strings.ToLower(match[1]) + match[2]
-	}
-	return strings.ToLower(str)
+
+	firstWord := words[0]
+	firstWord = strings.ToLower(firstWord)
+
+	newStr := firstWord + lo.Substring(str, len(firstWord), math.MaxUint)
+
+	return newStr
 }
 
 var mainfileTemplate = template.Must(template.New("").Funcs(map[string]interface{}{

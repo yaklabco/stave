@@ -17,10 +17,10 @@
 - [x] Merge stave's `.gitignore` with stave's `.gitignore`
 - [x] Add STAVE_NUM_PROCESSORS / GOMAXPROCS setter
 - [x] Modernize package layout
-- [ ] CLI framework:
-  - [ ] `cobra`-ify
-  - [ ] then, `fang`-ify
+- [x] CLI framework:
+  - [x] `cobra`-ify
+  - [x] then, `fang`-ify
+- [x] Figure out what the deal is with `lowerFirstWord(...)` (when getting to this, remember the existence of `lo.Words(...)`)
 - [ ] Redo logging properly
-- [ ] Figure out what the deal is with `lowerFirstWord(...)` (when getting to this, remember the existence of `lo.Words(...)`)
 - [ ] Every target in its own Goroutine!
 - [ ] Audit tests for writing things in non-temporary, non-ignored dirs
