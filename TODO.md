@@ -24,4 +24,5 @@
 - [x] Figure out what the deal is with `lowerFirstWord(...)` (when getting to this, remember the existence of `lo.Words(...)`)
 - [x] Redo logging properly
 - [x] Parallelize tests w/locking mechanism to prevent parallel tests in same testdata subdir
+- [x] Bring in CI from `goctx` with the fancy caching
 - [ ] Every target in its own Goroutine!
