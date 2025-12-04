@@ -67,4 +67,6 @@ require (
 	gotest.tools/gotestsum v1.13.0 // indirect
 )
 
+tool golang.org/x/tools/cmd/stringer
+
 tool gotest.tools/gotestsum

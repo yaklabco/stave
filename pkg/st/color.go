@@ -4,9 +4,7 @@ package st
 // Color is ANSI color type.
 type Color int
 
-// If you add/change/remove any items in this constant,
-// you will need to run "stringer -type=Color" in this directory again.
-// NOTE: Please keep the list in an alphabetical order.
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=Color
 const (
 	Black Color = iota
 	Red

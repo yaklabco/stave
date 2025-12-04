@@ -115,9 +115,6 @@ func main() {
 	// color is ANSI color type
 	type color int
 
-	// If you add/change/remove any items in this constant,
-	// you will need to run "stringer -type=color" in this directory again.
-	// NOTE: Please keep the list in an alphabetical order.
 	const (
 		black color = iota
 		red

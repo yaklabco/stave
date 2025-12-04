@@ -75,6 +75,14 @@ func Init() error { // mage:help=Install dev tools (Brewfile), setup husky hooks
 		return err
 	}
 
+	if err := sh.Run("go", "mod", "tidy"); err != nil {
+		return err
+	}
+
+	if err := sh.Run("go", "generate", "./..."); err != nil {
+		return err
+	}
+
 	return sh.Run("go", "mod", "tidy")
 }
 
@@ -100,10 +108,8 @@ func Markdownlint() error { // mage:help=Run markdownlint on Markdown files
 	return sh.Run("markdownlint-cli2", files...)
 }
 
-// Lint runs golangci-lint after markdownlint and init.
-func Lint() error { // mage:help=Run linters and auto-fix issues
-	st.Deps(Markdownlint, Init)
-
+// LintGo runs golangci-lint with auto-fix and parallel runner options enabled.
+func LintGo() error {
 	out, err := sh.Output("golangci-lint", "run", "--fix", "--allow-parallel-runners", "--build-tags=mage")
 	if err != nil {
 		titleStyle, blockStyle := ui.GetBlockStyles()
@@ -114,6 +120,11 @@ func Lint() error { // mage:help=Run linters and auto-fix issues
 	}
 
 	return nil
+}
+
+// Lint runs golangci-lint after markdownlint and init.
+func Lint() { // mage:help=Run linters and auto-fix issues
+	st.Deps(Init, Markdownlint, LintGo)
 }
 
 // Test aggregate target runs Lint and TestGo.

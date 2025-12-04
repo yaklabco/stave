@@ -28,11 +28,12 @@ func _() {
 
 const _Color_name = "BlackRedGreenYellowBlueStaventaCyanWhiteBrightBlackBrightRedBrightGreenBrightYellowBrightBlueBrightStaventaBrightCyanBrightWhite"
 
-var _Color_index = [...]uint8{0, 5, 8, 13, 19, 23, 30, 34, 39, 50, 59, 70, 82, 92, 105, 115, 126}
+var _Color_index = [...]uint8{0, 5, 8, 13, 19, 23, 31, 35, 40, 51, 60, 71, 83, 93, 107, 117, 128}
 
 func (i Color) String() string {
-	if i < 0 || i >= Color(len(_Color_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_Color_index)-1 {
 		return "Color(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Color_name[_Color_index[i]:_Color_index[i+1]]
+	return _Color_name[_Color_index[idx]:_Color_index[idx+1]]
 }
