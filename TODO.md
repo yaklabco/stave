@@ -1,10 +1,10 @@
 # Misc. to-dos
 
 - [x] Go lint:
-  - [x] Bring over `.golangci.yml` from [stave](https://github.com/preminger/stave/)
+  - [x] Bring over `.golangci.yml` from [goctx](https://github.com/preminger/goctx/)
   - [x] Fix all lint that emerges after running with new config
 - [x] Establish [CHANGELOG](https://keepachangelog.com/en/1.1.0/)
-- [x] Bring over elements of build- & CI-configs from [stave](https://github.com/preminger/stave/):
+- [x] Bring over elements of build- & CI-configs from [goctx](https://github.com/preminger/goctx/):
   - [x] `nprocs.sh`
   - [x] `.goreleaser.yaml`
   - [x] `.markdownlint.yaml`
@@ -13,7 +13,7 @@
   - [x] Merge stave's `magefile.go` into stave's `stavefile.go`
   - [x] Hooks:
     - [x] Husky setup
-    - [x] Copy over CHANGELOG uber-hook from [stave](https://github.com/preminger/stave/)
+    - [x] Copy over CHANGELOG uber-hook from [goctx](https://github.com/preminger/goctx/)
 - [x] Merge stave's `.gitignore` with stave's `.gitignore`
 - [x] Add STAVE_NUM_PROCESSORS / GOMAXPROCS setter
 - [x] Modernize package layout
@@ -25,4 +25,4 @@
 - [x] Redo logging properly
 - [x] Parallelize tests w/locking mechanism to prevent parallel tests in same testdata subdir
 - [x] Bring in CI from `goctx` with the fancy caching
-- [ ] Every target in its own Goroutine!
+- [x] Validate that every target is run in its own Goroutine
