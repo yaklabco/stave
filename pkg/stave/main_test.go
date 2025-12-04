@@ -7,7 +7,6 @@ import (
 	"debug/pe"
 	"encoding/hex"
 	"errors"
-	"flag"
 	"fmt"
 	"go/build"
 	"go/parser"
@@ -18,7 +17,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strings"
 	"syscall"
@@ -63,7 +61,13 @@ func actualTestMain(m *testing.M) int {
 		slog.Error(err.Error())
 		return 1
 	}
-	defer func() { _ = os.RemoveAll(dir) }()
+	defer func() {
+		removeErr := os.RemoveAll(dir)
+		if removeErr != nil {
+			slog.Error("error removing temp dir: ", slog.Any("error", removeErr))
+		}
+	}()
+
 	if err := os.Setenv(st.CacheEnv, dir); err != nil {
 		slog.Error(err.Error())
 		return 1
@@ -111,65 +115,58 @@ func resetTerm() error {
 
 func TestTransitiveDepCache(t *testing.T) {
 	ctx := t.Context()
+
 	cache, err := internal.OutputDebug(ctx, "go", "env", "GOCACHE")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	if cache == "" {
 		t.Skip("skipping gocache tests on go version without cache")
 	}
 	// Test that if we change a transitive dep, that we recompile
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Stderr: stderr,
-		Stdout: stdout,
-		Dir:    "testdata/transitiveDeps",
-		Args:   []string{"Run"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Stderr:  stderr,
+		Stdout:  stdout,
+		Dir:     "testdata/transitiveDeps",
+		Args:    []string{"Run"},
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("got code %v, err: %s", code, stderr)
-	}
+
+	err = Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
 	expected := "woof\n"
-	if actual := stdout.String(); actual != expected {
-		t.Fatalf("expected %q but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
+
 	// ok, so baseline, the generated and cached binary should do "woof"
 	// now change out the transitive dependency that does the output
 	// so that it produces different output.
-	if err := os.Rename("testdata/transitiveDeps/dep/dog.go", "testdata/transitiveDeps/dep/dog.notgo"); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.Rename("testdata/transitiveDeps/dep/dog.go", "testdata/transitiveDeps/dep/dog.notgo"))
 	defer func() {
 		assert.NoError(t, os.Rename("testdata/transitiveDeps/dep/dog.notgo", "testdata/transitiveDeps/dep/dog.go"))
 	}()
 
-	if err := os.Rename("testdata/transitiveDeps/dep/cat.notgo", "testdata/transitiveDeps/dep/cat.go"); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.Rename("testdata/transitiveDeps/dep/cat.notgo", "testdata/transitiveDeps/dep/cat.go"))
 	defer func() {
 		assert.NoError(t, os.Rename("testdata/transitiveDeps/dep/cat.go", "testdata/transitiveDeps/dep/cat.notgo"))
 	}()
 
 	stderr.Reset()
 	stdout.Reset()
-	code = Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("got code %v, err: %s", code, stderr)
-	}
+
+	err = Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
 	expected = "meow\n"
-	if actual := stdout.String(); actual != expected {
-		t.Fatalf("expected %q but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestTransitiveHashFast(t *testing.T) {
 	ctx := t.Context()
+
 	cache, err := internal.OutputDebug(ctx, "go", "env", "GOCACHE")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	if cache == "" {
 		t.Skip("skipping hashfast tests on go version without cache")
 	}
@@ -179,65 +176,58 @@ func TestTransitiveHashFast(t *testing.T) {
 	// we recompile the binary with the current code.
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Stderr: stderr,
-		Stdout: stdout,
-		Dir:    "testdata/transitiveDeps",
-		Args:   []string{"Run"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Stderr:  stderr,
+		Stdout:  stdout,
+		Dir:     "testdata/transitiveDeps",
+		Args:    []string{"Run"},
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("got code %v, err: %s", code, stderr)
-	}
+
+	err = Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
 	expected := "woof\n"
-	if actual := stdout.String(); actual != expected {
-		t.Fatalf("expected %q but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 
 	// ok, so baseline, the generated and cached binary should do "woof"
 	// now change out the transitive dependency that does the output
 	// so that it produces different output.
-	if err := os.Rename("testdata/transitiveDeps/dep/dog.go", "testdata/transitiveDeps/dep/dog.notgo"); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.Rename("testdata/transitiveDeps/dep/dog.go", "testdata/transitiveDeps/dep/dog.notgo"))
 	defer func() {
 		assert.NoError(t, os.Rename("testdata/transitiveDeps/dep/dog.notgo", "testdata/transitiveDeps/dep/dog.go"))
 	}()
 
-	if err := os.Rename("testdata/transitiveDeps/dep/cat.notgo", "testdata/transitiveDeps/dep/cat.go"); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.Rename("testdata/transitiveDeps/dep/cat.notgo", "testdata/transitiveDeps/dep/cat.go"))
 	defer func() {
 		assert.NoError(t, os.Rename("testdata/transitiveDeps/dep/cat.go", "testdata/transitiveDeps/dep/cat.notgo"))
 	}()
+
 	stderr.Reset()
 	stdout.Reset()
-	inv.HashFast = true
-	code = Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("got code %v, err: %s", code, stderr)
-	}
+
+	runParams.HashFast = true
+	err = Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
 	// we should still get woof, even though the dependency was changed to
 	// return "meow", because we're only hashing the top level stavefiles, not
 	// dependencies.
-	if actual := stdout.String(); actual != expected {
-		t.Fatalf("expected %q but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestListStavefilesMain(t *testing.T) {
 	buf := &bytes.Buffer{}
 	files, err := Stavefiles("testdata/mixed_main_files", "", "", false)
-	if err != nil {
-		t.Errorf("error from stavefile list: %v: %s", err, buf)
-	}
+	require.NoError(t, err, buf.String())
+
 	expected := []string{
 		filepath.FromSlash("testdata/mixed_main_files/stave_helpers.go"),
 		filepath.FromSlash("testdata/mixed_main_files/stavefile.go"),
 	}
-	if !reflect.DeepEqual(files, expected) {
-		t.Fatalf("expected %q but got %q", expected, files)
-	}
+
+	assert.Equal(t, expected, files)
 }
 
 func TestListStavefilesIgnoresGOOS(t *testing.T) {
@@ -247,19 +237,18 @@ func TestListStavefilesIgnoresGOOS(t *testing.T) {
 	} else {
 		t.Setenv("GOOS", windows)
 	}
+
 	files, err := Stavefiles("testdata/goos_stavefiles", "", "", false)
-	if err != nil {
-		t.Errorf("error from stavefile list: %v: %s", err, buf)
-	}
+	require.NoError(t, err, buf.String())
+
 	var expected []string
 	if runtime.GOOS == windows {
 		expected = []string{filepath.FromSlash("testdata/goos_stavefiles/stavefile_windows.go")}
 	} else {
 		expected = []string{filepath.FromSlash("testdata/goos_stavefiles/stavefile_nonwindows.go")}
 	}
-	if !reflect.DeepEqual(files, expected) {
-		t.Fatalf("expected %q but got %q", expected, files)
-	}
+
+	assert.Equal(t, expected, files)
 }
 
 func TestListStavefilesIgnoresRespectsGOOSArg(t *testing.T) {
@@ -270,29 +259,29 @@ func TestListStavefilesIgnoresRespectsGOOSArg(t *testing.T) {
 	} else {
 		goos = windows
 	}
+
 	// Set GOARCH as amd64 because windows is not on all non-x86 architectures.
 	files, err := Stavefiles("testdata/goos_stavefiles", goos, amd64, false)
-	if err != nil {
-		t.Errorf("error from stavefile list: %v: %s", err, buf)
-	}
+	require.NoError(t, err, buf.String())
+
 	var expected []string
 	if goos == windows {
 		expected = []string{filepath.FromSlash("testdata/goos_stavefiles/stavefile_windows.go")}
 	} else {
 		expected = []string{filepath.FromSlash("testdata/goos_stavefiles/stavefile_nonwindows.go")}
 	}
-	if !reflect.DeepEqual(files, expected) {
-		t.Fatalf("expected %q but got %q", expected, files)
-	}
+
+	assert.Equal(t, expected, files)
 }
 
 func TestCompileDiffGoosGoarch(t *testing.T) {
 	ctx := t.Context()
+
 	target, err := os.MkdirTemp("./testdata", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = os.RemoveAll(target) }()
+	require.NoError(t, err)
+	defer func() {
+		assert.NoError(t, os.RemoveAll(target))
+	}()
 
 	// intentionally choose an arch and os to build that are not our current one.
 
@@ -306,92 +295,80 @@ func TestCompileDiffGoosGoarch(t *testing.T) {
 	}
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Stderr: stderr,
-		Stdout: stdout,
-		Debug:  true,
-		Dir:    "testdata",
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Stderr:  stderr,
+		Stdout:  stdout,
+		Debug:   true,
+		Dir:     "testdata",
 		// this is relative to the Dir above
 		CompileOut: filepath.Join(".", filepath.Base(target), "output"),
 		GOOS:       goos,
 		GOARCH:     goarch,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("got code %v, err: %s", code, stderr)
-	}
+
+	err = Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
 	theOS, theArch, err := fileData(filepath.Join(target, "output"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	if goos == windows {
-		if theOS != winExe {
-			t.Error("ran with GOOS=windows but did not produce a windows exe")
-		}
+		assert.Equal(t, winExe, theOS)
 	} else {
-		if theOS != macExe {
-			t.Error("ran with GOOS=darwin but did not a mac exe")
-		}
+		assert.Equal(t, macExe, theOS)
 	}
 	if goarch == amd64 {
-		if theArch != arch64 {
-			t.Error("ran with GOARCH=amd64 but did not produce a 64 bit exe")
-		}
+		assert.Equal(t, arch64, theArch)
 	} else {
-		if theArch != arch32 {
-			t.Error("rand with GOARCH=386 but did not produce a 32 bit exe")
-		}
+		assert.Equal(t, arch32, theArch)
 	}
 }
 
 func TestListStavefilesLib(t *testing.T) {
 	buf := &bytes.Buffer{}
 	files, err := Stavefiles("testdata/mixed_lib_files", "", "", false)
-	if err != nil {
-		t.Errorf("error from stavefile list: %v: %s", err, buf)
-	}
+	require.NoError(t, err, buf.String())
+
 	expected := []string{
 		filepath.FromSlash("testdata/mixed_lib_files/stave_helpers.go"),
 		filepath.FromSlash("testdata/mixed_lib_files/stavefile.go"),
 	}
-	if !reflect.DeepEqual(files, expected) {
-		t.Fatalf("expected %q but got %q", expected, files)
-	}
+	assert.Equal(t, expected, files)
 }
 
 func TestMixedStaveImports(t *testing.T) {
 	ctx := t.Context()
+
 	require.NoError(t, resetTerm())
+
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/mixed_lib_files",
-		Stdout: stdout,
-		Stderr: stderr,
-		List:   true,
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/mixed_lib_files",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		List:    true,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
-	}
+
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := targetsBuild
-	actual := stdout.String()
-	if actual != expected {
-		t.Fatalf("expected %q but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestStavefilesFolder(t *testing.T) {
 	ctx := t.Context()
+
 	require.NoError(t, resetTerm())
+
 	wd, err := os.Getwd()
 	t.Log(wd)
-	if err != nil {
-		t.Fatalf("finding current working directory: %v", err)
-	}
-	if err := os.Chdir("testdata/with_stavefiles_folder"); err != nil {
-		t.Fatalf("changing to stavefolders tests data: %v", err)
-	}
+	require.NoError(t, err)
+
+	require.NoError(t, os.Chdir("testdata/with_stavefiles_folder"))
 	// restore previous state
 	defer func() {
 		assert.NoError(t, os.Chdir(wd))
@@ -399,34 +376,31 @@ func TestStavefilesFolder(t *testing.T) {
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "",
-		Stdout: stdout,
-		Stderr: stderr,
-		List:   true,
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		List:    true,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
-	}
+
+	err = Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
 	expected := targetsBuild
-	actual := stdout.String()
-	if actual != expected {
-		t.Fatalf("expected %q but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestStavefilesFolderMixedWithStavefiles(t *testing.T) {
 	ctx := t.Context()
+
 	require.NoError(t, resetTerm())
 	wd, err := os.Getwd()
 	t.Log(wd)
-	if err != nil {
-		t.Fatalf("finding current working directory: %v", err)
-	}
-	if err := os.Chdir("testdata/with_stavefiles_folder_and_stave_files_in_dot"); err != nil {
-		t.Fatalf("changing to stavefolders tests data: %v", err)
-	}
+	require.NoError(t, err)
+
+	require.NoError(t, os.Chdir("testdata/with_stavefiles_folder_and_stave_files_in_dot"))
 	// restore previous state
 	defer func() {
 		assert.NoError(t, os.Chdir(wd))
@@ -434,40 +408,35 @@ func TestStavefilesFolderMixedWithStavefiles(t *testing.T) {
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "",
-		Stdout: stdout,
-		Stderr: stderr,
-		List:   true,
-	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
-	}
-	expected := targetsBuild
-	actual := stdout.String()
-	if actual != expected {
-		t.Fatalf("expected %q but got %q", expected, actual)
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		List:    true,
 	}
 
-	expectedErr := "[WARNING] You have both a stavefiles directory and stave files in the current directory, in future versions the files will be ignored in favor of the directory\n"
-	actualErr := stderr.String()
-	if actualErr != expectedErr {
-		t.Fatalf("expected Warning %q but got %q", expectedErr, actualErr)
-	}
+	err = Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
+	expected := targetsBuild
+	assert.Equal(t, expected, stdout.String())
+
+	expectedErrStr := "[WARNING] You have both a stavefiles directory and stave files in the current directory, in future versions the files will be ignored in favor of the directory\n" //nolint:lll // Long string-literal.
+	assert.Equal(t, expectedErrStr, stderr.String())
 }
 
 func TestUntaggedStavefilesFolder(t *testing.T) {
 	ctx := t.Context()
+
 	require.NoError(t, resetTerm())
+
 	wd, err := os.Getwd()
 	t.Log(wd)
-	if err != nil {
-		t.Fatalf("finding current working directory: %v", err)
-	}
-	if err := os.Chdir("testdata/with_untagged_stavefiles_folder"); err != nil {
-		t.Fatalf("changing to stavefolders tests data: %v", err)
-	}
+	require.NoError(t, err)
+
+	require.NoError(t, os.Chdir("testdata/with_untagged_stavefiles_folder"))
 	// restore previous state
 	defer func() {
 		assert.NoError(t, os.Chdir(wd))
@@ -475,34 +444,32 @@ func TestUntaggedStavefilesFolder(t *testing.T) {
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "",
-		Stdout: stdout,
-		Stderr: stderr,
-		List:   true,
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		List:    true,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
-	}
+
+	err = Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
 	expected := targetsBuild
-	actual := stdout.String()
-	if actual != expected {
-		t.Fatalf("expected %q but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestMixedTaggingStavefilesFolder(t *testing.T) {
 	ctx := t.Context()
+
 	require.NoError(t, resetTerm())
+
 	wd, err := os.Getwd()
 	t.Log(wd)
-	if err != nil {
-		t.Fatalf("finding current working directory: %v", err)
-	}
-	if err := os.Chdir("testdata/with_mixtagged_stavefiles_folder"); err != nil {
-		t.Fatalf("changing to stavefolders tests data: %v", err)
-	}
+	require.NoError(t, err)
+
+	require.NoError(t, os.Chdir("testdata/with_mixtagged_stavefiles_folder"))
 	// restore previous state
 	defer func() {
 		assert.NoError(t, os.Chdir(wd))
@@ -510,44 +477,42 @@ func TestMixedTaggingStavefilesFolder(t *testing.T) {
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "",
-		Stdout: stdout,
-		Stderr: stderr,
-		List:   true,
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		List:    true,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
-	}
+
+	err = Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
 	expected := "Targets:\n  build            \n  untaggedBuild    \n"
-	actual := stdout.String()
-	if actual != expected {
-		t.Fatalf("expected %q but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestSetDirWithStavefilesFolder(t *testing.T) {
 	ctx := t.Context()
+
 	require.NoError(t, resetTerm())
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "testdata/setdir_with_stavefiles_folder",
-		Stdout: stdout,
-		Stderr: stderr,
-		List:   true,
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "testdata/setdir_with_stavefiles_folder",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		List:    true,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
-	}
+
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := targetsBuild
-	actual := stdout.String()
-	if actual != expected {
-		t.Fatalf("expected %q but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestGoRun(t *testing.T) {
@@ -555,95 +520,57 @@ func TestGoRun(t *testing.T) {
 	c.Dir = "./testdata"
 	c.Env = os.Environ()
 	b, err := c.CombinedOutput()
-	if err != nil {
-		t.Error("error:", err)
-	}
-	actual := string(b)
+	require.NoError(t, err, "stderr was: %s", string(b))
+
 	expected := "stuff\n"
-	if actual != expected {
-		t.Fatalf("expected %q, but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, string(b))
 }
 
 func TestVerbose(t *testing.T) {
 	ctx := t.Context()
+
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata",
-		Stdout: stdout,
-		Stderr: stderr,
-		Args:   []string{"testverbose"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"testverbose"},
 	}
 
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v", code)
-	}
-	actual := stdout.String()
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := ""
-	if actual != expected {
-		t.Fatalf("expected %q, but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
+
 	stderr.Reset()
 	stdout.Reset()
-	inv.Verbose = true
-	code = Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v", code)
-	}
+	runParams.Verbose = true
+	err = Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 
-	actual = stderr.String()
 	expected = "Running target: TestVerbose\nhi!\n"
-	if actual != expected {
-		t.Fatalf("expected %q, but got %q", expected, actual)
-	}
-}
-
-func TestVerboseEnv(t *testing.T) {
-	t.Setenv("STAVEFILE_VERBOSE", "true")
-	stdout := &bytes.Buffer{}
-	inv, _, err := Parse(io.Discard, stdout, []string{})
-	if err != nil {
-		t.Fatal("unexpected error", err)
-	}
-
-	expected := true
-
-	if !inv.Verbose {
-		t.Fatalf("expected %t, but got %t ", expected, inv.Verbose)
-	}
-}
-
-func TestVerboseFalseEnv(t *testing.T) {
-	ctx := t.Context()
-	t.Setenv("STAVEFILE_VERBOSE", "0")
-	stdout := &bytes.Buffer{}
-	code := ParseAndRun(ctx, io.Discard, stdout, nil, []string{"-d", "testdata", "testverbose"})
-	if code != 0 {
-		t.Fatal("unexpected code", code)
-	}
-
-	if stdout.String() != "" {
-		t.Fatalf("expected no output, but got %s", stdout.String())
-	}
+	assert.Equal(t, expected, stderr.String())
 }
 
 func TestList(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/list",
-		Stdout: stdout,
-		Stderr: io.Discard,
-		List:   true,
+	stderr := &bytes.Buffer{}
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/list",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		List:    true,
 	}
 
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v", code)
-	}
-	actual := stdout.String()
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := `
 This is a comment on the package which should get turned into output with the list of targets.
 
@@ -654,11 +581,7 @@ Targets:
 * default target
 `[1:]
 
-	if actual != expected {
-		t.Logf("expected: %q", expected)
-		t.Logf("  actual: %q", actual)
-		t.Fatalf("expected:\n%v\n\ngot:\n%v", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 var terminals = []struct {
@@ -677,7 +600,6 @@ var terminals = []struct {
 }
 
 func TestListWithColor(t *testing.T) {
-	ctx := t.Context()
 	t.Setenv(st.EnableColorEnv, "true")
 	t.Setenv(st.TargetColorEnv, st.Cyan.String())
 
@@ -705,21 +627,23 @@ Targets:
 
 	for _, terminal := range terminals {
 		t.Run(terminal.code, func(t *testing.T) {
+			ctx := t.Context()
+
 			t.Setenv("TERM", terminal.code)
 
 			stdout := &bytes.Buffer{}
-			inv := Invocation{
-				Dir:    "./testdata/list",
-				Stdout: stdout,
-				Stderr: io.Discard,
-				List:   true,
+			stderr := &bytes.Buffer{}
+
+			runParams := RunParams{
+				BaseCtx: ctx,
+				Dir:     "./testdata/list",
+				Stdout:  stdout,
+				Stderr:  stderr,
+				List:    true,
 			}
 
-			code := Invoke(ctx, inv)
-			if code != 0 {
-				t.Errorf("expected to exit with code 0, but got %v", code)
-			}
-			actual := stdout.String()
+			err := Run(runParams)
+			require.NoError(t, err, "stderr was: %s", stderr.String())
 			var expected string
 			if terminal.supportsColor {
 				expected = expectedColorizedText
@@ -727,60 +651,55 @@ Targets:
 				expected = expectedPlainText
 			}
 
-			if actual != expected {
-				t.Logf("expected: %q", expected)
-				t.Logf("  actual: %q", actual)
-				t.Fatalf("expected:\n%v\n\ngot:\n%v", expected, actual)
-			}
+			assert.Equal(t, expected, stdout.String())
 		})
 	}
 }
 
 func TestNoArgNoDefaultList(t *testing.T) {
 	ctx := t.Context()
+
 	require.NoError(t, resetTerm())
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "testdata/no_default",
-		Stdout: stdout,
-		Stderr: stderr,
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "testdata/no_default",
+		Stdout:  stdout,
+		Stderr:  stderr,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v", code)
-	}
-	if err := stderr.String(); err != "" {
-		t.Errorf("unexpected stderr output:\n%s", err)
-	}
-	actual := stdout.String()
+
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+	assert.Empty(t, stderr.String())
+
 	expected := `
 Targets:
   bazBuz    Prints out 'BazBuz'.
   fooBar    Prints out 'FooBar'.
 `[1:]
-	if actual != expected {
-		t.Fatalf("expected:\n%q\n\ngot:\n%q", expected, actual)
-	}
+
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestIgnoreDefault(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/list",
-		Stdout: stdout,
-		Stderr: stderr,
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/list",
+		Stdout:  stdout,
+		Stderr:  stderr,
 	}
 	t.Setenv(st.IgnoreDefaultEnv, "1")
 	require.NoError(t, resetTerm())
 
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
-	}
-	actual := stdout.String()
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := `
 This is a comment on the package which should get turned into output with the list of targets.
 
@@ -791,93 +710,92 @@ Targets:
 * default target
 `[1:]
 
-	if actual != expected {
-		t.Logf("expected: %q", expected)
-		t.Logf("  actual: %q", actual)
-		t.Fatalf("expected:\n%v\n\ngot:\n%v", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestTargetError(t *testing.T) {
 	ctx := t.Context()
+
+	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata",
-		Stdout: io.Discard,
-		Stderr: stderr,
-		Args:   []string{"returnsnonnilerror"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"returnsnonnilerror"},
 	}
-	code := Invoke(ctx, inv)
-	if code != 1 {
-		t.Fatalf("expected 1, but got %v", code)
-	}
-	actual := stderr.String()
+
+	err := Run(runParams)
+	require.Error(t, err)
+
 	expected := "Error: bang!\n"
-	if actual != expected {
-		t.Fatalf("expected %q, but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stderr.String())
 }
 
 func TestStdinCopy(t *testing.T) {
 	ctx := t.Context()
-	stdout := &bytes.Buffer{}
+
 	stdin := strings.NewReader(hiExclam)
-	inv := Invocation{
-		Dir:    "./testdata",
-		Stderr: io.Discard,
-		Stdout: stdout,
-		Stdin:  stdin,
-		Args:   []string{"CopyStdin"},
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata",
+		Stdin:   stdin,
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"CopyStdin"},
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected 0, but got %v", code)
-	}
-	actual := stdout.String()
+
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := hiExclam
-	if actual != expected {
-		t.Fatalf("expected %q, but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestTargetPanics(t *testing.T) {
 	ctx := t.Context()
+
+	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata",
-		Stdout: io.Discard,
-		Stderr: stderr,
-		Args:   []string{"panics"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"panics"},
 	}
-	code := Invoke(ctx, inv)
-	if code != 1 {
-		t.Fatalf("expected 1, but got %v", code)
-	}
-	actual := stderr.String()
+
+	err := Run(runParams)
+	require.Error(t, err)
+
 	expected := "Error: boom!\n"
-	if actual != expected {
-		t.Fatalf("expected %q, but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stderr.String())
 }
 
 func TestPanicsErr(t *testing.T) {
 	ctx := t.Context()
+
+	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata",
-		Stdout: io.Discard,
-		Stderr: stderr,
-		Args:   []string{"panicserr"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"panicserr"},
 	}
-	code := Invoke(ctx, inv)
-	if code != 1 {
-		t.Fatalf("expected 1, but got %v", code)
-	}
-	actual := stderr.String()
+
+	err := Run(runParams)
+	require.Error(t, err)
+
 	expected := "Error: kaboom!\n"
-	if actual != expected {
-		t.Fatalf("expected %q, but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stderr.String())
 }
 
 // ensure we include the hash of the mainfile template in determining the
@@ -885,46 +803,45 @@ func TestPanicsErr(t *testing.T) {
 // changes.
 func TestHashTemplate(t *testing.T) {
 	ctx := t.Context()
+
 	templ := staveMainfileTplString
 	defer func() { staveMainfileTplString = templ }()
 	name, err := ExeName(ctx, "go", st.CacheDir(), []string{"testdata/func.go", "testdata/command.go"})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	staveMainfileTplString = "some other template"
 	changed, err := ExeName(ctx, "go", st.CacheDir(), []string{"testdata/func.go", "testdata/command.go"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if changed == name {
-		t.Fatal("expected executable name to chage if template changed")
-	}
+	require.NoError(t, err)
+
+	assert.NotEqual(t, name, changed)
 }
 
 // Test if the -keep flag does keep the mainfile around after running.
 func TestKeepFlag(t *testing.T) {
 	ctx := t.Context()
+
 	buildFile := "./testdata/keep_flag/" + mainfile
 	_ = os.Remove(buildFile)
-	defer func() { _ = os.Remove(buildFile) }()
-	w := tLogWriter{t}
+	defer func() {
+		assert.NoError(t, os.Remove(buildFile))
+	}()
 
-	inv := Invocation{
-		Dir:    "./testdata/keep_flag",
-		Stdout: w,
-		Stderr: w,
-		List:   true,
-		Keep:   true,
-		Force:  true, // need force so we always regenerate
-	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected code 0, but got %v", code)
+	logWriter := tLogWriter{t}
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/keep_flag",
+		Stdout:  logWriter,
+		Stderr:  logWriter,
+		List:    true,
+		Keep:    true,
+		Force:   true, // need force so we always regenerate
 	}
 
-	if _, err := os.Stat(buildFile); err != nil {
-		t.Fatalf("expected file %q to exist but got err, %v", buildFile, err)
-	}
+	err := Run(runParams)
+	require.NoError(t, err)
+	_, err = os.Stat(buildFile)
+	require.NoError(t, err)
 }
 
 type tLogWriter struct {
@@ -939,29 +856,30 @@ func (t tLogWriter) Write(b []byte) (int, error) {
 // Test if generated mainfile references anything other than the stdlib.
 func TestOnlyStdLib(t *testing.T) {
 	ctx := t.Context()
+
 	buildFile := "./testdata/onlyStdLib/" + mainfile
 	_ = os.Remove(buildFile)
-	defer func() { _ = os.Remove(buildFile) }()
+	defer func() {
+		assert.NoError(t, os.Remove(buildFile))
+	}()
 
-	w := tLogWriter{t}
+	logWriter := tLogWriter{t}
 
-	inv := Invocation{
+	runParams := RunParams{
+		BaseCtx: ctx,
 		Dir:     "./testdata/onlyStdLib",
-		Stdout:  w,
-		Stderr:  w,
+		Stdout:  logWriter,
+		Stderr:  logWriter,
 		List:    true,
 		Keep:    true,
 		Force:   true, // need force so we always regenerate
 		Verbose: true,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected code 0, but got %v", code)
-	}
 
-	if _, err := os.Stat(buildFile); err != nil {
-		t.Fatalf("expected file %q to exist but got err, %v", buildFile, err)
-	}
+	err := Run(runParams)
+	require.NoError(t, err)
+	_, err = os.Stat(buildFile)
+	require.NoError(t, err)
 
 	fset := &token.FileSet{}
 	// Parse src but stop after processing the imports.
@@ -973,364 +891,292 @@ func TestOnlyStdLib(t *testing.T) {
 		// the path value comes in as a quoted string, i.e. literally \"context\"
 		path := strings.Trim(importSpec.Path.Value, "\"")
 		pkg, err := build.Default.Import(path, "./testdata/keep_flag", build.FindOnly)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		// Check if pkg.Dir is under GOROOT using filepath.Rel instead of deprecated filepath.HasPrefix
 		rel, err := filepath.Rel(build.Default.GOROOT, pkg.Dir)
-		if err != nil || strings.HasPrefix(rel, "..") {
-			t.Errorf("import of non-stdlib package: %s", importSpec.Path.Value)
-		}
+		require.NoError(t, err)
+		assert.False(t, strings.HasPrefix(rel, ".."))
 	}
 }
 
 func TestMultipleTargets(t *testing.T) {
 	ctx := t.Context()
+
 	var stderr, stdout bytes.Buffer
-	inv := Invocation{
+	runParams := RunParams{
+		BaseCtx: ctx,
 		Dir:     "./testdata",
 		Stdout:  &stdout,
 		Stderr:  &stderr,
 		Args:    []string{"TestVerbose", "ReturnsNilError"},
 		Verbose: true,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected 0, but got %v", code)
-	}
-	actual := stderr.String()
-	expected := "Running target: TestVerbose\nhi!\nRunning target: ReturnsNilError\n"
-	if actual != expected {
-		t.Errorf("expected %q, but got %q", expected, actual)
-	}
-	actual = stdout.String()
-	expected = "stuff\n"
-	if actual != expected {
-		t.Errorf("expected %q, but got %q", expected, actual)
-	}
+
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+	expectedErrStr := "Running target: TestVerbose\nhi!\nRunning target: ReturnsNilError\n"
+	assert.Equal(t, expectedErrStr, stderr.String())
+
+	expectedOutStr := "stuff\n"
+	assert.Equal(t, expectedOutStr, stdout.String())
 }
 
 func TestFirstTargetFails(t *testing.T) {
 	ctx := t.Context()
+
 	var stderr, stdout bytes.Buffer
-	inv := Invocation{
+	runParams := RunParams{
+		BaseCtx: ctx,
 		Dir:     "./testdata",
 		Stdout:  &stdout,
 		Stderr:  &stderr,
 		Args:    []string{"ReturnsNonNilError", "ReturnsNilError"},
 		Verbose: true,
 	}
-	code := Invoke(ctx, inv)
-	if code != 1 {
-		t.Errorf("expected 1, but got %v", code)
-	}
-	actual := stderr.String()
-	expected := "Running target: ReturnsNonNilError\nError: bang!\n"
-	if actual != expected {
-		t.Errorf("expected %q, but got %q", expected, actual)
-	}
-	actual = stdout.String()
-	expected = ""
-	if actual != expected {
-		t.Errorf("expected %q, but got %q", expected, actual)
-	}
+
+	err := Run(runParams)
+	require.Error(t, err)
+
+	expectedErrStr := "Running target: ReturnsNonNilError\nError: bang!\n"
+	assert.Equal(t, expectedErrStr, stderr.String())
+	assert.Empty(t, stdout.String())
 }
 
 func TestBadSecondTargets(t *testing.T) {
 	ctx := t.Context()
-	var stderr, stdout bytes.Buffer
-	inv := Invocation{
-		Dir:    "./testdata",
-		Stdout: &stdout,
-		Stderr: &stderr,
-		Args:   []string{"TestVerbose", "NotGonnaWork"},
-	}
-	code := Invoke(ctx, inv)
-	if code != 2 {
-		t.Errorf("expected 2, but got %v", code)
-	}
-	actual := stderr.String()
-	expected := "Unknown target specified: \"NotGonnaWork\"\n"
-	if actual != expected {
-		t.Errorf("expected %q, but got %q", expected, actual)
-	}
-	actual = stdout.String()
-	expected = ""
-	if actual != expected {
-		t.Errorf("expected %q, but got %q", expected, actual)
-	}
-}
 
-func TestParse(t *testing.T) {
-	buf := &bytes.Buffer{}
-	inv, cmd, err := Parse(io.Discard, buf, []string{"-v", "-debug", "-gocmd=foo", "-d", "dir", "build", "deploy"})
-	if err != nil {
-		t.Fatal("unexpected error", err)
+	var stderr, stdout bytes.Buffer
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata",
+		Stdout:  &stdout,
+		Stderr:  &stderr,
+		Args:    []string{"TestVerbose", "NotGonnaWork"},
 	}
-	if cmd == Init {
-		t.Error("init should be false but was true")
-	}
-	if cmd == Version {
-		t.Error("showVersion should be false but was true")
-	}
-	if !inv.Debug {
-		t.Error("debug should be true")
-	}
-	if inv.Dir != "dir" {
-		t.Errorf("Expected dir to be \"dir\" but was %q", inv.Dir)
-	}
-	if inv.GoCmd != "foo" {
-		t.Errorf("Expected gocmd to be \"foo\" but was %q", inv.GoCmd)
-	}
-	expected := []string{"build", "deploy"}
-	if !reflect.DeepEqual(inv.Args, expected) {
-		t.Fatalf("expected args to be %q but got %q", expected, inv.Args)
-	}
-	if s := buf.String(); s != "" {
-		t.Fatalf("expected no stdout output but got %q", s)
-	}
+
+	err := Run(runParams)
+	require.Error(t, err)
+
+	expectedErrStr := "Unknown target specified: \"NotGonnaWork\"\n"
+	assert.Equal(t, expectedErrStr, stderr.String())
+	assert.Empty(t, stdout.String())
 }
 
 func TestSetDir(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	code := Invoke(ctx, Invocation{
-		Dir:    "testdata/setdir",
-		Stdout: stdout,
-		Stderr: stderr,
-		Args:   []string{"TestCurrentDir"},
+
+	err := Run(RunParams{
+		BaseCtx: ctx,
+		Dir:     "testdata/setdir",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"TestCurrentDir"},
 	})
-	if code != 0 {
-		t.Errorf("expected code 0, but got %d. Stdout:\n%s\nStderr:\n%s", code, stdout, stderr)
-	}
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
 	expected := "setdir.go\n"
-	if out := stdout.String(); out != expected {
-		t.Fatalf("expected list of files to be %q, but was %q", expected, out)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestSetWorkingDir(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	code := Invoke(ctx, Invocation{
+
+	err := Run(RunParams{
+		BaseCtx: ctx,
 		Dir:     "testdata/setworkdir",
 		WorkDir: "testdata/setworkdir/data",
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"TestWorkingDir"},
 	})
-
-	if code != 0 {
-		t.Errorf(
-			"expected code 0, but got %d. Stdout:\n%s\nStderr:\n%s",
-			code, stdout, stderr,
-		)
-	}
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 
 	expected := "file1.txt, file2.txt\n"
-	if out := stdout.String(); out != expected {
-		t.Fatalf("expected list of files to be %q, but was %q", expected, out)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 // Test the timeout option.
 func TestTimeout(t *testing.T) {
 	ctx := t.Context()
+
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
-	inv := Invocation{
+
+	runParams := RunParams{
+		BaseCtx: ctx,
 		Dir:     "testdata/context",
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"timeout"},
 		Timeout: 100 * time.Millisecond,
 	}
-	code := Invoke(ctx, inv)
-	if code != 1 {
-		t.Fatalf("expected 1, but got %v, stderr: %q, stdout: %q", code, stderr, stdout)
-	}
-	actual := stderr.String()
+
+	err := Run(runParams)
+	require.Error(t, err)
+
 	expected := "Error: context deadline exceeded\n"
-
-	if actual != expected {
-		t.Fatalf("expected %q, but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stderr.String())
 }
 
-func TestParseHelp(t *testing.T) {
-	buf := &bytes.Buffer{}
-	_, _, err := Parse(io.Discard, buf, []string{"-h"})
-	if !errors.Is(err, flag.ErrHelp) {
-		t.Fatal("unexpected error", err)
-	}
-	buf2 := &bytes.Buffer{}
-	_, _, err = Parse(io.Discard, buf2, []string{"--help"})
-	if !errors.Is(err, flag.ErrHelp) {
-		t.Fatal("unexpected error", err)
-	}
-	s := buf.String()
-	s2 := buf2.String()
-	if s != s2 {
-		t.Fatalf("expected -h and --help to produce same output, but got different.\n\n-h:\n%s\n\n--help:\n%s", s, s2)
-	}
-}
-
-func TestHelpTarget(t *testing.T) {
+func TestInfoTarget(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata",
-		Stdout: stdout,
-		Stderr: io.Discard,
-		Args:   []string{"panics"},
-		Help:   true,
+	stderr := &bytes.Buffer{}
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"panics"},
+		Info:    true,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v", code)
-	}
-	actual := stdout.String()
+
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := "Function that panics.\n\nUsage:\n\n\tstave panics\n\n"
-	if actual != expected {
-		t.Fatalf("expected %q, but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
-func TestHelpAlias(t *testing.T) {
+func TestInfoAlias(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/alias",
-		Stdout: stdout,
-		Stderr: io.Discard,
-		Args:   []string{"status"},
-		Help:   true,
+	stderr := &bytes.Buffer{}
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/alias",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"status"},
+		Info:    true,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v", code)
-	}
+
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	actual := stdout.String()
 	expected := "Prints status.\n\nUsage:\n\n\tstave status\n\nAliases: st, stat\n\n"
-	if actual != expected {
-		t.Fatalf("expected %q, but got %q", expected, actual)
-	}
-	inv = Invocation{
+	assert.Equal(t, expected, actual)
+
+	runParams = RunParams{
 		Dir:    "./testdata/alias",
 		Stdout: stdout,
-		Stderr: io.Discard,
+		Stderr: stderr,
 		Args:   []string{"checkout"},
-		Help:   true,
+		Info:   true,
 	}
+
 	stdout.Reset()
-	code = Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v", code)
-	}
+	stderr.Reset()
+	err = Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
 	actual = stdout.String()
 	expected = "Usage:\n\n\tstave checkout\n\nAliases: co\n\n"
-	if actual != expected {
-		t.Fatalf("expected %q, but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, actual)
 }
 
 func TestAlias(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	debug.SetOutput(stderr)
-	inv := Invocation{
-		Dir:    "testdata/alias",
-		Stdout: stdout,
-		Stderr: io.Discard,
-		Args:   []string{"status"},
-		Debug:  true,
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "testdata/alias",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"status"},
+		Debug:   true,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v\noutput:\n%s\nstderr:\n%s", code, stdout, stderr)
-	}
-	actual := stdout.String()
+
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := "alias!\n"
-	if actual != expected {
-		t.Fatalf("expected %q, but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
+
 	stdout.Reset()
-	inv.Args = []string{"st"}
-	code = Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v", code)
-	}
-	actual = stdout.String()
-	if actual != expected {
-		t.Fatalf("expected %q, but got %q", expected, actual)
-	}
+	stderr.Reset()
+	runParams.Args = []string{"st"}
+	err = Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestInvalidAlias(t *testing.T) {
 	ctx := t.Context()
+
+	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
+
 	log.SetOutput(io.Discard)
-	inv := Invocation{
-		Dir:    "./testdata/invalid_alias",
-		Stdout: io.Discard,
-		Stderr: stderr,
-		Args:   []string{"co"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/invalid_alias",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"co"},
 	}
-	code := Invoke(ctx, inv)
-	if code != 2 {
-		t.Errorf("expected to exit with code 2, but got %v", code)
-	}
-	actual := stderr.String()
+
+	err := Run(runParams)
+	require.Error(t, err)
+
 	expected := "Unknown target specified: \"co\"\n"
-	if actual != expected {
-		t.Fatalf("expected %q, but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stderr.String())
 }
 
 func TestRunCompiledPrintsError(t *testing.T) {
 	ctx := t.Context()
+
 	stderr := &bytes.Buffer{}
 	logger := log.New(stderr, "", 0)
-	code := RunCompiled(ctx, Invocation{}, "thiswon'texist", logger)
-	if code != 1 {
-		t.Errorf("expected code 1 but got %v", code)
-	}
-
-	if strings.TrimSpace(stderr.String()) == "" {
-		t.Fatal("expected to get output to stderr when a run fails, but got nothing.")
-	}
+	err := RunCompiled(ctx, RunParams{}, "thiswon'texist", logger)
+	require.Error(t, err)
 }
 
 func TestCompiledFlags(t *testing.T) {
 	ctx := t.Context()
+
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	dir := testdataCompiled
 	compileDir, err := os.MkdirTemp(dir, "")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	name := filepath.Join(compileDir, "stave_out")
 	if runtime.GOOS == windows {
 		name += dotExe
 	}
+
 	// The CompileOut directory is relative to the
 	// invocation directory, so chop off the invocation dir.
 	outName := "./" + name[len(dir)-1:]
-	defer func() { _ = os.RemoveAll(compileDir) }()
-	inv := Invocation{
+	defer func() {
+		assert.NoError(t, os.RemoveAll(compileDir))
+	}()
+
+	runParams := RunParams{
+		BaseCtx:    ctx,
 		Dir:        dir,
 		Stdout:     stdout,
 		Stderr:     stderr,
 		CompileOut: outName,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
-	}
+
+	err = Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 
 	run := func(stdout, stderr *bytes.Buffer, filename string, args ...string) error {
 		stderr.Reset()
@@ -1346,79 +1192,65 @@ func TestCompiledFlags(t *testing.T) {
 		return nil
 	}
 
-	// get help to target with flag -h target
-	if err := run(stdout, stderr, name, "-h", "deploy"); err != nil {
-		t.Fatal(err)
-	}
-	got := strings.TrimSpace(stdout.String())
+	// get info for target with flag -i target
+	err = run(stdout, stderr, name, "-i", "deploy")
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want := "This is the synopsis for Deploy. This part shouldn't show up.\n\nUsage:\n\n\t" + filepath.Base(name) + " deploy"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, strings.TrimSpace(stdout.String()))
 
 	// run target with verbose flag -v
-	if err := run(stdout, stderr, name, "-v", "testverbose"); err != nil {
-		t.Fatal(err)
-	}
-	got = stderr.String()
+	err = run(stdout, stderr, name, "-v", "testverbose")
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want = hiExclam
-	if !strings.Contains(got, want) {
-		t.Errorf("got %q, does not contain %q", got, want)
-	}
+	assert.Contains(t, stderr.String(), want)
 
 	// pass list flag -l
-	if err := run(stdout, stderr, name, "-l"); err != nil {
-		t.Fatal(err)
-	}
-	got = stdout.String()
+	err = run(stdout, stderr, name, "-l")
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want = "This is the synopsis for Deploy"
-	if !strings.Contains(got, want) {
-		t.Errorf("got %q, does not contain %q", got, want)
-	}
+	assert.Contains(t, stdout.String(), want)
 	want = "This is very verbose"
-	if !strings.Contains(got, want) {
-		t.Errorf("got %q, does not contain %q", got, want)
-	}
+	assert.Contains(t, stdout.String(), want)
 
 	// pass flag -t 1ms
 	err = run(stdout, stderr, name, "-t", "1ms", "sleep")
-	if err == nil {
-		t.Fatalf("expected an error because of timeout")
-	}
-	got = stderr.String()
+	require.Error(t, err)
 	want = "context deadline exceeded"
-	if !strings.Contains(got, want) {
-		t.Errorf("got %q, does not contain %q", got, want)
-	}
+	assert.Contains(t, err.Error(), want)
 }
 
 func TestCompiledEnvironmentVars(t *testing.T) {
 	ctx := t.Context()
+
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
+
 	dir := testdataCompiled
 	compileDir, err := os.MkdirTemp(dir, "")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
 	name := filepath.Join(compileDir, "stave_out")
 	if runtime.GOOS == windows {
 		name += dotExe
 	}
+
 	// The CompileOut directory is relative to the
 	// invocation directory, so chop off the invocation dir.
 	outName := "./" + name[len(dir)-1:]
-	defer func() { _ = os.RemoveAll(compileDir) }()
-	inv := Invocation{
+	defer func() {
+		assert.NoError(t, os.RemoveAll(compileDir))
+	}()
+
+	runParams := RunParams{
+		BaseCtx:    ctx,
 		Dir:        dir,
 		Stdout:     stdout,
 		Stderr:     stderr,
 		CompileOut: outName,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
-	}
+
+	err = Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 
 	run := func(stdout, stderr *bytes.Buffer, filename string, envval string, args ...string) error {
 		stderr.Reset()
@@ -1434,84 +1266,64 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 		return nil
 	}
 
-	if err := run(stdout, stderr, name, "STAVEFILE_HELP=1", "deploy"); err != nil {
-		t.Fatal(err)
-	}
-	got := stdout.String()
+	err = run(stdout, stderr, name, "STAVEFILE_INFO=1", "deploy")
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want := "This is the synopsis for Deploy. This part shouldn't show up.\n\nUsage:\n\n\t" + filepath.Base(name) + " deploy\n\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, stdout.String())
 
-	if err := run(stdout, stderr, name, st.VerboseEnv+"=1", "testverbose"); err != nil {
-		t.Fatal(err)
-	}
-	got = stderr.String()
+	err = run(stdout, stderr, name, st.VerboseEnv+"=1", "testverbose")
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want = hiExclam
-	if !strings.Contains(got, want) {
-		t.Errorf("got %q, does not contain %q", got, want)
-	}
+	assert.Contains(t, stderr.String(), want)
 
-	if err := run(stdout, stderr, name, "STAVEFILE_LIST=1"); err != nil {
-		t.Fatal(err)
-	}
-	got = stdout.String()
+	err = run(stdout, stderr, name, "STAVEFILE_LIST=1")
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want = "This is the synopsis for Deploy"
-	if !strings.Contains(got, want) {
-		t.Errorf("got %q, does not contain %q", got, want)
-	}
+	assert.Contains(t, stdout.String(), want)
 	want = "This is very verbose"
-	if !strings.Contains(got, want) {
-		t.Errorf("got %q, does not contain %q", got, want)
-	}
+	assert.Contains(t, stdout.String(), want)
 
-	if err := run(stdout, stderr, name, st.IgnoreDefaultEnv+"=1"); err != nil {
-		t.Fatal(err)
-	}
-	got = stdout.String()
+	err = run(stdout, stderr, name, st.IgnoreDefaultEnv+"=1")
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want = "Compiled package description."
-	if !strings.Contains(got, want) {
-		t.Errorf("got %q, does not contain %q", got, want)
-	}
+	assert.Contains(t, stdout.String(), want)
 
 	err = run(stdout, stderr, name, "STAVEFILE_TIMEOUT=1ms", "sleep")
-	if err == nil {
-		t.Fatalf("expected an error because of timeout")
-	}
-	got = stderr.String()
+	require.Error(t, err)
 	want = "context deadline exceeded"
-	if !strings.Contains(got, want) {
-		t.Errorf("got %q, does not contain %q", got, want)
-	}
+	assert.Contains(t, stderr.String(), want)
 }
 
 func TestCompiledVerboseFlag(t *testing.T) {
 	ctx := t.Context()
+
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	dir := testdataCompiled
 	compileDir, err := os.MkdirTemp(dir, "")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	filename := filepath.Join(compileDir, "stave_out")
 	if runtime.GOOS == windows {
 		filename += dotExe
 	}
+
 	// The CompileOut directory is relative to the
 	// invocation directory, so chop off the invocation dir.
 	outName := "./" + filename[len(dir)-1:]
-	defer func() { _ = os.RemoveAll(compileDir) }()
-	inv := Invocation{
+	defer func() {
+		assert.NoError(t, os.RemoveAll(compileDir))
+	}()
+
+	runParams := RunParams{
+		BaseCtx:    ctx,
 		Dir:        dir,
 		Stdout:     stdout,
 		Stderr:     stderr,
 		CompileOut: outName,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
-	}
+
+	err = Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 
 	run := func(verboseEnv string, args ...string) string {
 		var stdout, stderr bytes.Buffer
@@ -1520,62 +1332,56 @@ func TestCompiledVerboseFlag(t *testing.T) {
 		cmd.Env = []string{verboseEnv}
 		cmd.Stderr = &stderr
 		cmd.Stdout = &stdout
-		if err := cmd.Run(); err != nil {
-			t.Fatalf("running '%s %s' with env %s failed with: %v\nstdout: %s\nstderr: %s",
-				filename, strings.Join(args, " "), verboseEnv, err, stdout.String(), stderr.String())
-		}
+		err := cmd.Run()
+		require.NoError(t, err, "running '%s %s' failed with: %v\nstdout: %s\nstderr: %s", filename, strings.Join(args, " "), err, stdout.String(), stderr.String())
+
 		return strings.TrimSpace(stdout.String())
 	}
 
 	got := run("STAVEFILE_VERBOSE=false")
 	want := "st.Verbose()==false"
-	if got != want {
-		t.Errorf("got %q, expected %q", got, want)
-	}
+	assert.Equal(t, want, got)
 
 	got = run("STAVEFILE_VERBOSE=false", "-v")
 	want = "st.Verbose()==true"
-	if got != want {
-		t.Errorf("got %q, expected %q", got, want)
-	}
+	assert.Equal(t, want, got)
 
 	got = run("STAVEFILE_VERBOSE=true")
 	want = "st.Verbose()==true"
-	if got != want {
-		t.Errorf("got %q, expected %q", got, want)
-	}
+	assert.Equal(t, want, got)
 
 	got = run("STAVEFILE_VERBOSE=true", "-v=false")
 	want = "st.Verbose()==false"
-	if got != want {
-		t.Errorf("got %q, expected %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestSignals(t *testing.T) {
 	ctx := t.Context()
+
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	dir := "./testdata/signals"
 	compileDir, err := os.MkdirTemp(dir, "")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	name := filepath.Join(compileDir, "stave_out")
+
 	// The CompileOut directory is relative to the
 	// invocation directory, so chop off the invocation dir.
 	outName := "./" + name[len(dir)-1:]
-	defer func() { _ = os.RemoveAll(compileDir) }()
-	inv := Invocation{
+	defer func() {
+		assert.NoError(t, os.RemoveAll(compileDir))
+	}()
+
+	runParams := RunParams{
+		BaseCtx:    ctx,
 		Dir:        dir,
 		Stdout:     stdout,
 		Stderr:     stderr,
 		CompileOut: outName,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Errorf("expected to exit with code 0, but got %v, stderr: %s", code, stderr)
-	}
+
+	err = Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 
 	run := func(stdout, stderr *bytes.Buffer, filename string, target string, signals ...syscall.Signal) error {
 		stderr.Reset()
@@ -1587,6 +1393,7 @@ func TestSignals(t *testing.T) {
 			return fmt.Errorf("running '%s %s' failed with: %w\nstdout: %s\nstderr: %s",
 				filename, target, err, stdout, stderr)
 		}
+
 		pid := cmd.Process.Pid
 		go func() {
 			time.Sleep(time.Millisecond * 500)
@@ -1598,76 +1405,49 @@ func TestSignals(t *testing.T) {
 				time.Sleep(time.Millisecond * 50)
 			}
 		}()
+
 		if err := cmd.Wait(); err != nil {
 			return fmt.Errorf("running '%s %s' failed with: %w\nstdout: %s\nstderr: %s",
 				filename, target, err, stdout, stderr)
 		}
+
 		return nil
 	}
 
-	if err := run(stdout, stderr, name, "exitsAfterSighup", syscall.SIGHUP); err != nil {
-		t.Fatal(err)
-	}
-	got := stdout.String()
+	err = run(stdout, stderr, name, "exitsAfterSighup", syscall.SIGHUP)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want := "received sighup\n"
-	if !strings.Contains(got, want) {
-		t.Errorf("got %q, does not contain %q", got, want)
-	}
+	assert.Contains(t, stdout.String(), want)
 
-	if err := run(stdout, stderr, name, "exitsAfterSigint", syscall.SIGINT); err != nil {
-		t.Fatal(err)
-	}
-	got = stdout.String()
+	err = run(stdout, stderr, name, "exitsAfterSigint", syscall.SIGINT)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want = "exiting...done\n"
-	if !strings.Contains(got, want) {
-		t.Errorf("got %q, does not contain %q", got, want)
-	}
-	got = stderr.String()
+	assert.Contains(t, stdout.String(), want)
 	want = "cancelling stave targets, waiting up to 5 seconds for cleanup...\n"
-	if !strings.Contains(got, want) {
-		t.Errorf("got %q, does not contain %q", got, want)
-	}
+	assert.Contains(t, stderr.String(), want)
 
-	if err := run(stdout, stderr, name, "exitsAfterCancel", syscall.SIGINT); err != nil {
-		t.Fatal(err)
-	}
-	got = stdout.String()
+	err = run(stdout, stderr, name, "exitsAfterCancel", syscall.SIGINT)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want = "exiting...done\ndeferred cleanup\n"
-	if !strings.Contains(got, want) {
-		t.Errorf("got %q, does not contain %q", got, want)
-	}
-	got = stderr.String()
+	assert.Contains(t, stdout.String(), want)
 	want = "cancelling stave targets, waiting up to 5 seconds for cleanup...\n"
-	if !strings.Contains(got, want) {
-		t.Errorf("got %q, does not contain %q", got, want)
-	}
+	assert.Contains(t, stderr.String(), want)
 
-	if err := run(stdout, stderr, name, "ignoresSignals", syscall.SIGINT, syscall.SIGINT); err == nil {
-		t.Fatalf("expected an error because of force kill")
-	}
-	got = stderr.String()
+	err = run(stdout, stderr, name, "ignoresSignals", syscall.SIGINT, syscall.SIGINT)
+	require.Error(t, err)
 	want = "cancelling stave targets, waiting up to 5 seconds for cleanup...\nexiting stave\nError: exit forced\n"
-	if !strings.Contains(got, want) {
-		t.Errorf("got %q, does not contain %q", got, want)
-	}
+	assert.Contains(t, stderr.String(), want)
 
-	if err := run(stdout, stderr, name, "ignoresSignals", syscall.SIGINT); err == nil {
-		t.Fatalf("expected an error because of force kill")
-	}
-	got = stderr.String()
+	err = run(stdout, stderr, name, "ignoresSignals", syscall.SIGINT)
+	require.Error(t, err)
 	want = "cancelling stave targets, waiting up to 5 seconds for cleanup...\nError: cleanup timeout exceeded\n"
-	if !strings.Contains(got, want) {
-		t.Errorf("got %q, does not contain %q", got, want)
-	}
+	assert.Contains(t, stderr.String(), want)
 }
 
 func TestCompiledDeterministic(t *testing.T) {
-	ctx := t.Context()
 	dir := testdataCompiled
 	compileDir, err := os.MkdirTemp(dir, "")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	var exp string
 	outFile := filepath.Join(dir, mainfile)
@@ -1684,10 +1464,14 @@ func TestCompiledDeterministic(t *testing.T) {
 			// The CompileOut directory is relative to the
 			// invocation directory, so chop off the invocation dir.
 			outName := "./" + filename[len(dir)-1:]
-			defer func() { _ = os.RemoveAll(compileDir) }()
-			defer func() { _ = os.Remove(outFile) }()
+			defer func() {
+				assert.NoError(t, os.RemoveAll(compileDir))
+			}()
+			defer func() {
+				assert.NoError(t, os.Remove(outFile))
+			}()
 
-			inv := Invocation{
+			runParams := RunParams{
 				Stderr:     os.Stderr,
 				Stdout:     os.Stdout,
 				Verbose:    true,
@@ -1696,21 +1480,17 @@ func TestCompiledDeterministic(t *testing.T) {
 				CompileOut: outName,
 			}
 
-			code := Invoke(ctx, inv)
-			if code != 0 {
-				t.Errorf("expected to exit with code 0, but got %v", code)
-			}
-
+			err := Run(runParams)
+			require.NoError(t, err)
 			fd, err := os.Open(outFile)
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer func() { _ = fd.Close() }()
+			require.NoError(t, err)
+			defer func() {
+				assert.NoError(t, fd.Close())
+			}()
 
 			hasher := sha256.New()
-			if _, err := io.Copy(hasher, fd); err != nil {
-				t.Fatal(err)
-			}
+			_, err = io.Copy(hasher, fd)
+			require.NoError(t, err)
 
 			got := hex.EncodeToString(hasher.Sum(nil))
 			// set exp on first iteration, subsequent iterations prove the compiled file is identical
@@ -1718,76 +1498,27 @@ func TestCompiledDeterministic(t *testing.T) {
 				exp = got
 			}
 
-			if iRun > 0 && got != exp {
-				t.Errorf("unexpected sha256 hash of %s; wanted %s, got %s", outFile, exp, got)
+			if iRun > 0 {
+				assert.Equal(t, exp, got)
 			}
 		})
 	}
 }
 
-func TestClean(t *testing.T) {
-	ctx := t.Context()
-	if err := os.RemoveAll(st.CacheDir()); err != nil {
-		t.Error("error removing cache dir:", err)
-	}
-	code := ParseAndRun(ctx, io.Discard, io.Discard, &bytes.Buffer{}, []string{"-clean"})
-	if code != 0 {
-		t.Errorf("expected 0, but got %v", code)
-	}
-
-	TestAlias(t) // make sure we've got something in the CACHE_DIR
-	files, err := os.ReadDir(st.CacheDir())
-	if err != nil {
-		t.Error("issue reading file:", err)
-	}
-
-	if len(files) < 1 {
-		t.Error("Need at least 1 cached binaries to test --clean")
-	}
-
-	_, cmd, err := Parse(io.Discard, io.Discard, []string{"-clean"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if cmd != Clean {
-		t.Errorf("Expected 'clean' command but got %v", cmd)
-	}
-	buf := &bytes.Buffer{}
-	code = ParseAndRun(ctx, io.Discard, buf, &bytes.Buffer{}, []string{"-clean"})
-	if code != 0 {
-		t.Fatalf("expected 0, but got %v: %s", code, buf)
-	}
-
-	infos, err := os.ReadDir(st.CacheDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	var names []string
-	for _, i := range infos {
-		if !i.IsDir() {
-			names = append(names, i.Name())
-		}
-	}
-
-	if len(names) != 0 {
-		t.Errorf("expected '-clean' to remove files from CACHE_DIR, but still have %v", names)
-	}
-}
-
 func TestGoCmd(t *testing.T) {
 	ctx := t.Context()
+
 	textOutput := "TestGoCmd"
 	t.Setenv(testExeEnv, textOutput)
 
 	// fake out the compiled file, since the code checks for it.
 	fd, err := os.CreateTemp("", "")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	name := fd.Name()
 	dir := filepath.Dir(name)
-	defer func() { _ = os.Remove(name) }()
+	defer func() {
+		assert.NoError(t, os.Remove(name))
+	}()
 	_ = fd.Close()
 
 	buf := &bytes.Buffer{}
@@ -1814,12 +1545,14 @@ func TestGoCmd(t *testing.T) {
 
 func TestGoModules(t *testing.T) {
 	ctx := t.Context()
+
 	require.NoError(t, resetTerm())
 	dir, err := os.MkdirTemp("", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = os.RemoveAll(dir) }()
+	require.NoError(t, err)
+	defer func() {
+		assert.NoError(t, os.RemoveAll(dir))
+	}()
+
 	// beware, stave builds in go versions older than 1.17 so both build tag formats need to be present
 	err = os.WriteFile(filepath.Join(dir, "stavefile.go"), []byte(`//go:build stave
 // +build stave
@@ -1830,20 +1563,17 @@ func Test() {
 	print("nothing is imported here for >1.17 compatibility")
 }
 `), 0600)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	cmd := exec.Command("go", "mod", "init", "app")
+	cmd := exec.CommandContext(ctx, "go", "mod", "init", "app")
 	cmd.Dir = dir
 	cmd.Env = os.Environ()
 	cmd.Stderr = stderr
 	cmd.Stdout = stdout
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("Error running go mod init: %v\nStdout: %s\nStderr: %s", err, stdout, stderr)
-	}
+	require.NoError(t, cmd.Run(), "failed to run 'go mod init', stderr was: %s", stderr.String())
+
 	stderr.Reset()
 	stdout.Reset()
 
@@ -1853,83 +1583,85 @@ func Test() {
 	cmd.Env = os.Environ()
 	cmd.Stderr = stderr
 	cmd.Stdout = stdout
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("Error running go mod tidy: %v\nStdout: %s\nStderr: %s", err, stdout, stderr)
-	}
+	require.NoError(t, cmd.Run(), "failed to run 'go mod init', stderr was: %s", stderr.String())
+
 	stderr.Reset()
 	stdout.Reset()
-	code := Invoke(ctx, Invocation{
+	err = Run(RunParams{
 		Dir:    dir,
 		Stderr: stderr,
 		Stdout: stdout,
 	})
-	if code != 0 {
-		t.Fatalf("exited with code %d. \nStdout: %s\nStderr: %s", code, stdout, stderr)
-	}
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
 	expected := `
 Targets:
   test    
 `[1:]
-	if output := stdout.String(); output != expected {
-		t.Fatalf("expected output %q, but got %q", expected, output)
-	}
+
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestNamespaceDep(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/namespaces",
-		Stderr: stderr,
-		Stdout: stdout,
-		Args:   []string{"TestNamespaceDep"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/namespaces",
+		Stderr:  stderr,
+		Stdout:  stdout,
+		Args:    []string{"TestNamespaceDep"},
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected 0, but got %v, stderr:\n%s", code, stderr)
-	}
+
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
 	expected := hiExclamAndNewline
-	if stdout.String() != expected {
-		t.Fatalf("expected %q, but got %q", expected, stdout.String())
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestNamespace(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/namespaces",
-		Stderr: io.Discard,
-		Stdout: stdout,
-		Args:   []string{"ns:error"},
+	stderr := &bytes.Buffer{}
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/namespaces",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"ns:error"},
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected 0, but got %v", code)
-	}
+
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
 	expected := hiExclamAndNewline
-	if stdout.String() != expected {
-		t.Fatalf("expected %q, but got %q", expected, stdout.String())
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestNamespaceDefault(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/namespaces",
-		Stderr: io.Discard,
-		Stdout: stdout,
+	stderr := &bytes.Buffer{}
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/namespaces",
+		Stdout:  stdout,
+		Stderr:  stderr,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected 0, but got %v", code)
-	}
+
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
 	expected := hiExclamAndNewline
-	if stdout.String() != expected {
-		t.Fatalf("expected %q, but got %q", expected, stdout.String())
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestAliasToImport(_ *testing.T) {
@@ -1937,21 +1669,22 @@ func TestAliasToImport(_ *testing.T) {
 
 func TestWrongDependency(t *testing.T) {
 	ctx := t.Context()
+
+	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/wrong_dep",
-		Stderr: stderr,
-		Stdout: io.Discard,
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/wrong_dep",
+		Stdout:  stdout,
+		Stderr:  stderr,
 	}
-	code := Invoke(ctx, inv)
-	if code != 1 {
-		t.Fatalf("expected 1, but got %v", code)
-	}
+
+	err := Run(runParams)
+	require.Error(t, err)
+
 	expected := "Error: argument 0 (complex128), is not a supported argument type\n"
-	actual := stderr.String()
-	if actual != expected {
-		t.Fatalf("expected %q, but got %q", expected, actual)
-	}
+	assert.Equal(t, expected, stderr.String())
 }
 
 // Regression tests, add tests to ensure we do not regress on known issues.
@@ -1959,22 +1692,22 @@ func TestWrongDependency(t *testing.T) {
 // TestBug508 is a regression test for: Bug: using Default with imports selects first matching func by name.
 func TestBug508(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/bug508",
-		Stderr: stderr,
-		Stdout: stdout,
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/bug508",
+		Stderr:  stderr,
+		Stdout:  stdout,
 	}
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Log(stderr.String())
-		t.Fatalf("expected 0, but got %v", code)
-	}
+
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+
 	expected := "test\n"
-	if stdout.String() != expected {
-		t.Fatalf("expected %q, but got %q", expected, stdout.String())
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 // / This code liberally borrowed from https://github.com/rsc/goversion/blob/master/version/exe.go

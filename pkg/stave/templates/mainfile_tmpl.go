@@ -25,11 +25,11 @@ import (
 func main() {
 	// Use local types and functions in order to avoid name conflicts with additional stavefiles.
 	type arguments struct {
-		Verbose       bool          // print out log statements
-		List          bool          // print out a list of targets
-		Help          bool          // print out help for a specific target
-		Timeout       time.Duration // set a timeout to running the targets
-		Args          []string      // args contain the non-flag command-line arguments
+		Verbose bool          // print out log statements
+		List    bool          // print out a list of targets
+		Info    bool          // print out docstring for a specific target
+		Timeout time.Duration // set a timeout to running the targets
+		Args    []string      // args contain the non-flag command-line arguments
 	}
 
 	parseBool := func(env string) bool {
@@ -64,21 +64,21 @@ func main() {
 	// default flag set with ExitOnError and auto generated PrintDefaults should be sufficient
 	fs.BoolVar(&args.Verbose, "v", parseBool("STAVEFILE_VERBOSE"), "show verbose output when running targets")
 	fs.BoolVar(&args.List, "l", parseBool("STAVEFILE_LIST"), "list targets for this binary")
-	fs.BoolVar(&args.Help, "h", parseBool("STAVEFILE_HELP"), "print out help for a specific target")
+	fs.BoolVar(&args.Info, "i", parseBool("STAVEFILE_INFO"), "print out docstring for a specific target")
 	fs.DurationVar(&args.Timeout, "t", parseDuration("STAVEFILE_TIMEOUT"), "timeout in duration parsable format (e.g. 5m30s)")
 	fs.Usage = func() {
 		_fmt.Fprintf(os.Stdout, `
 		%s [options] [target]
 
 	Commands:
-		-l    list targets in this binary
-		-h    show this help
+		-l --list   list targets in this binary
+		-h --info   show this help
 
 	Options:
-		-h    show description of a target
-		-t <string>
-			 timeout in duration parsable format (e.g. 5m30s)
-		-v    show verbose output when running targets
+		-i --info   show description of a target
+		-t          <string>
+                timeout in duration parsable format (e.g. 5m30s)
+		-v          show verbose output when running targets
 		`[1:], _filepath.Base(os.Args[0]))
 	}
 	if err := fs.Parse(os.Args[1:]); err != nil {
@@ -86,7 +86,7 @@ func main() {
 		return
 	}
 	args.Args = fs.Args()
-	if args.Help && len(args.Args) == 0 {
+	if args.Info && len(args.Args) == 0 {
 		fs.Usage()
 		return
 	}
@@ -355,7 +355,7 @@ func main() {
 		return
 	}
 
-	if args.Help {
+	if args.Info {
 		if len(args.Args) < 1 {
 			logger.Println("no target specified")
 			os.Exit(2)

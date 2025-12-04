@@ -4,24 +4,28 @@ package stave
 import (
 	"bytes"
 	"testing"
+
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStaveImportsList(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/staveimport",
-		Stdout: stdout,
-		Stderr: stderr,
-		List:   true,
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/staveimport",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		List:    true,
 	}
 
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
-	}
-	actual := stdout.String()
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := `
 Targets:
   buildSubdir        Builds stuff.
@@ -33,30 +37,26 @@ Targets:
 * default target
 `[1:]
 
-	if actual != expected {
-		t.Logf("expected: %q", expected)
-		t.Logf("  actual: %q", actual)
-		t.Fatalf("expected:\n%v\n\ngot:\n%v", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestStaveImportsHelp(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/staveimport",
-		Stdout: stdout,
-		Stderr: stderr,
-		Help:   true,
-		Args:   []string{"buildSubdir"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/staveimport",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Info:    true,
+		Args:    []string{"buildSubdir"},
 	}
 
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
-	}
-	actual := stdout.String()
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := `
 BuildSubdir Builds stuff.
 
@@ -66,30 +66,26 @@ Usage:
 
 `[1:]
 
-	if actual != expected {
-		t.Logf("expected: %q", expected)
-		t.Logf("  actual: %q", actual)
-		t.Fatalf("expected:\n%v\n\ngot:\n%v", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestStaveImportsHelpNamed(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/staveimport",
-		Stdout: stdout,
-		Stderr: stderr,
-		Help:   true,
-		Args:   []string{"zz:buildSubdir2"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/staveimport",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Info:    true,
+		Args:    []string{"zz:buildSubdir2"},
 	}
 
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
-	}
-	actual := stdout.String()
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := `
 BuildSubdir2 Builds stuff.
 
@@ -99,30 +95,26 @@ Usage:
 
 `[1:]
 
-	if actual != expected {
-		t.Logf("expected: %q", expected)
-		t.Logf("  actual: %q", actual)
-		t.Fatalf("expected:\n%v\n\ngot:\n%v", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestStaveImportsHelpNamedNS(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/staveimport",
-		Stdout: stdout,
-		Stderr: stderr,
-		Help:   true,
-		Args:   []string{"zz:ns:deploy2"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/staveimport",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Info:    true,
+		Args:    []string{"zz:ns:deploy2"},
 	}
 
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
-	}
-	actual := stdout.String()
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := `
 Deploy2 deploys stuff.
 
@@ -134,271 +126,241 @@ Aliases: nsd2
 
 `[1:]
 
-	if actual != expected {
-		t.Logf("expected: %q", expected)
-		t.Logf("  actual: %q", actual)
-		t.Fatalf("expected:\n%v\n\ngot:\n%v", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestStaveImportsRoot(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/staveimport",
-		Stdout: stdout,
-		Stderr: stderr,
-		Args:   []string{"root"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/staveimport",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"root"},
 	}
 
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
-	}
-	actual := stdout.String()
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := "root\n"
-	if actual != expected {
-		t.Fatalf("expected: %q got: %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestStaveImportsNamedNS(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/staveimport",
-		Stdout: stdout,
-		Stderr: stderr,
-		Args:   []string{"zz:nS:deploy2"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/staveimport",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"zz:nS:deploy2"},
 	}
 
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
-	}
-	actual := stdout.String()
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := "deploy2\n"
-	if actual != expected {
-		t.Fatalf("expected: %q got: %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestStaveImportsNamedRoot(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/staveimport",
-		Stdout: stdout,
-		Stderr: stderr,
-		Args:   []string{"zz:buildSubdir2"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/staveimport",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"zz:buildSubdir2"},
 	}
 
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
-	}
-	actual := stdout.String()
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := "buildsubdir2\n"
-	if actual != expected {
-		t.Fatalf("expected: %q got: %q", expected, actual)
-	}
-	if stderr := stderr.String(); stderr != "" {
-		t.Fatal("unexpected output to stderr: ", stderr)
-	}
+	assert.Equal(t, expected, stdout.String())
+	assert.Empty(t, stderr.String())
 }
 
 func TestStaveImportsRootImportNS(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/staveimport",
-		Stdout: stdout,
-		Stderr: stderr,
-		Args:   []string{"nS:deploy"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/staveimport",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"nS:deploy"},
 	}
 
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
-	}
-	actual := stdout.String()
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := "deploy\n"
-	if actual != expected {
-		t.Fatalf("expected: %q got: %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestStaveImportsRootImport(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/staveimport",
-		Stdout: stdout,
-		Stderr: stderr,
-		Args:   []string{"buildSubdir"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/staveimport",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"buildSubdir"},
 	}
 
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
-	}
-	actual := stdout.String()
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := "buildsubdir\n"
-	if actual != expected {
-		t.Fatalf("expected: %q got: %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestStaveImportsAliasToNS(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/staveimport",
-		Stdout: stdout,
-		Stderr: stderr,
-		Args:   []string{"nsd2"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/staveimport",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"nsd2"},
 	}
 
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
-	}
-	actual := stdout.String()
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := "deploy2\n"
-	if actual != expected {
-		t.Fatalf("expected: %q got: %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestStaveImportsOneLine(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/staveimport/oneline",
-		Stdout: stdout,
-		Stderr: stderr,
-		Args:   []string{"build"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/staveimport/oneline",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"build"},
 	}
 
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
-	}
-	actual := stdout.String()
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := "build\n"
-	if actual != expected {
-		t.Fatalf("expected: %q got: %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
+
 func TestStaveImportsTrailing(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/staveimport/trailing",
-		Stdout: stdout,
-		Stderr: stderr,
-		Args:   []string{"build"},
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/staveimport/trailing",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"build"},
 	}
 
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
-	}
-	actual := stdout.String()
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := "build\n"
-	if actual != expected {
-		t.Fatalf("expected: %q got: %q", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestStaveImportsTaggedPackage(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/staveimport/tagged",
-		Stdout: stdout,
-		Stderr: stderr,
-		List:   true,
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/staveimport/tagged",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		List:    true,
 	}
 
-	code := Invoke(ctx, inv)
-	if code != 1 {
-		t.Fatalf("expected to exit with code 1, but got %v, stdout:\n%s\nstderr:\n%s", code, stdout, stderr)
-	}
+	err := Run(runParams)
+	require.Error(t, err)
 
-	actual := stderr.String()
+	actual := err.Error()
 	// Match a shorter version of the error message, since the output from go list differs between versions
 	expected := `
-Error parsing stavefiles: error running "go list -f {{.Dir}}||{{.Name}} github.com/yaklabco/stave/pkg/stave/testdata/staveimport/tagged/pkg": exit status 1`[1:]
-	actualShortened := actual[:len(expected)]
-	if actualShortened != expected {
-		t.Logf("expected: %q", expected)
-		t.Logf("actual: %q", actualShortened)
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actualShortened)
-	}
+parsing stavefiles: error running "go list -f {{.Dir}}||{{.Name}} github.com/yaklabco/stave/pkg/stave/testdata/staveimport/tagged/pkg": exit status 1`[1:]
+	actualShortened := lo.Substring(actual, 0, uint(len(expected)))
+
+	assert.Contains(t, expected, actualShortened)
 }
 
 func TestStaveImportsSameNamespaceUniqueTargets(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/staveimport/samenamespace/uniquetargets",
-		Stdout: stdout,
-		Stderr: stderr,
-		List:   true,
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/staveimport/samenamespace/uniquetargets",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		List:    true,
 	}
 
-	code := Invoke(ctx, inv)
-	if code != 0 {
-		t.Fatalf("expected to exit with code 0, but got %v, stderr:\n%s", code, stderr)
-	}
-	actual := stdout.String()
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := `
 Targets:
   samenamespace:build1    
   samenamespace:build2    
 `[1:]
 
-	if actual != expected {
-		t.Logf("expected: %q", expected)
-		t.Logf("  actual: %q", actual)
-		t.Fatalf("expected:\n%v\n\ngot:\n%v", expected, actual)
-	}
+	assert.Equal(t, expected, stdout.String())
 }
 
 func TestStaveImportsSameNamespaceDupTargets(t *testing.T) {
 	ctx := t.Context()
+
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	inv := Invocation{
-		Dir:    "./testdata/staveimport/samenamespace/duptargets",
-		Stdout: stdout,
-		Stderr: stderr,
-		List:   true,
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     "./testdata/staveimport/samenamespace/duptargets",
+		Stdout:  stdout,
+		Stderr:  stderr,
+		List:    true,
 	}
 
-	code := Invoke(ctx, inv)
-	if code != 1 {
-		t.Fatalf("expected to exit with code 1, but got %v, stderr:\n%s", code, stderr)
-	}
-	actual := stderr.String()
+	err := Run(runParams)
+	require.Error(t, err)
+
 	expected := `
-Error parsing stavefiles: "samenamespace:build" target has multiple definitions: github.com/yaklabco/stave/pkg/stave/testdata/staveimport/samenamespace/duptargets/package1.Build, github.com/yaklabco/stave/pkg/stave/testdata/staveimport/samenamespace/duptargets/package2.Build
-
+parsing stavefiles: "samenamespace:build" target has multiple definitions: github.com/yaklabco/stave/pkg/stave/testdata/staveimport/samenamespace/duptargets/package1.Build, github.com/yaklabco/stave/pkg/stave/testdata/staveimport/samenamespace/duptargets/package2.Build
 `[1:]
-	if actual != expected {
-		t.Logf("expected: %q", expected)
-		t.Logf("  actual: %q", actual)
-		t.Fatalf("expected:\n%v\n\ngot:\n%v", expected, actual)
-	}
+
+	assert.Equal(t, expected, err.Error())
 }

@@ -4,9 +4,26 @@ package stave
 import (
 	"io"
 	"log"
+	"regexp"
 	"strings"
 	"text/template"
 )
+
+// (Aaaa)(Bbbb) -> aaaaBbbb.
+var firstWordRx = regexp.MustCompile(`^([[:upper:]][^[:upper:]]+)([[:upper:]].*)$`)
+
+// (AAAA)(Bbbb) -> aaaaBbbb.
+var firstAbbrevRx = regexp.MustCompile(`^([[:upper:]]+)([[:upper:]][^[:upper:]].*)$`)
+
+func lowerFirstWord(str string) string {
+	if match := firstWordRx.FindStringSubmatch(str); match != nil {
+		return strings.ToLower(match[1]) + match[2]
+	}
+	if match := firstAbbrevRx.FindStringSubmatch(str); match != nil {
+		return strings.ToLower(match[1]) + match[2]
+	}
+	return strings.ToLower(str)
+}
 
 var mainfileTemplate = template.Must(template.New("").Funcs(map[string]interface{}{
 	"lower": strings.ToLower,
@@ -27,10 +44,3 @@ const (
 )
 
 var debug = log.New(io.Discard, "DEBUG: ", log.Ltime|log.Lmicroseconds)
-
-// set by ldflags when you "stave build".
-var (
-	commitHash = "<not set>"
-	timestamp  = "<not set>"
-	gitTag     = "<not set>"
-)

@@ -22,6 +22,10 @@ const VerboseEnv = "STAVEFILE_VERBOSE"
 // debug mode when running stave.
 const DebugEnv = "STAVEFILE_DEBUG"
 
+// InfoEnv is the environment variable that indicates the user requested
+// the docstring for one of the targets.
+const InfoEnv = "STAVEFILE_INFO"
+
 // DryRunRequestedEnv is the environment variable that indicates the user requested dryrun mode when running mage.
 const DryRunRequestedEnv = dryrun.RequestedEnv
 
@@ -81,6 +85,11 @@ func Verbose() bool {
 // Debug reports whether a stavefile was run with the debug flag.
 func Debug() bool {
 	return parseEnvBool(DebugEnv)
+}
+
+// Info reports whether a stavefile was run with the info flag.
+func Info() bool {
+	return parseEnvBool(InfoEnv)
 }
 
 // GoCmd reports the command that Stave will use to build go code.  By default stave runs

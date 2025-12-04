@@ -21,3 +21,6 @@
   - [ ] `cobra`-ify
   - [ ] then, `fang`-ify
 - [ ] Redo logging properly
+- [ ] Figure out what the deal is with `lowerFirstWord(...)` (when getting to this, remember the existence of `lo.Words(...)`)
+- [ ] Every target in its own Goroutine!
+- [ ] Audit tests for writing things in non-temporary, non-ignored dirs
