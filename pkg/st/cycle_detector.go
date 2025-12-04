@@ -28,9 +28,8 @@ func firstExternalCaller() *runtime.Frame {
 	thisFunc := runtime.FuncForPC(thisPC)
 	pkgPrefix := getPackagePath(thisFunc)
 
-	// Skip: runtime.Callers (1), myFunc (2), the function calling myFunc (3)
+	// runtime.Callers (0), firstExternalCaller (1), the function calling firstExternalCaller (2)
 	const skip = 2
-
 	pc := make([]uintptr, maxStackDepthToCheck)
 	n := runtime.Callers(skip, pc)
 	frames := runtime.CallersFrames(pc[:n])
