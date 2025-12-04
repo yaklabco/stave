@@ -1,4 +1,4 @@
-// Package dryrun implements the conditional checks for Mage's dryrun mode.
+// Package dryrun implements the conditional checks for Stave's dryrun mode.
 //
 // For IsDryRun() to be true, two things have to be true:
 // 1. IsPossible() must be true
@@ -9,11 +9,11 @@
 //     i.  The env var `STAVEFILE_DRYRUN` was set at the point of the first call to IsRequested()
 //     ii. SetRequested(true) was called at some point prior to the IsPossible() call.
 //
-// This enables the "top-level" Mage run, which compiles the magefile into a
+// This enables the "top-level" Stave run, which compiles the stavefile into a
 // binary, to always be carried out regardless of `-dryrun` (because
 // `STAVEFILE_DRYRUN_POSSIBLE` will not be set in that situation), while still
-// enabling true dryrun functionality for "inner" Mage runs (i.e., runs of the
-// compiled magefile binary).
+// enabling true dryrun functionality for "inner" Stave runs (i.e., runs of the
+// compiled stavefile binary).
 package dryrun
 
 import (
@@ -22,7 +22,7 @@ import (
 	"os/exec"
 )
 
-// RequestedEnv is the environment variable that indicates the user requested dryrun mode when running mage.
+// RequestedEnv is the environment variable that indicates the user requested dryrun mode when running stave.
 const RequestedEnv = "STAVEFILE_DRYRUN"
 
 // PossibleEnv is the environment variable that indicates we are in a context where a dry run is possible.

@@ -40,7 +40,7 @@ func All() error {
 }
 
 // Init installs required tools and sets up git hooks and modules.
-func Init() error { // mage:help=Install dev tools (Brewfile), setup husky hooks, and tidy modules
+func Init() error { // stave:help=Install dev tools (Brewfile), setup husky hooks, and tidy modules
 	nCores, err := getNumberOfCores()
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func Init() error { // mage:help=Install dev tools (Brewfile), setup husky hooks
 }
 
 // Markdownlint runs markdownlint-cli2 on all tracked Markdown files.
-func Markdownlint() error { // mage:help=Run markdownlint on Markdown files
+func Markdownlint() error { // stave:help=Run markdownlint on Markdown files
 	st.Deps(Init)
 
 	markdownFilesList, err := sh.Output("git", "ls-files", "--cached", "--others", "--exclude-standard", "--", "*.md")
@@ -110,7 +110,7 @@ func Markdownlint() error { // mage:help=Run markdownlint on Markdown files
 
 // LintGo runs golangci-lint with auto-fix and parallel runner options enabled.
 func LintGo() error {
-	out, err := sh.Output("golangci-lint", "run", "--fix", "--allow-parallel-runners", "--build-tags=mage")
+	out, err := sh.Output("golangci-lint", "run", "--fix", "--allow-parallel-runners", "--build-tags='!ignore'")
 	if err != nil {
 		titleStyle, blockStyle := ui.GetBlockStyles()
 		_, _ = fmt.Println(titleStyle.Render("golangci-lint output"))
@@ -123,17 +123,17 @@ func LintGo() error {
 }
 
 // Lint runs golangci-lint after markdownlint and init.
-func Lint() { // mage:help=Run linters and auto-fix issues
+func Lint() { // stave:help=Run linters and auto-fix issues
 	st.Deps(Init, Markdownlint, LintGo)
 }
 
 // Test aggregate target runs Lint and TestGo.
-func Test() { // mage:help=Run lint and Go tests with coverage
+func Test() { // stave:help=Run lint and Go tests with coverage
 	st.Deps(Init, Lint, TestGo)
 }
 
 // TestGo runs Go tests with coverage and produces coverage.out and coverage.html.
-func TestGo() error { // mage:help=Run Go tests with coverage (coverage.out, coverage.html)
+func TestGo() error { // stave:help=Run Go tests with coverage (coverage.out, coverage.html)
 	st.Deps(Init)
 
 	nCores, err := getNumberOfCores()
@@ -162,7 +162,7 @@ func TestGo() error { // mage:help=Run Go tests with coverage (coverage.out, cov
 }
 
 // Build artifacts via goreleaser snapshot build.
-func Build() error { // mage:help=Build artifacts using goreleaser (snapshot)
+func Build() error { // stave:help=Build artifacts using goreleaser (snapshot)
 	st.Deps(Init)
 
 	nCores, err := getNumberOfCores()
@@ -178,7 +178,7 @@ func Build() error { // mage:help=Build artifacts using goreleaser (snapshot)
 }
 
 // Release tags the next version with svu and runs goreleaser release.
-func Release() error { // mage:help=Create and push a new tag with svu, then goreleaser
+func Release() error { // stave:help=Create and push a new tag with svu, then goreleaser
 	if err := setSkipSVUChangelogCheck(); err != nil {
 		return err
 	}

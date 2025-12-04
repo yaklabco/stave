@@ -26,7 +26,7 @@ const DebugEnv = "STAVEFILE_DEBUG"
 // the docstring for one of the targets.
 const InfoEnv = "STAVEFILE_INFO"
 
-// DryRunRequestedEnv is the environment variable that indicates the user requested dryrun mode when running mage.
+// DryRunRequestedEnv is the environment variable that indicates the user requested dryrun mode when running Stave.
 const DryRunRequestedEnv = dryrun.RequestedEnv
 
 // DryRunPossibleEnv is the environment variable that indicates we are in a context where a dry run is possible.
