@@ -23,9 +23,9 @@ builds:
       # Keep it minimal and safe; no package vars assumed.
       - -s -w
       # Inject version metadata so the binary can print it without shelling out.
-      - -X github.com/yaklabco/stave/cmd/stave.Version={{ .Version }}
-      - -X github.com/yaklabco/stave/cmd/stave.Commit={{ .FullCommit }}
-      - -X github.com/yaklabco/stave/cmd/stave.BuildDate={{ .Date }}
+      - -X github.com/yaklabco/stave/cmd/stave/version.Version={{ .Version }}
+      - -X github.com/yaklabco/stave/cmd/stave/version.Commit={{ .FullCommit }}
+      - -X github.com/yaklabco/stave/cmd/stave/version.BuildDate={{ .Date }}
     goos:
       - darwin
       - linux

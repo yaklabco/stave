@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"github.com/yaklabco/stave/cmd/stave/version"
 	"github.com/yaklabco/stave/internal/dryrun"
 	"github.com/yaklabco/stave/pkg/sh"
 	"github.com/yaklabco/stave/pkg/st"
@@ -245,7 +246,7 @@ func Say(msg string, i int, b bool, d time.Duration) error {
 	return err
 }
 
-// Install runs "go install" for stave. This generates the version info the binary.
+// Install runs "go install" for stave. This also generates version info for the binary.
 func Install() error {
 	name := "stave"
 	if runtime.GOOS == "windows" {
@@ -315,22 +316,28 @@ func Clean() error {
 
 func flags() string {
 	timestamp := time.Now().Format(time.RFC3339)
-	hash := hash()
-	tag := tag()
-	if tag == "" {
-		tag = "dev"
+	theHash := hash()
+	theTag := tag()
+	if theTag == "" {
+		theTag = "dev"
 	}
-	return fmt.Sprintf(`-X "github.com/yaklabco/stave/pkg/stave.timestamp=%s" -X "github.com/yaklabco/stave/pkg/stave.commitHash=%s" -X "github.com/yaklabco/stave/pkg/stave.gitTag=%s"`, timestamp, hash, tag)
+	return fmt.Sprintf(`-X "github.com/yaklabco/stave/cmd/stave/version.BuildDate=%s" -X "github.com/yaklabco/stave/cmd/stave/version.Commit=%s" -X "github.com/yaklabco/stave/cmd/stave/version.Version=%s"`, timestamp, theHash, theTag)
 }
 
 // tag returns the git tag for the current branch or "" if none.
 func tag() string {
-	s, _ := sh.Output("git", "describe", "--tags")
-	return s
+	// value, _ := sh.Output("git", "describe", "--tags")
+
+	value := version.Version
+
+	return value
 }
 
 // hash returns the git hash for the current repo or "" if none.
 func hash() string {
-	hash, _ := sh.Output("git", "rev-parse", "--short", "HEAD")
-	return hash
+	// value, _ := sh.Output("git", "rev-parse", "--short", "HEAD")
+
+	value := version.Commit
+
+	return value
 }
