@@ -15,7 +15,7 @@ before:
 
 builds:
   - id: stave
-    main: ./app/stave
+    main: .
     binary: stave
     flags:
       - -trimpath
