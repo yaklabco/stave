@@ -12,7 +12,6 @@ import (
 	"go/parser"
 	"go/token"
 	"io"
-	"log"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -102,7 +101,7 @@ func actualTestMain(m *testing.M) int {
 
 func resetTerm() error {
 	if term, exists := os.LookupEnv("TERM"); exists {
-		log.Printf("Current terminal: %s", term)
+		slog.Info("terminal", slog.Any("term", term))
 		// unset TERM env var in order to disable color output to make the tests simpler
 		// there is a specific test for colorized output, so all the other tests can use non-colorized one
 		if err := os.Unsetenv("TERM"); err != nil {
@@ -421,10 +420,10 @@ func TestStavefilesFolderMixedWithStavefiles(t *testing.T) {
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 
 	expected := targetsBuild
-	assert.Equal(t, expected, stdout.String())
+	assert.Contains(t, stdout.String(), expected)
 
-	expectedErrStr := "[WARNING] You have both a stavefiles directory and stave files in the current directory, in future versions the files will be ignored in favor of the directory\n" //nolint:lll // Long string-literal.
-	assert.Equal(t, expectedErrStr, stderr.String())
+	expectedErrRegexp := `WARN.* You have both a stavefiles directory and stave files in the current directory, in future versions the files will be ignored in favor of the directory` //nolint:lll // Long string-literal.
+	assert.Regexp(t, expectedErrRegexp, stderr.String())
 }
 
 func TestUntaggedStavefilesFolder(t *testing.T) {
@@ -551,8 +550,8 @@ func TestVerbose(t *testing.T) {
 	err = Run(runParams)
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 
-	expected = "Running target: TestVerbose\nhi!\n"
-	assert.Equal(t, expected, stderr.String())
+	expectedRegexp := `Running target: TestVerbose\n.*hi!\n`
+	assert.Regexp(t, expectedRegexp, stderr.String())
 }
 
 func TestList(t *testing.T) {
@@ -731,7 +730,7 @@ func TestTargetError(t *testing.T) {
 	require.Error(t, err)
 
 	expected := "Error: bang!\n"
-	assert.Equal(t, expected, stderr.String())
+	assert.Contains(t, stderr.String(), expected)
 }
 
 func TestStdinCopy(t *testing.T) {
@@ -774,7 +773,7 @@ func TestTargetPanics(t *testing.T) {
 	require.Error(t, err)
 
 	expected := "Error: boom!\n"
-	assert.Equal(t, expected, stderr.String())
+	assert.Contains(t, stderr.String(), expected)
 }
 
 func TestPanicsErr(t *testing.T) {
@@ -795,7 +794,7 @@ func TestPanicsErr(t *testing.T) {
 	require.Error(t, err)
 
 	expected := "Error: kaboom!\n"
-	assert.Equal(t, expected, stderr.String())
+	assert.Contains(t, stderr.String(), expected)
 }
 
 // ensure we include the hash of the mainfile template in determining the
@@ -915,8 +914,8 @@ func TestMultipleTargets(t *testing.T) {
 
 	err := Run(runParams)
 	require.NoError(t, err, "stderr was: %s", stderr.String())
-	expectedErrStr := "Running target: TestVerbose\nhi!\nRunning target: ReturnsNilError\n"
-	assert.Equal(t, expectedErrStr, stderr.String())
+	expectedRegexp := `Running target: TestVerbose\n.*hi!\nRunning target: ReturnsNilError\n`
+	assert.Regexp(t, expectedRegexp, stderr.String())
 
 	expectedOutStr := "stuff\n"
 	assert.Equal(t, expectedOutStr, stdout.String())
@@ -1022,7 +1021,7 @@ func TestTimeout(t *testing.T) {
 	require.Error(t, err)
 
 	expected := "Error: context deadline exceeded\n"
-	assert.Equal(t, expected, stderr.String())
+	assert.Contains(t, stderr.String(), expected)
 }
 
 func TestInfoTarget(t *testing.T) {
@@ -1090,7 +1089,6 @@ func TestAlias(t *testing.T) {
 
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	debug.SetOutput(stderr)
 
 	runParams := RunParams{
 		BaseCtx: ctx,
@@ -1121,8 +1119,6 @@ func TestInvalidAlias(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 
-	log.SetOutput(io.Discard)
-
 	runParams := RunParams{
 		BaseCtx: ctx,
 		Dir:     "./testdata/invalid_alias",
@@ -1135,15 +1131,13 @@ func TestInvalidAlias(t *testing.T) {
 	require.Error(t, err)
 
 	expected := "Unknown target specified: \"co\"\n"
-	assert.Equal(t, expected, stderr.String())
+	assert.Contains(t, stderr.String(), expected)
 }
 
 func TestRunCompiledPrintsError(t *testing.T) {
 	ctx := t.Context()
 
-	stderr := &bytes.Buffer{}
-	logger := log.New(stderr, "", 0)
-	err := RunCompiled(ctx, RunParams{}, "thiswon'texist", logger)
+	err := RunCompiled(ctx, RunParams{}, "thiswon'texist")
 	require.Error(t, err)
 }
 
@@ -1684,7 +1678,7 @@ func TestWrongDependency(t *testing.T) {
 	require.Error(t, err)
 
 	expected := "Error: argument 0 (complex128), is not a supported argument type\n"
-	assert.Equal(t, expected, stderr.String())
+	assert.Contains(t, stderr.String(), expected)
 }
 
 // Regression tests, add tests to ensure we do not regress on known issues.

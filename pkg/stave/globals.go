@@ -2,8 +2,6 @@
 package stave
 
 import (
-	"io"
-	"log"
 	"math"
 	"strings"
 	"text/template"
@@ -42,5 +40,3 @@ const (
 	mainfile = "stave_output_file.go"
 	initFile = "stavefile.go"
 )
-
-var debug = log.New(io.Discard, "DEBUG: ", log.Ltime|log.Lmicroseconds)

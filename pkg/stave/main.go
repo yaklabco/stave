@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"go/build"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -19,11 +19,13 @@ import (
 	"syscall"
 	"time"
 
+	cblog "github.com/charmbracelet/log"
 	"github.com/samber/lo"
 	"github.com/yaklabco/stave/cmd/stave/version"
 	"github.com/yaklabco/stave/internal"
 	"github.com/yaklabco/stave/internal/dryrun"
 	"github.com/yaklabco/stave/internal/env"
+	"github.com/yaklabco/stave/internal/log"
 	"github.com/yaklabco/stave/internal/parallelism"
 	"github.com/yaklabco/stave/internal/parse"
 	"github.com/yaklabco/stave/pkg/sh"
@@ -47,6 +49,8 @@ type RunParams struct {
 	Stdin  io.Reader // reader to read stdin from
 	Stdout io.Writer // writer to write stdout messages to
 	Stderr io.Writer // writer to write stderr messages to
+
+	WriterForLogger io.Writer // writer for logger to write to
 
 	Init  bool // create an initial stavefile from template
 	Clean bool // clean out old generated binaries from cache dir
@@ -80,6 +84,13 @@ func (i RunParams) UsesStavefiles() bool {
 // function to allow it to be used from other programs, specifically so you can
 // go run a simple file that run's stave's Run.
 func Run(params RunParams) error {
+	logHandler := setupLogger(params)
+
+	if params.Debug {
+		logHandler.SetLevel(cblog.DebugLevel)
+	}
+	slog.Debug("logger initialized")
+
 	preprocessRunParams(&params)
 
 	ctx := params.BaseCtx
@@ -87,8 +98,6 @@ func Run(params RunParams) error {
 	if err != nil {
 		return err
 	}
-
-	out := log.New(params.Stdout, "", 0)
 
 	if howManyThingsToDo(params) > 1 {
 		return errors.New("only one of -init, -clean, -list, or explicit targets may be specified")
@@ -98,7 +107,7 @@ func Run(params RunParams) error {
 		if err := generateInit(params.Dir); err != nil {
 			return err
 		}
-		out.Println(initFile, "created")
+		slog.Info("created initial stavefile", slog.String(log.Filename, initFile))
 
 		return nil
 	}
@@ -107,12 +116,30 @@ func Run(params RunParams) error {
 		if err := removeContents(params.CacheDir); err != nil {
 			return err
 		}
-		out.Println(params.CacheDir, "cleaned")
+		slog.Info("cleaned cache dir", slog.String(log.Path, params.CacheDir))
 
 		return nil
 	}
 
 	return stave(ctx, params)
+}
+
+func setupLogger(params RunParams) *cblog.Logger {
+	if params.WriterForLogger == nil {
+		params.WriterForLogger = params.Stderr
+	}
+
+	logHandler := cblog.NewWithOptions(
+		params.WriterForLogger,
+		cblog.Options{
+			Level:           cblog.WarnLevel, // Setting this to lowest possible value, since slog will handle the actual filtering.
+			ReportTimestamp: true,
+			ReportCaller:    true,
+		},
+	)
+	logger := slog.New(logHandler)
+	slog.SetDefault(logger)
+	return logHandler
 }
 
 func stave(ctx context.Context, params RunParams) error {
@@ -124,7 +151,7 @@ func stave(ctx context.Context, params RunParams) error {
 	if len(files) == 0 {
 		return errors.New("no .go files marked with the stave build tag in this directory")
 	}
-	debug.Printf("found stavefiles: %s", strings.Join(files, ", "))
+	slog.Debug("found stavefiles", slog.Any("files", files))
 	exePath := params.CompileOut
 	if params.CompileOut == "" {
 		exePath, err = ExeName(ctx, params.GoCmd, params.CacheDir, files)
@@ -132,11 +159,11 @@ func stave(ctx context.Context, params RunParams) error {
 			return fmt.Errorf("getting exe name: %w", err)
 		}
 	}
-	debug.Println("output exe is ", exePath)
+	slog.Debug("executable path determined", slog.String("exePath", exePath))
 
 	useCache := false
 	if params.HashFast {
-		debug.Println("user has set STAVEFILE_HASHFAST, so we'll ignore GOCACHE")
+		slog.Debug("user has set STAVEFILE_HASHFAST, so we'll ignore GOCACHE")
 	} else {
 		theGoCache, err := internal.OutputDebug(ctx, params.GoCmd, "env", "GOCACHE")
 		if err != nil {
@@ -146,27 +173,29 @@ func stave(ctx context.Context, params RunParams) error {
 		// if GOCACHE exists, always rebuild, so we catch transitive
 		// dependencies that have changed.
 		if theGoCache != "" {
-			debug.Println("go build cache exists, will ignore any compiled binary")
+			slog.Debug("go build cache exists, will ignore any compiled binary")
 			useCache = true
 		}
 	}
-
-	errlog := log.New(params.Stderr, "", 0)
 
 	if !useCache {
 		_, err = os.Stat(exePath)
 		switch {
 		case err == nil:
 			if !params.Force {
-				debug.Println("Running existing exe")
-				return RunCompiled(ctx, params, exePath, errlog)
+				slog.Debug("Running existing executable")
+				return RunCompiled(ctx, params, exePath)
 			}
-			debug.Println("ignoring existing executable")
+			slog.Debug("ignoring existing executable")
 		case os.IsNotExist(err):
-			debug.Println("no existing exe, creating new")
+			slog.Debug("no existing executable, creating new")
 		default:
-			debug.Printf("error reading existing exe at %v: %v", exePath, err)
-			debug.Println("creating new exe")
+			slog.Debug(
+				"error reading existing executable",
+				slog.String(log.Path, exePath),
+				slog.Any(log.Error, err),
+			)
+			slog.Debug("creating new executable")
 		}
 	}
 
@@ -175,10 +204,8 @@ func stave(ctx context.Context, params RunParams) error {
 	for i := range files {
 		fnames = append(fnames, filepath.Base(files[i]))
 	}
-	if params.Debug {
-		parse.EnableDebug()
-	}
-	debug.Println("parsing files")
+
+	slog.Debug("parsing stavefiles")
 	info, err := parse.PrimaryPackage(ctx, params.GoCmd, params.Dir, fnames)
 	if err != nil {
 		return fmt.Errorf("parsing stavefiles: %w", err)
@@ -223,14 +250,14 @@ func stave(ctx context.Context, params RunParams) error {
 		// defer, that's ok.
 		_ = os.RemoveAll(main)
 	} else {
-		debug.Print("keeping mainfile")
+		slog.Debug("keeping mainfile")
 	}
 
 	if params.CompileOut != "" {
 		return nil
 	}
 
-	return RunCompiled(ctx, params, exePath, errlog)
+	return RunCompiled(ctx, params, exePath)
 }
 
 func howManyThingsToDo(params RunParams) int {
@@ -268,8 +295,6 @@ func preprocessRunParams(params *RunParams) {
 	// . will be default unless we find a stave folder.
 	stavefilesDir := filepath.Join(params.Dir, StavefilesDirName)
 
-	errlog := log.New(params.Stderr, "", 0)
-
 	stavefilesDirStat, err := os.Stat(stavefilesDir)
 	if err == nil {
 		if stavefilesDirStat.IsDir() {
@@ -279,8 +304,10 @@ func preprocessRunParams(params *RunParams) {
 			files, err := Stavefiles(originalDir, params.GOOS, params.GOARCH, false)
 			if err == nil {
 				if len(files) != 0 {
-					errlog.Println("[WARNING] You have both a stavefiles directory and stave files in the " +
-						"current directory, in future versions the files will be ignored in favor of the directory")
+					slog.Warn(
+						"You have both a stavefiles directory and stave files in the " +
+							"current directory, in future versions the files will be ignored in favor of the directory",
+					)
 					params.Dir = originalDir
 				}
 			}
@@ -291,10 +318,6 @@ func preprocessRunParams(params *RunParams) {
 }
 
 func applyBasicRunParams(params RunParams) error {
-	if params.Debug {
-		debug.SetOutput(params.Stderr)
-	}
-
 	if params.DryRun {
 		dryrun.SetRequested(true)
 	}
@@ -365,7 +388,13 @@ func listGoFiles(stavePath, tag string, envMap map[string]string) ([]string, err
 		goFiles[i] = filepath.Join(origStavePath, pkg.GoFiles[i])
 	}
 
-	debug.Printf("found %d go files with build tag %s (files: %v)", len(goFiles), tag, goFiles)
+	slog.Debug(
+		"found go files",
+		slog.Int("num_files", len(goFiles)),
+		slog.String("tag", tag),
+		slog.Any("files", goFiles),
+	)
+
 	return goFiles, nil
 }
 
@@ -373,12 +402,12 @@ func listGoFiles(stavePath, tag string, envMap map[string]string) ([]string, err
 func Stavefiles(stavePath, goos, goarch string, isStavefilesDirectory bool) ([]string, error) {
 	start := time.Now()
 	defer func() {
-		debug.Println("time to scan for Stavefiles:", time.Since(start))
+		slog.Debug("finished scanning for Stavefiles", slog.Duration(log.Duration, time.Since(start)))
 	}()
 
 	envMap := internal.EnvWithGOOS(goos, goarch)
 
-	debug.Println("getting all files including those with stave tag in", stavePath)
+	slog.Debug("getting all files including those with stave tag", slog.String(log.Path, stavePath))
 	staveFiles, err := listGoFiles(stavePath, "stave", envMap)
 	if err != nil {
 		return nil, fmt.Errorf("listing stave files: %w", err)
@@ -387,14 +416,14 @@ func Stavefiles(stavePath, goos, goarch string, isStavefilesDirectory bool) ([]s
 	if isStavefilesDirectory {
 		// For the stavefiles directory, we always use all go files, both with
 		// and without the stave tag, as per normal go build tag rules.
-		debug.Println("using all go files in stavefiles directory", stavePath)
+		slog.Debug("using all go files in stavefiles directory", slog.String(log.Path, stavePath))
 		return staveFiles, nil
 	}
 
 	// For folders other than the stavefiles directory, we only consider files
 	// that have the stave build tag and ignore those that don't.
 
-	debug.Println("getting all files without stave tag in", stavePath)
+	slog.Debug("getting all files without stave tag", slog.String(log.Path, stavePath))
 	nonStaveFiles, err := listGoFiles(stavePath, "", envMap)
 	if err != nil {
 		return nil, fmt.Errorf("listing non-stave files: %w", err)
@@ -404,7 +433,7 @@ func Stavefiles(stavePath, goos, goarch string, isStavefilesDirectory bool) ([]s
 	exclude := map[string]bool{}
 	for _, f := range nonStaveFiles {
 		if f != "" {
-			debug.Printf("marked file as non-stave: %q", f)
+			slog.Debug("marked file as non-stave", slog.String(log.Path, f))
 			exclude[f] = true
 		}
 	}
@@ -436,8 +465,11 @@ type CompileParams struct {
 
 // Compile uses the go tool to compile the files into an executable at path.
 func Compile(ctx context.Context, params CompileParams) error {
-	debug.Println("compiling to", params.CompileTo)
-	debug.Println("compiling using gocmd:", params.GoCmd)
+	slog.Debug(
+		"compiling",
+		slog.String(log.Path, params.CompileTo),
+		slog.String("go_cmd", params.GoCmd),
+	)
 	if params.Debug {
 		if err := internal.RunDebug(ctx, params.GoCmd, "version"); err != nil {
 			return err
@@ -463,7 +495,7 @@ func Compile(ctx context.Context, params CompileParams) error {
 	copy(args, buildArgs)
 	args = append(args, params.Gofiles...)
 
-	debug.Printf("running %s %s", params.GoCmd, strings.Join(args, " "))
+	slog.Debug("running go", slog.String(log.Cmd, params.GoCmd), slog.Any(log.Args, args))
 	theCmd := dryrun.Wrap(ctx, params.GoCmd, args...)
 	theCmd.Env = env.ToAssignments(envMap)
 	theCmd.Stderr = params.Stderr
@@ -472,7 +504,7 @@ func Compile(ctx context.Context, params CompileParams) error {
 
 	start := time.Now()
 	err := theCmd.Run()
-	debug.Println("time to compile Stavefile:", time.Since(start))
+	slog.Debug("finished compiling", slog.Duration(log.Duration, time.Since(start)))
 	if err != nil {
 		return errors.New("error compiling stavefiles")
 	}
@@ -482,7 +514,7 @@ func Compile(ctx context.Context, params CompileParams) error {
 
 // GenerateMainfile generates the stave mainfile at path.
 func GenerateMainfile(binaryName, path string, info *parse.PkgInfo) error {
-	debug.Println("Creating mainfile at", path)
+	slog.Debug("generating mainfile", slog.String(log.Path, path))
 
 	fd, err := os.Create(path)
 	if err != nil {
@@ -501,7 +533,7 @@ func GenerateMainfile(binaryName, path string, info *parse.PkgInfo) error {
 		data.DefaultFunc = *info.DefaultFunc
 	}
 
-	debug.Println("writing new file at", path)
+	slog.Debug("writing new file", slog.String(log.Path, path))
 	if err := mainfileTemplate.Execute(fd, data); err != nil {
 		return fmt.Errorf("can't execute mainfile template: %w", err)
 	}
@@ -561,7 +593,7 @@ func hashFile(fn string) (string, error) {
 }
 
 func generateInit(dir string) error {
-	debug.Println("generating default stavefile in", dir)
+	slog.Debug("generating default stavefile", slog.String(log.Dir, dir))
 	fd, err := os.Create(filepath.Join(dir, initFile))
 	if err != nil {
 		return fmt.Errorf("could not create stave template: %w", err)
@@ -576,8 +608,8 @@ func generateInit(dir string) error {
 }
 
 // RunCompiled runs an already-compiled stave command with the given args,.
-func RunCompiled(ctx context.Context, runParams RunParams, exePath string, errlog *log.Logger) error {
-	debug.Println("running binary", exePath)
+func RunCompiled(ctx context.Context, runParams RunParams, exePath string) error {
+	slog.Debug("running binary", slog.String(log.Path, exePath))
 	theCmd := dryrun.Wrap(ctx, exePath, runParams.Args...)
 	theCmd.Stderr = runParams.Stderr
 	theCmd.Stdout = runParams.Stdout
@@ -593,14 +625,19 @@ func RunCompiled(ctx context.Context, runParams RunParams, exePath string, errlo
 	}
 	theCmd.Env = env.ToAssignments(envMap)
 
-	debug.Print("running stavefile with stave vars:\n", strings.Join(filter(theCmd.Env, "STAVEFILE"), "\n"))
+	slog.Debug(
+		"running stavefile with stave vars",
+		slog.Any("env", lo.PickBy(envMap, func(key string, _ string) bool {
+			return strings.HasPrefix(key, "STAVEFILE_")
+		})),
+	)
 	// catch SIGINT to allow stavefile to handle them
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT)
 	defer signal.Stop(sigCh)
 	err = theCmd.Run()
 	if !sh.CmdRan(err) {
-		errlog.Printf("failed to run compiled stavefile: %v", err)
+		slog.Error("failed to run compiled stavefile", slog.Any(log.Error, err))
 	}
 	return err
 }
@@ -645,20 +682,10 @@ func setupEnv(runParams RunParams) (map[string]string, error) {
 	return envMap, nil
 }
 
-func filter(list []string, prefix string) []string {
-	var out []string
-	for _, s := range list {
-		if strings.HasPrefix(s, prefix) {
-			out = append(out, s)
-		}
-	}
-	return out
-}
-
 // removeContents removes all files but not any subdirectories in the given
 // directory.
 func removeContents(dir string) error {
-	debug.Println("removing all files in", dir)
+	slog.Debug("removing all files in given directory", slog.String(log.Dir, dir))
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {

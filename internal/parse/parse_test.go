@@ -1,16 +1,18 @@
 package parse
 
 import (
-	"log"
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
 
-	"github.com/yaklabco/stave/internal"
+	"github.com/yaklabco/stave/pkg/st"
 )
 
 func init() {
-	internal.SetDebug(log.New(os.Stdout, "", 0))
+	if err := os.Setenv(st.DebugEnv, "1"); err != nil {
+		panic(fmt.Errorf("failed to set debug env var %q: %w", st.DebugEnv, err))
+	}
 }
 
 func TestParse(t *testing.T) {

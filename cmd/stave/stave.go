@@ -2,10 +2,9 @@ package stave
 
 import (
 	"context"
-	"log/slog"
+	"os"
 
 	"github.com/charmbracelet/fang"
-	"github.com/charmbracelet/log"
 	"github.com/yaklabco/stave/cmd/stave/version"
 	"github.com/yaklabco/stave/pkg/st"
 	"github.com/yaklabco/stave/pkg/stave"
@@ -50,25 +49,9 @@ func NewRootCmd(ctx context.Context, opts ...Option) *cobra.Command {
 	stave test
 	stave build`,
 		Version: version.OverallVersionStringColorized(ctx),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			logHandler := log.NewWithOptions(
-				cmd.OutOrStdout(),
-				log.Options{
-					Level:           log.WarnLevel, // Setting this to lowest possible value, since slog will handle the actual filtering.
-					ReportTimestamp: true,
-					ReportCaller:    true,
-				},
-			)
-			logger := slog.New(logHandler)
-			slog.SetDefault(logger)
-
-			slog.Debug("logger initialized")
-
-			if runParams.Verbose {
-				logHandler.SetLevel(log.DebugLevel)
-			}
-
+		RunE: func(_ *cobra.Command, args []string) error {
 			runParams.Args = args
+			runParams.WriterForLogger = os.Stdout
 
 			return rootCmdOpts.runFunc(runParams)
 		},

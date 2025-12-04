@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"runtime"
 	"strings"
 
 	"github.com/yaklabco/stave/internal/dryrun"
 	"github.com/yaklabco/stave/internal/env"
+	"github.com/yaklabco/stave/internal/log"
 )
 
 const (
@@ -17,28 +18,35 @@ const (
 	GoArchEnvVar = "GOARCH"
 )
 
-func SetDebug(l *log.Logger) {
-	debug = l
-}
-
 func RunDebug(ctx context.Context, cmd string, args ...string) error {
 	envMap := EnvWithCurrentGOOS()
 
 	outBuf := &bytes.Buffer{}
 	errBuf := &bytes.Buffer{}
 
-	debug.Println("running", cmd, strings.Join(args, " "))
+	slog.Debug("running command", slog.String(log.Cmd, cmd), slog.Any(log.Args, args))
 	theCmd := dryrun.Wrap(ctx, cmd, args...)
 	theCmd.Env = env.ToAssignments(envMap)
 	theCmd.Stderr = errBuf
 	theCmd.Stdout = outBuf
 
 	if err := theCmd.Run(); err != nil {
-		debug.Print("error running '", cmd, strings.Join(args, " "), "': ", err, ": ", errBuf)
+		slog.Debug(
+			"error running command",
+			slog.String(log.Cmd, cmd),
+			slog.Any(log.Args, args),
+			slog.Any(log.Error, err),
+			slog.String(log.Stderr, errBuf.String()),
+		)
 		return err
 	}
 
-	debug.Println(outBuf)
+	slog.Debug(
+		"command ran successfully",
+		slog.String(log.Cmd, cmd),
+		slog.Any(log.Args, args),
+		slog.String(log.Stdout, outBuf.String()),
+	)
 
 	return nil
 }
@@ -49,7 +57,7 @@ func OutputDebug(ctx context.Context, cmd string, args ...string) (string, error
 	outBuf := &bytes.Buffer{}
 	errBuf := &bytes.Buffer{}
 
-	debug.Println("running", cmd, strings.Join(args, " "))
+	slog.Debug("running command", slog.String(log.Cmd, cmd), slog.Any(log.Args, args))
 	theCmd := dryrun.Wrap(ctx, cmd, args...)
 	theCmd.Env = env.ToAssignments(envMap)
 	theCmd.Stderr = errBuf
@@ -57,7 +65,13 @@ func OutputDebug(ctx context.Context, cmd string, args ...string) (string, error
 
 	if err := theCmd.Run(); err != nil {
 		errMsg := strings.TrimSpace(errBuf.String())
-		debug.Print("error running '", cmd, strings.Join(args, " "), "': ", err, ": ", errMsg)
+		slog.Debug(
+			"error running command",
+			slog.String(log.Cmd, cmd),
+			slog.Any(log.Args, args),
+			slog.Any(log.Error, err),
+			slog.String(log.Stderr, errBuf.String()),
+		)
 		return "", fmt.Errorf("error running \"%s %s\": %w\n%s", cmd, strings.Join(args, " "), err, errMsg)
 	}
 

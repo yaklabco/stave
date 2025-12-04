@@ -7,7 +7,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/yaklabco/stave/pkg/st"
 )
@@ -21,7 +21,7 @@ func ReturnsString() string {
 }
 
 func TestVerbose() {
-	log.Println("hi!")
+	slog.Info("hi!")
 }
 
 // This is the synopsis for SomePig.  There's more data that won't show up.

@@ -6,12 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/yaklabco/stave/internal/dryrun"
+	"github.com/yaklabco/stave/internal/log"
 	"github.com/yaklabco/stave/pkg/st"
 )
 
@@ -144,7 +145,7 @@ func run(env map[string]string, stdout, stderr io.Writer, cmd string, args ...st
 	}
 	// To protect against logging from doing exec in global variables
 	if st.Verbose() {
-		log.Println("exec:", cmd, strings.Join(quoted, " "))
+		slog.Info("exec", slog.String(log.Cmd, cmd), slog.Any(log.Args, quoted))
 	}
 	err := theCmd.Run()
 

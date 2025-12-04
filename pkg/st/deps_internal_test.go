@@ -3,7 +3,7 @@ package st
 import (
 	"bytes"
 	"fmt"
-	"log"
+	"log/slog"
 	"strings"
 	"testing"
 )
@@ -12,13 +12,20 @@ func TestDepsLogging(t *testing.T) {
 	t.Setenv("STAVEFILE_VERBOSE", "1")
 	buf := &bytes.Buffer{}
 
-	defaultLogger := logger
-	logger = log.New(buf, "", 0)
-	defer func() { logger = defaultLogger }()
+	defaultLogger := slog.Default()
+	logger := slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{
+		AddSource:   false,
+		Level:       nil,
+		ReplaceAttr: nil,
+	}))
+	slog.SetDefault(logger)
+	defer func() {
+		slog.SetDefault(defaultLogger)
+	}()
 
 	foo()
 
-	if strings.Count(buf.String(), "Running dependency: github.com/yaklabco/stave/pkg/st.baz") != 1 {
+	if strings.Count(buf.String(), "github.com/yaklabco/stave/pkg/st.baz") != 1 {
 		t.Fatalf("expected one baz to be logged, but got\n%s", buf)
 	}
 }

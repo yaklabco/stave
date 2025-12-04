@@ -5,7 +5,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/yaklabco/stave/pkg/st"
 )
@@ -20,7 +20,7 @@ func ReturnsString() string {
 }
 
 func TestVerbose() {
-	log.Println("hi!")
+	slog.Info("hi!")
 }
 
 func ReturnsVoid() {

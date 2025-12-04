@@ -3,16 +3,12 @@ package st
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
+	"log/slog"
 	"reflect"
 	"runtime"
 	"strings"
 	"sync"
 )
-
-// TODO: Needs to be nuked in favor of context-based logger pattern.
-var logger = log.New(os.Stderr, "", 0) //nolint:gochecknoglobals // Until TODO handled.
 
 type onceMap struct {
 	mu *sync.Mutex
@@ -203,7 +199,7 @@ type onceFun struct {
 func (o *onceFun) run(ctx context.Context) error {
 	o.once.Do(func() {
 		if Verbose() {
-			logger.Println("Running dependency:", displayName(o.fn.Name()))
+			slog.Info("running dependency", slog.String("dependency", displayName(o.fn.Name())))
 		}
 		o.err = o.fn.Run(ctx)
 	})

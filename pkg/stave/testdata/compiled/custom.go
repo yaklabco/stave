@@ -6,7 +6,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/yaklabco/stave/pkg/st"
@@ -16,7 +16,7 @@ var Default = Deploy
 
 // This is very verbose.
 func TestVerbose() {
-	log.Println("hi!")
+	slog.Info("hi!")
 }
 
 // PrintVerboseFlag prints the value of st.Verbose() to stdout.
@@ -35,5 +35,5 @@ func Sleep() {
 }
 
 func f() {
-	log.Println("i am independent -- not")
+	slog.Info("i am independent -- not")
 }

@@ -8,7 +8,7 @@ import (
 	"go/doc"
 	"go/parser"
 	"go/token"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
@@ -16,15 +16,11 @@ import (
 	"time"
 
 	"github.com/yaklabco/stave/internal"
+	"github.com/yaklabco/stave/internal/log"
 	"golang.org/x/tools/go/packages"
 )
 
 const importTag = "stave:import"
-
-// EnableDebug turns on debug logging.
-func EnableDebug() {
-	debug.SetOutput(os.Stderr)
-}
 
 // PkgInfo contains inforamtion about a package of files according to stave's
 // parsing rules.
@@ -247,7 +243,7 @@ func checkDupes(info *PkgInfo, imports []*Import) error {
 func Package(path string, files []string) (*PkgInfo, error) {
 	start := time.Now()
 	defer func() {
-		debug.Println("time parse Stavefiles:", time.Since(start))
+		slog.Debug("parsed stavefiles", slog.Duration(log.Duration, time.Since(start)))
 	}()
 	fset := token.NewFileSet()
 	pkgName, pkgFiles, err := getPackage(path, files, fset)
@@ -288,7 +284,7 @@ func Package(path string, files []string) (*PkgInfo, error) {
 func getNamedImports(ctx context.Context, gocmd string, pkgs map[string]string) ([]*Import, error) {
 	theImports := make([]*Import, 0, len(pkgs))
 	for pkg, alias := range pkgs {
-		debug.Printf("getting import package %q, alias %q", pkg, alias)
+		slog.Debug("getting import package", slog.String(log.Pkg, pkg), slog.String(log.Alias, alias))
 		imp, err := getImport(ctx, gocmd, pkg, alias)
 		if err != nil {
 			return nil, err
@@ -309,7 +305,7 @@ func getImport(ctx context.Context, gocmd, importpath, alias string) (*Import, e
 		return nil, fmt.Errorf("incorrect data from go list: %s", out)
 	}
 	dir, name := parts[0], parts[1]
-	debug.Printf("parsing imported package %q from dir %q", importpath, dir)
+	slog.Debug("got import package", slog.String(log.Pkg, importpath), slog.String(log.Dir, dir), slog.String(log.Name, name))
 
 	// we use go list to get the list of files, since go/parser doesn't differentiate between
 	// go files with build tags etc, and go list does. This prevents weird problems if you
@@ -325,7 +321,7 @@ func getImport(ctx context.Context, gocmd, importpath, alias string) (*Import, e
 		return nil, err
 	}
 	for i := range info.Funcs {
-		debug.Printf("setting alias %q and package %q on func %v", alias, name, info.Funcs[i].Name)
+		slog.Debug("setting alias and package on func", slog.String(log.Func, info.Funcs[i].Name), slog.String(log.Alias, alias), slog.String(log.Pkg, importpath))
 		info.Funcs[i].PkgAlias = alias
 		info.Funcs[i].ImportPath = importpath
 	}
@@ -362,21 +358,25 @@ func (s Imports) Swap(i, j int) {
 func setFuncs(pi *PkgInfo) {
 	for _, theFunc := range pi.DocPkg.Funcs {
 		if theFunc.Recv != "" {
-			debug.Printf("skipping method %s.%s", theFunc.Recv, theFunc.Name)
+			slog.Debug("skipping method", slog.String(log.Func, theFunc.Name), slog.String("recv", theFunc.Recv))
 			// skip methods
 			continue
 		}
 		if !ast.IsExported(theFunc.Name) {
-			debug.Printf("skipping non-exported function %s", theFunc.Name)
+			slog.Debug("skipping non-exported function", slog.String(log.Func, theFunc.Name))
 			// skip non-exported functions
 			continue
 		}
 		fn, err := funcType(theFunc.Decl.Type)
 		if err != nil {
-			debug.Printf("skipping function with invalid signature func %s: %v", theFunc.Name, err)
+			slog.Debug(
+				"skipping function with invalid signature",
+				slog.String(log.Func, theFunc.Name),
+				slog.Any(log.Error, err),
+			)
 			continue
 		}
-		debug.Printf("found target %v", theFunc.Name)
+		slog.Debug("found target", slog.String(log.Func, theFunc.Name))
 		fn.Name = theFunc.Name
 		fn.Comment = toOneLine(theFunc.Doc)
 		fn.Synopsis = sanitizeSynopsis(theFunc)
@@ -389,17 +389,32 @@ func setNamespaces(pi *PkgInfo) {
 		if !isNamespace(theType) {
 			continue
 		}
-		debug.Printf("found namespace %s %s", pi.DocPkg.ImportPath, theType.Name)
+		slog.Debug(
+			"found namespace",
+			slog.String(log.ImportPath, pi.DocPkg.ImportPath),
+			slog.String(log.Type, theType.Name),
+		)
 		for _, theMethod := range theType.Methods {
 			if !ast.IsExported(theMethod.Name) {
 				continue
 			}
 			fn, err := funcType(theMethod.Decl.Type)
 			if err != nil {
-				debug.Printf("skipping invalid namespace method %s %s.%s: %v", pi.DocPkg.ImportPath, theType.Name, theMethod.Name, err)
+				slog.Debug(
+					"skipping invalid namespace method",
+					slog.String(log.ImportPath, pi.DocPkg.ImportPath),
+					slog.String(log.Type, theType.Name),
+					slog.String(log.Method, theMethod.Name),
+					slog.Any(log.Error, err),
+				)
 				continue
 			}
-			debug.Printf("found namespace method %s %s.%s", pi.DocPkg.ImportPath, theType.Name, theMethod.Name)
+			slog.Debug(
+				"found namespace method",
+				slog.String(log.ImportPath, pi.DocPkg.ImportPath),
+				slog.String(log.Type, theType.Name),
+				slog.String(log.Method, theMethod.Name),
+			)
 			fn.Name = theMethod.Name
 			fn.Comment = toOneLine(theMethod.Doc)
 			fn.Synopsis = sanitizeSynopsis(theMethod)
@@ -433,10 +448,19 @@ func setImports(ctx context.Context, gocmd string, pi *PkgInfo) error {
 					continue
 				}
 				if alias != "" {
-					debug.Printf("found %s: %s (%s)", importTag, name, alias)
+					slog.Debug(
+						"found import alias",
+						slog.String(log.ImportTag, importTag),
+						slog.String(log.Alias, alias),
+						slog.String(log.Name, name),
+					)
 					importNames[name] = alias
 				} else {
-					debug.Printf("found %s: %s", importTag, name)
+					slog.Debug(
+						"found root import",
+						slog.String(log.ImportTag, importTag),
+						slog.String(log.Name, name),
+					)
 					rootImports = append(rootImports, name)
 				}
 			}
@@ -485,7 +509,10 @@ func getImportPath(imp *ast.ImportSpec) (string, string, bool) {
 	case len(leadingVals) > 0:
 		vals = leadingVals
 		if len(trailingVals) > 0 {
-			log.Println("warning:", importTag, "specified both before and after, picking first")
+			slog.Warn(
+				"import tag specified both before and after, picking first",
+				slog.String(log.ImportTag, importTag),
+			)
 		}
 	case len(trailingVals) > 0:
 		vals = trailingVals
@@ -506,7 +533,11 @@ func getImportPath(imp *ast.ImportSpec) (string, string, bool) {
 		// also has an alias
 		return path, vals[1], true
 	default:
-		log.Println("warning: ignoring malformed", importTag, "for import", path)
+		slog.Warn(
+			"ignoring malformed import tag",
+			slog.String(log.ImportTag, importTag),
+			slog.String(log.Path, path),
+		)
 		return "", "", false
 	}
 }
@@ -595,16 +626,19 @@ func setDefault(pi *PkgInfo) {
 			}
 			spec, ok := theValue.Decl.Specs[iName].(*ast.ValueSpec)
 			if !ok {
-				log.Printf("warning: expected *ast.ValueSpec, but got %T instead", theValue.Decl.Specs[iName])
+				slog.Warn(
+					"expected *ast.ValueSpec, but got different type",
+					slog.String(log.Type, fmt.Sprintf("%T", theValue.Decl.Specs[iName])),
+				)
 				continue
 			}
 			if len(spec.Values) != 1 {
-				log.Println("warning: default declaration has multiple values")
+				slog.Warn("default declaration has multiple values")
 			}
 
 			f, err := getFunction(spec.Values[0], pi)
 			if err != nil {
-				log.Println("warning, default declaration malformed:", err)
+				slog.Warn("default declaration malformed", slog.Any(log.Error, err))
 				return
 			}
 			pi.DefaultFunc = f
@@ -628,38 +662,38 @@ func setAliases(pi *PkgInfo) {
 			}
 			spec, ok := v.Decl.Specs[x].(*ast.ValueSpec)
 			if !ok {
-				log.Println("warning: aliases declaration is not a value")
+				slog.Warn("aliases declaration is not a value")
 				return
 			}
 			if len(spec.Values) != 1 {
-				log.Println("warning: aliases declaration has multiple values")
+				slog.Warn("aliases declaration has multiple values")
 			}
 			comp, ok := spec.Values[0].(*ast.CompositeLit)
 			if !ok {
-				log.Println("warning: aliases declaration is not a map")
+				slog.Warn("aliases declaration is not a map")
 				return
 			}
 			pi.Aliases = map[string]*Function{}
 			for _, elem := range comp.Elts {
 				kv, ok := elem.(*ast.KeyValueExpr)
 				if !ok {
-					log.Printf("warning: alias declaration %q is not a map element", elem)
+					slog.Warn("alias declaration is not a map element", slog.Any(log.Elem, elem))
 					continue
 				}
 				basicLit, ok := kv.Key.(*ast.BasicLit)
 				if !ok || basicLit.Kind != token.STRING {
-					log.Printf("warning: alias key is not a string literal %q", elem)
+					slog.Warn("alias key is not a string literal", slog.Any(log.Elem, elem))
 					continue
 				}
 
 				alias, ok := lit2string(basicLit)
 				if !ok {
-					log.Println("warning: malformed name for alias", elem)
+					slog.Warn("malformed name for alias", slog.Any(log.Elem, elem))
 					continue
 				}
 				f, err := getFunction(kv.Value, pi)
 				if err != nil {
-					log.Printf("warning, alias malformed: %v", err)
+					slog.Warn("alias malformed", slog.Any(log.Error, err))
 					continue
 				}
 				pi.Aliases[alias] = f
