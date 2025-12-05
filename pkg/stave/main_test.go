@@ -8,6 +8,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"go/parser"
+	"go/token"
 	"io"
 	"log/slog"
 	"os"
@@ -29,6 +31,7 @@ import (
 
 const (
 	charmbraceletLogMod = "github.com/charmbracelet/log"
+	staveMod            = "github.com/yaklabco/stave"
 
 	testExeEnv = "STAVE_TEST_STRING"
 
@@ -948,58 +951,53 @@ func (t tLogWriter) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-// // Test if generated mainfile references anything other than the stdlib.
-// func TestOnlyStdLib(t *testing.T) {
-// 	t.Parallel()
-// 	testDataDir := "./testdata/onlyStdLib"
-// 	mu := mutexByDir(testDataDir)
-// 	mu.Lock()
-// 	defer mu.Unlock()
-//
-// 	ctx := t.Context()
-//
-// 	buildFile := "./testdata/onlyStdLib/" + mainfile
-// 	_ = os.Remove(buildFile)
-// 	defer func() {
-// 		assert.NoError(t, os.Remove(buildFile))
-// 	}()
-//
-// 	logWriter := tLogWriter{t}
-//
-// 	runParams := RunParams{
-// 		BaseCtx: ctx,
-// 		Dir:     testDataDir,
-// 		Stdout:  logWriter,
-// 		Stderr:  logWriter,
-// 		List:    true,
-// 		Keep:    true,
-// 		Force:   true, // need force so we always regenerate
-// 		Verbose: true,
-// 	}
-//
-// 	err := Run(runParams)
-// 	require.NoError(t, err)
-// 	_, err = os.Stat(buildFile)
-// 	require.NoError(t, err)
-//
-// 	fset := &token.FileSet{}
-// 	// Parse src but stop after processing the imports.
-// 	fd, err := parser.ParseFile(fset, buildFile, nil, parser.ImportsOnly)
-// 	require.NoError(t, err)
-//
-// 	// Print the imports from the file's AST.
-// 	for _, importSpec := range fd.Imports {
-// 		// the path value comes in as a quoted string, i.e. literally \"context\"
-// 		path := strings.Trim(importSpec.Path.Value, "\"")
-// 		pkg, err := build.Default.Import(path, "./testdata/keep_flag", build.FindOnly)
-// 		require.NoError(t, err)
-//
-// 		// Check if pkg.Dir is under GOROOT using filepath.Rel instead of deprecated filepath.HasPrefix
-// 		rel, err := filepath.Rel(build.Default.GOROOT, pkg.Dir)
-// 		require.NoError(t, err)
-// 		assert.False(t, strings.HasPrefix(rel, ".."))
-// 	}
-// }
+// TestNoSelfDependencies checks that the generated `stave_output_file.go` code
+// does not have dependencies on Stave itself.
+func TestNoSelfDependencies(t *testing.T) {
+	t.Parallel()
+	testDataDir := "./testdata/onlyStdLib"
+	mu := mutexByDir(testDataDir)
+	mu.Lock()
+	defer mu.Unlock()
+
+	ctx := t.Context()
+
+	buildFile := "./testdata/onlyStdLib/" + mainfile
+	_ = os.Remove(buildFile)
+	defer func() {
+		assert.NoError(t, os.Remove(buildFile))
+	}()
+
+	logWriter := tLogWriter{t}
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     testDataDir,
+		Stdout:  logWriter,
+		Stderr:  logWriter,
+		List:    true,
+		Keep:    true,
+		Force:   true, // need force so we always regenerate
+		Verbose: true,
+	}
+
+	err := Run(runParams)
+	require.NoError(t, err)
+	_, err = os.Stat(buildFile)
+	require.NoError(t, err)
+
+	fset := &token.FileSet{}
+	// Parse src but stop after processing the imports.
+	fd, err := parser.ParseFile(fset, buildFile, nil, parser.ImportsOnly)
+	require.NoError(t, err)
+
+	// Print the imports from the file's AST.
+	for _, importSpec := range fd.Imports {
+		// the path value comes in as a quoted string, i.e. literally \"context\"
+		path := strings.Trim(importSpec.Path.Value, "\"")
+		assert.NotRegexp(t, "^"+staveMod, path)
+	}
+}
 
 func TestMultipleTargets(t *testing.T) {
 	t.Parallel()
