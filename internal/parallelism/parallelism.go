@@ -1,6 +1,7 @@
 package parallelism
 
 import (
+	"log/slog"
 	"os"
 	"runtime"
 	"strconv"
@@ -29,6 +30,8 @@ func Apply(envMap map[string]string) error {
 	} else {
 		numProcessors = getNumProcessors()
 	}
+
+	slog.Debug("setting parallelism-related env vars", slog.Int("num_processors", numProcessors))
 
 	newValStr := strconv.Itoa(numProcessors)
 

@@ -3,12 +3,17 @@ package st
 import (
 	"context"
 	"fmt"
-	"log/slog"
+	"log"
+	"os"
 	"reflect"
 	"runtime"
 	"strings"
 	"sync"
 )
+
+// simpleConsoleLogger is an unstructured logger designed for emitting simple
+// messages to the console in `-v`/`--verbose` mode.
+var simpleConsoleLogger = log.New(os.Stderr, "[STAVE] ", 0) //nolint:gochecknoglobals // This is unchanged in the course of the process lifecycle.
 
 type onceMap struct {
 	mu *sync.Mutex
@@ -208,7 +213,7 @@ type onceFun struct {
 func (o *onceFun) run(ctx context.Context) error {
 	o.once.Do(func() {
 		if Verbose() {
-			slog.Info("running dependency", slog.String("dependency", displayName(o.fn.Name())))
+			simpleConsoleLogger.Println("Running dependency:", displayName(o.fn.Name()))
 		}
 		o.err = o.fn.Run(ctx)
 	})

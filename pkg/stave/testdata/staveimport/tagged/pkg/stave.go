@@ -1,5 +1,4 @@
 //go:build stave
-// +build stave
 
 package pkg
 

@@ -101,6 +101,7 @@ func Markdownlint() error { // stave:help=Run markdownlint on Markdown files
 
 // LintGo runs golangci-lint with auto-fix and parallel runner options enabled.
 func LintGo() error {
+	st.Deps(Init)
 	out, err := sh.Output("golangci-lint", "run", "--fix", "--allow-parallel-runners", "--build-tags='!ignore'")
 	if err != nil {
 		titleStyle, blockStyle := ui.GetBlockStyles()
@@ -258,20 +259,20 @@ func Install() error {
 	// in GOPATH environment string
 	bin, err := sh.Output(gocmd, "env", "GOBIN")
 	if err != nil {
-		return fmt.Errorf("can't determine GOBIN: %v", err)
+		return fmt.Errorf("can't determine GOBIN: %w", err)
 	}
 	if bin == "" {
 		gopath, err := sh.Output(gocmd, "env", "GOPATH")
 		if err != nil {
-			return fmt.Errorf("can't determine GOPATH: %v", err)
+			return fmt.Errorf("can't determine GOPATH: %w", err)
 		}
 		paths := strings.Split(gopath, string([]rune{os.PathListSeparator}))
 		bin = filepath.Join(paths[0], "bin")
 	}
 	// specifically don't mkdirall, if you have an invalid gopath in the first
 	// place, that's not on us to fix.
-	if err := os.Mkdir(bin, 0700); err != nil && !os.IsExist(err) {
-		return fmt.Errorf("failed to create %q: %v", bin, err)
+	if err := os.Mkdir(bin, 0o700); err != nil && !os.IsExist(err) {
+		return fmt.Errorf("failed to create %q: %w", bin, err)
 	}
 	path := filepath.Join(bin, name)
 
@@ -286,7 +287,7 @@ var releaseTag = regexp.MustCompile(`^v1\.[0-9]+\.[0-9]+$`)
 
 // origRelease generates a new release. Expects a version tag in v1.x.x format.
 // It is the original `Release` target for Mage.
-func origRelease(tag string) (err error) {
+func origRelease(tag string) error {
 	if _, err := exec.LookPath("goreleaser"); err != nil {
 		return fmt.Errorf("can't find goreleaser: %w", err)
 	}
@@ -300,13 +301,16 @@ func origRelease(tag string) (err error) {
 	if err := sh.RunV("git", "push", "origin", tag); err != nil {
 		return err
 	}
+	var releaseErr error
 	defer func() {
-		if err != nil {
-			_ = sh.RunV("git", "tag", "--delete", tag)
-			_ = sh.RunV("git", "push", "--delete", "origin", tag)
+		if releaseErr != nil {
+			_ = sh.RunV("git", "tag", "--delete", tag)            //nolint:errcheck // This is last-ditch cleanup.
+			_ = sh.RunV("git", "push", "--delete", "origin", tag) //nolint:errcheck // This is last-ditch cleanup.
 		}
 	}()
-	return sh.RunV("goreleaser")
+	releaseErr = sh.RunV("goreleaser")
+
+	return releaseErr
 }
 
 // Clean removes the temporarily generated files from Release.
@@ -321,7 +325,12 @@ func flags() string {
 	if theTag == "" {
 		theTag = "dev"
 	}
-	return fmt.Sprintf(`-X "github.com/yaklabco/stave/cmd/stave/version.BuildDate=%s" -X "github.com/yaklabco/stave/cmd/stave/version.Commit=%s" -X "github.com/yaklabco/stave/cmd/stave/version.Version=%s"`, timestamp, theHash, theTag)
+	return fmt.Sprintf(
+		`-X "github.com/yaklabco/stave/cmd/stave/version.BuildDate=%s"`+` `+
+			`-X "github.com/yaklabco/stave/cmd/stave/version.Commit=%s"`+` `+
+			`-X "github.com/yaklabco/stave/cmd/stave/version.Version=%s"`,
+		timestamp, theHash, theTag,
+	)
 }
 
 // tag returns the git tag for the current branch or "" if none.

@@ -6,15 +6,18 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/yaklabco/stave/internal/dryrun"
-	"github.com/yaklabco/stave/internal/log"
 	"github.com/yaklabco/stave/pkg/st"
 )
+
+// simpleConsoleLogger is an unstructured logger designed for emitting simple
+// messages to the console in `-v`/`--verbose` mode.
+var simpleConsoleLogger = log.New(os.Stderr, "[STAVE] ", 0) //nolint:gochecknoglobals // This is unchanged in the course of the process lifecycle.
 
 // RunCmd returns a function that will call Run with the given command. This is
 // useful for creating command aliases to make your scripts easier to read, like
@@ -145,7 +148,7 @@ func run(env map[string]string, stdout, stderr io.Writer, cmd string, args ...st
 	}
 	// To protect against logging from doing exec in global variables
 	if st.Verbose() {
-		slog.Info("exec", slog.String(log.Cmd, cmd), slog.Any(log.Args, quoted))
+		simpleConsoleLogger.Println("exec:", cmd, strings.Join(quoted, " "))
 	}
 	err := theCmd.Run()
 

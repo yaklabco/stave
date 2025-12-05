@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Detailed API reference documentation as well as an architecture overview for contributors.
 
+- Pretty-printed debug logs, both in "outer" Stave execution _and_ in execution of compiled stavefile.
+
 - `CHANGELOG.md`! (And first formally-versioned release of Stave.)
 
 ### Changed

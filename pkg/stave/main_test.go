@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"go/build"
 	"go/parser"
 	"go/token"
 	"io"
@@ -31,6 +30,9 @@ import (
 )
 
 const (
+	charmbraceletLogMod = "github.com/charmbracelet/log"
+	staveMod            = "github.com/yaklabco/stave"
+
 	testExeEnv = "STAVE_TEST_STRING"
 
 	hiExclam           = "hi!"
@@ -949,8 +951,9 @@ func (t tLogWriter) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-// Test if generated mainfile references anything other than the stdlib.
-func TestOnlyStdLib(t *testing.T) {
+// TestNoSelfDependencies checks that the generated `stave_output_file.go` code
+// does not have dependencies on Stave itself.
+func TestNoSelfDependencies(t *testing.T) {
 	t.Parallel()
 	testDataDir := "./testdata/onlyStdLib"
 	mu := mutexByDir(testDataDir)
@@ -992,13 +995,7 @@ func TestOnlyStdLib(t *testing.T) {
 	for _, importSpec := range fd.Imports {
 		// the path value comes in as a quoted string, i.e. literally \"context\"
 		path := strings.Trim(importSpec.Path.Value, "\"")
-		pkg, err := build.Default.Import(path, "./testdata/keep_flag", build.FindOnly)
-		require.NoError(t, err)
-
-		// Check if pkg.Dir is under GOROOT using filepath.Rel instead of deprecated filepath.HasPrefix
-		rel, err := filepath.Rel(build.Default.GOROOT, pkg.Dir)
-		require.NoError(t, err)
-		assert.False(t, strings.HasPrefix(rel, ".."))
+		assert.NotRegexp(t, "^"+staveMod, path)
 	}
 }
 
@@ -1735,7 +1732,6 @@ func TestGoModules(t *testing.T) {
 
 	// beware, stave builds in go versions older than 1.17 so both build tag formats need to be present
 	err = os.WriteFile(filepath.Join(dir, "stavefile.go"), []byte(`//go:build stave
-// +build stave
 
 package main
 
@@ -1763,7 +1759,15 @@ func Test() {
 	cmd.Env = os.Environ()
 	cmd.Stderr = stderr
 	cmd.Stdout = stdout
-	require.NoError(t, cmd.Run(), "failed to run 'go mod init', stderr was: %s", stderr.String())
+	require.NoError(t, cmd.Run(), "failed to run 'go mod tidy', stderr was: %s", stderr.String())
+
+	// we need to run go mod tidy, since go build will no longer auto-add dependencies.
+	cmd = exec.Command("go", "get", charmbraceletLogMod)
+	cmd.Dir = dir
+	cmd.Env = os.Environ()
+	cmd.Stderr = stderr
+	cmd.Stdout = stdout
+	require.NoError(t, cmd.Run(), "failed to run 'go get %s', stderr was: %s", charmbraceletLogMod, stderr.String())
 
 	stderr.Reset()
 	stdout.Reset()
