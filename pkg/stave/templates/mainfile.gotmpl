@@ -18,6 +18,9 @@ import (
 	"syscall"
 	_tabwriter "text/tabwriter"
 	"time"
+
+	_cblog "github.com/charmbracelet/log"
+
 {{range .Imports}}{{.UniqueName}} "{{.Path}}"
 {{end}}
 )
@@ -369,23 +372,32 @@ func main() {
 	}
 
 	// Set STAVEFILE_DEBUG so st.Debug() reflects the flag value.
-	var slogLevel _slog.Level
 	if args.Debug {
 		os.Setenv("STAVEFILE_DEBUG", "1")
-		slogLevel = _slog.LevelDebug
 	} else {
 		os.Setenv("STAVEFILE_DEBUG", "0")
-		if args.Verbose {
-			slogLevel = _slog.LevelInfo
-		} else {
-			slogLevel = _slog.LevelWarn
-		}
 	}
 
-	_slog.SetDefault(_slog.New(_slog.NewTextHandler(os.Stdout, &_slog.HandlerOptions{
-		AddSource:   false,
-		Level:       slogLevel,
-	})))
+	logHandler := _cblog.NewWithOptions(
+		os.Stdout,
+		_cblog.Options{
+			Level:           _cblog.InfoLevel,
+			ReportTimestamp: true,
+			ReportCaller:    true,
+		},
+	)
+	structuredLogger := _slog.New(logHandler)
+	_slog.SetDefault(structuredLogger)
+
+	if args.Debug {
+		logHandler.SetLevel(_cblog.DebugLevel)
+	} else {
+		if args.Verbose {
+			logHandler.SetLevel(_cblog.InfoLevel)
+		} else {
+				logHandler.SetLevel(_cblog.WarnLevel)
+		}
+	}
 
 	_log.SetFlags(0)
 	if !args.Verbose {

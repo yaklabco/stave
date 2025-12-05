@@ -1,6 +1,8 @@
 version: "2"
 run:
   tests: true
+  build-tags:
+    - stave
 linters:
   default: none
   enable:
@@ -428,6 +430,10 @@ linters:
       - linters:
           - forbidigo
         path: testmain_test\.go$
+      - linters:
+          - noctx
+          - unused
+        path: stavefile\.go$
     paths:
       - third_party$
       - builtin$
