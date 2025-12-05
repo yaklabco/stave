@@ -1735,7 +1735,6 @@ func TestGoModules(t *testing.T) {
 
 	// beware, stave builds in go versions older than 1.17 so both build tag formats need to be present
 	err = os.WriteFile(filepath.Join(dir, "stavefile.go"), []byte(`//go:build stave
-// +build stave
 
 package main
 
