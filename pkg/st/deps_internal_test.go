@@ -3,7 +3,7 @@ package st
 import (
 	"bytes"
 	"fmt"
-	"log/slog"
+	"log"
 	"strings"
 	"testing"
 )
@@ -12,16 +12,9 @@ func TestDepsLogging(t *testing.T) {
 	t.Setenv("STAVEFILE_VERBOSE", "1")
 	buf := &bytes.Buffer{}
 
-	defaultLogger := slog.Default()
-	logger := slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{
-		AddSource:   false,
-		Level:       nil,
-		ReplaceAttr: nil,
-	}))
-	slog.SetDefault(logger)
-	defer func() {
-		slog.SetDefault(defaultLogger)
-	}()
+	defaultLogger := simpleConsoleLogger
+	simpleConsoleLogger = log.New(buf, "", 0)
+	defer func() { simpleConsoleLogger = defaultLogger }()
 
 	foo()
 
