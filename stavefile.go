@@ -101,6 +101,7 @@ func Markdownlint() error { // stave:help=Run markdownlint on Markdown files
 
 // LintGo runs golangci-lint with auto-fix and parallel runner options enabled.
 func LintGo() error {
+	st.Deps(Init)
 	out, err := sh.Output("golangci-lint", "run", "--fix", "--allow-parallel-runners", "--build-tags='!ignore'")
 	if err != nil {
 		titleStyle, blockStyle := ui.GetBlockStyles()
