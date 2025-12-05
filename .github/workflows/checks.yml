@@ -95,7 +95,7 @@ jobs:
         run: brew bundle --no-upgrade --file=Brewfile
 
       - name: Self-install
-        run: go run main.go install
+        run: go run bootstrap.go
 
       - name: Parallelism check
         run: stave parallelismcheck
