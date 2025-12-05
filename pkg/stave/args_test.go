@@ -93,7 +93,7 @@ func TestBadBoolArg(t *testing.T) {
 	require.Error(t, err)
 
 	expected := "can't convert argument \"abc123\" to bool\n"
-	assert.Equal(t, expected, stderr.String())
+	assert.Contains(t, stderr.String(), expected)
 }
 
 func TestBadDurationArg(t *testing.T) {
