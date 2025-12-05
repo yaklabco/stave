@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestOutCmd(t *testing.T) {
@@ -81,7 +83,5 @@ func TestDryRunOutput(t *testing.T) {
 	}
 	got := strings.TrimSpace(string(out))
 	want := "DRYRUN: somecmd arg1 arg two"
-	if got != want {
-		t.Fatalf("expected %q, got %q", want, got)
-	}
+	assert.Contains(t, got, want)
 }

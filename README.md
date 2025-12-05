@@ -1,5 +1,11 @@
 # Stave
 
+<!-- markdownlint-disable MD033 -->
+<p align="center">
+  <img src="pics/logo.png" alt="Stave logo" width="200">
+</p>
+<!-- markdownlint-enable MD033 -->
+
 A make-like build tool using Go. Write plain Go functions, Stave automatically uses them as runnable targets.
 
 Stave is a fork of [Mage](https://github.com/magefile/mage) by Nate Finch, with additional features and improvements.

@@ -1,9 +1,9 @@
 ---
 name: Bug Report
 about: Create a bug report to help us understand your issue
-title: 'Bug: <description>'
+title: "Bug: <description>"
 labels: ":ant: bug"
-assignees: ''
+assignees: ""
 ---
 
 ## Bug Description

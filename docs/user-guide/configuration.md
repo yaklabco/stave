@@ -1,0 +1,156 @@
+# Configuration
+
+[Home](../index.md) > [User Guide](stavefiles.md) > Configuration
+
+Stave supports layered configuration through files and environment variables.
+
+## Precedence
+
+Configuration sources are applied in order (later overrides earlier):
+
+1. Built-in defaults
+2. User config file (`~/.config/stave/config.yaml`)
+3. Project config file (`./stave.yaml`)
+4. Environment variables (`STAVEFILE_*`)
+
+## User Configuration
+
+The user config file location follows XDG conventions:
+
+| Platform | Path                          |
+| -------- | ----------------------------- |
+| Linux    | `~/.config/stave/config.yaml` |
+| macOS    | `~/.config/stave/config.yaml` |
+| Windows  | `%APPDATA%\stave\config.yaml` |
+
+Create a default config file:
+
+```bash
+stave config init
+```
+
+Example `config.yaml`:
+
+```yaml
+go_cmd: go
+verbose: false
+debug: false
+hash_fast: false
+ignore_default: false
+enable_color: false
+target_color: Cyan
+```
+
+## Project Configuration
+
+Place `stave.yaml` in your project root to share settings across the team:
+
+```yaml
+verbose: true
+enable_color: true
+target_color: Green
+```
+
+Project config overrides user config.
+
+## Configuration Options
+
+| Option           | Type   | Default   | Description                       |
+| ---------------- | ------ | --------- | --------------------------------- |
+| `cache_dir`      | string | XDG cache | Directory for compiled binaries   |
+| `go_cmd`         | string | `go`      | Go command for compilation        |
+| `verbose`        | bool   | `false`   | Print verbose output              |
+| `debug`          | bool   | `false`   | Print debug messages              |
+| `hash_fast`      | bool   | `false`   | Skip GOCACHE, hash files directly |
+| `ignore_default` | bool   | `false`   | Ignore default target             |
+| `enable_color`   | bool   | `false`   | Enable colored output             |
+| `target_color`   | string | `Cyan`    | ANSI color for target names       |
+
+## Environment Variables
+
+Environment variables override all config files:
+
+| Variable                  | Corresponds To   |
+| ------------------------- | ---------------- |
+| `STAVEFILE_CACHE`         | `cache_dir`      |
+| `STAVEFILE_GOCMD`         | `go_cmd`         |
+| `STAVEFILE_VERBOSE`       | `verbose`        |
+| `STAVEFILE_DEBUG`         | `debug`          |
+| `STAVEFILE_HASHFAST`      | `hash_fast`      |
+| `STAVEFILE_IGNOREDEFAULT` | `ignore_default` |
+| `STAVEFILE_ENABLE_COLOR`  | `enable_color`   |
+| `STAVEFILE_TARGET_COLOR`  | `target_color`   |
+
+## Parallelism Control
+
+`STAVE_NUM_PROCESSORS` controls parallelism:
+
+```bash
+STAVE_NUM_PROCESSORS=4 stave build
+```
+
+This sets `runtime.GOMAXPROCS` and is passed to the compiled stavefile. Use it to limit CPU usage in CI or constrained environments.
+
+## stave config Subcommands
+
+### stave config
+
+Display effective configuration:
+
+```bash
+stave config
+```
+
+### stave config init
+
+Create a default user config file:
+
+```bash
+stave config init
+```
+
+### stave config path
+
+Show configuration paths:
+
+```bash
+stave config path
+```
+
+Output:
+
+```text
+Configuration Paths:
+  User config:    /home/user/.config/stave/config.yaml
+  Config dir:     /home/user/.config/stave
+  Cache dir:      /home/user/.cache/stave
+  Data dir:       /home/user/.local/share/stave
+
+No config file currently loaded (using defaults)
+```
+
+## Cache Directory
+
+Compiled stavefiles are cached for performance. The cache location:
+
+| Platform | Default Path                 |
+| -------- | ---------------------------- |
+| Linux    | `~/.cache/stave`             |
+| macOS    | `~/Library/Caches/stave`     |
+| Windows  | `%LOCALAPPDATA%\cache\stave` |
+
+Override with `cache_dir` in config or `STAVEFILE_CACHE` environment variable.
+
+Clean the cache:
+
+```bash
+stave --clean
+```
+
+---
+
+## See Also
+
+- [CLI Reference](../api-reference/cli.md) - Command-line flags
+- [Advanced Topics](advanced.md) - CI integration, debugging
+- [Home](../index.md)
