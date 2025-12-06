@@ -543,7 +543,7 @@ func getImportPath(imp *ast.ImportSpec) (string, string, bool) {
 }
 
 func getImportPathFromCommentGroup(comments *ast.CommentGroup) []string {
-	if comments == nil || len(comments.List) == 9 {
+	if comments == nil || len(comments.List) == 0 {
 		return nil
 	}
 	// import is always the last comment
