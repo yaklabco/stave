@@ -15,7 +15,6 @@ const trueStr = "true"
 // sync.Once guards inside dryrun.go evaluate environment variables afresh.
 
 func TestIsDryRunRequestedEnv(t *testing.T) {
-	//#nosec G204 -- os.Args[0] is the test binary itself, not user input.
 	cmd := exec.Command(os.Args[0], "-printIsDryRunRequested")
 	cmd.Env = append(os.Environ(), RequestedEnv+"=1", PossibleEnv+"=1")
 	out, err := cmd.CombinedOutput()
@@ -28,7 +27,6 @@ func TestIsDryRunRequestedEnv(t *testing.T) {
 }
 
 func TestIsDryRunPossibleEnv(t *testing.T) {
-	//#nosec G204 -- os.Args[0] is the test binary itself, not user input.
 	cmd := exec.Command(os.Args[0], "-printIsDryRunPossible")
 	cmd.Env = append(os.Environ(), PossibleEnv+"=1")
 	out, err := cmd.CombinedOutput()
@@ -42,7 +40,6 @@ func TestIsDryRunPossibleEnv(t *testing.T) {
 
 func TestIsDryRunRequiresBoth(t *testing.T) {
 	// Only requested set => not possible, so overall false
-	//#nosec G204 -- os.Args[0] is the test binary itself, not user input.
 	cmd := exec.Command(os.Args[0], "-printIsDryRun")
 	cmd.Env = append(os.Environ(), RequestedEnv+"=1")
 	out, err := cmd.CombinedOutput()
@@ -54,7 +51,6 @@ func TestIsDryRunRequiresBoth(t *testing.T) {
 	}
 
 	// Only possible set => not requested, so overall false
-	//#nosec G204 -- os.Args[0] is the test binary itself, not user input.
 	cmd = exec.Command(os.Args[0], "-printIsDryRun")
 	cmd.Env = append(os.Environ(), PossibleEnv+"=1")
 	out, err = cmd.CombinedOutput()
@@ -66,7 +62,6 @@ func TestIsDryRunRequiresBoth(t *testing.T) {
 	}
 
 	// Both set => true
-	//#nosec G204 -- os.Args[0] is the test binary itself, not user input.
 	cmd = exec.Command(os.Args[0], "-printIsDryRun")
 	cmd.Env = append(os.Environ(), RequestedEnv+"=1", PossibleEnv+"=1")
 	out, err = cmd.CombinedOutput()

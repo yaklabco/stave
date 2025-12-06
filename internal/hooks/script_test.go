@@ -128,7 +128,6 @@ func TestIsStaveManaged_True(t *testing.T) {
 	// Write a Stave-managed hook
 	content := GenerateScript(ScriptParams{HookName: "pre-commit"})
 
-	//#nosec G306 -- test hook script requires executable permission
 	if err := os.WriteFile(hookPath, []byte(content), 0o755); err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
@@ -153,7 +152,6 @@ func TestIsStaveManaged_False(t *testing.T) {
 # Some other hook manager
 echo "Hello"
 `
-	//#nosec G306 -- test file needs executable permissions
 	if err := os.WriteFile(hookPath, []byte(content), 0o755); err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
@@ -249,7 +247,6 @@ func TestRemoveHookScript_NotStaveManaged(t *testing.T) {
 	content := `#!/bin/sh
 echo "Hello"
 `
-	//#nosec G306 -- test file needs executable permissions
 	if err := os.WriteFile(hookPath, []byte(content), 0o755); err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}

@@ -76,7 +76,6 @@ func TestAutoExpand(t *testing.T) {
 
 func TestDryRunOutput(t *testing.T) {
 	// Invoke test binary with helper flag to exercise dry-run Output path.
-	//#nosec G204 -- os.Args[0] is the test binary itself, not user input.
 	cmd := exec.Command(os.Args[0], "-dryRunOutput")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
