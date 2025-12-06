@@ -177,6 +177,7 @@ Control hook behavior through environment variables:
 | ------------------- | ------------------------------------------------ |
 | `STAVE_HOOKS=0`     | Disable all hooks (exit silently with 0)         |
 | `STAVE_HOOKS=debug` | Enable shell tracing (`set -x`) in hook scripts  |
+| `STAVE_QUIET=1`     | Suppress decorative output (auto-detected in CI) |
 
 ### Disabling Hooks
 
@@ -194,6 +195,23 @@ Enable verbose output:
 
 ```bash
 STAVE_HOOKS=debug git commit -m "test"
+```
+
+### Quiet Mode
+
+Decorative output (hook run messages, test headers) is automatically suppressed when running in CI environments. Stave detects CI via these environment variables:
+
+- `CI`
+- `GITHUB_ACTIONS`
+- `GITLAB_CI`
+- `JENKINS_URL`
+- `CIRCLECI`
+- `BUILDKITE`
+
+To force quiet mode outside CI:
+
+```bash
+STAVE_QUIET=1 stave test
 ```
 
 ## User Init Script
@@ -376,9 +394,7 @@ stave Hooks husky
 ### Output
 
 ```text
-✓ Git hooks: Stave
-  Directory: .git/hooks/
-  Config:    stave.yaml
+⚙️ Git hooks configured: Stave (pre-push)
 ```
 
 ### Behavior

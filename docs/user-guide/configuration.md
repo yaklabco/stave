@@ -91,6 +91,23 @@ STAVE_NUM_PROCESSORS=4 stave build
 
 This sets `runtime.GOMAXPROCS` and is passed to the compiled stavefile. Use it to limit CPU usage in CI or constrained environments.
 
+## Quiet Mode
+
+Decorative CLI output (hook run messages, test headers, success messages) is automatically suppressed in CI environments. Stave detects CI via:
+
+- `CI`
+- `GITHUB_ACTIONS`
+- `GITLAB_CI`
+- `JENKINS_URL`
+- `CIRCLECI`
+- `BUILDKITE`
+
+To force quiet mode outside CI:
+
+```bash
+STAVE_QUIET=1 stave test
+```
+
 ## Git Hooks Configuration
 
 Configure Git hooks to run Stave targets automatically:
