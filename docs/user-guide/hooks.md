@@ -31,7 +31,7 @@ hooks:
 1. Install the hooks:
 
 ```bash
-stave hooks install
+stave --hooks install
 ```
 
 1. Commit as normal. The configured targets run automatically.
@@ -87,12 +87,12 @@ Unrecognized hook names generate a warning but are still installed.
 
 ## CLI Commands
 
-### stave hooks
+### stave --hooks
 
 List configured hooks (default when no subcommand given):
 
 ```bash
-stave hooks
+stave --hooks
 ```
 
 Output:
@@ -109,20 +109,20 @@ Configured Git hooks:
 All 2 hook(s) installed.
 ```
 
-### stave hooks init
+### stave --hooks init
 
 Display setup instructions for new projects:
 
 ```bash
-stave hooks init
+stave --hooks init
 ```
 
-### stave hooks install
+### stave --hooks install
 
 Install hook scripts to the Git repository:
 
 ```bash
-stave hooks install
+stave --hooks install
 ```
 
 This writes executable scripts to `.git/hooks/` (or the directory configured via `core.hooksPath`).
@@ -135,12 +135,12 @@ Flags:
 
 If an existing hook was not installed by Stave, the command fails unless `--force` is specified.
 
-### stave hooks uninstall
+### stave --hooks uninstall
 
 Remove Stave-managed hooks:
 
 ```bash
-stave hooks uninstall
+stave --hooks uninstall
 ```
 
 Only removes hooks that were installed by Stave (identified by a marker comment).
@@ -151,22 +151,22 @@ Flags:
 | ------- | ------------------------------------------------------ |
 | `--all` | Remove all Stave-managed hooks (not just configured)   |
 
-### stave hooks list
+### stave --hooks list
 
-Alias for `stave hooks` (no subcommand). Lists configured hooks and their installation status.
+Alias for `stave --hooks` (no subcommand). Lists configured hooks and their installation status.
 
-### stave hooks run
+### stave --hooks run
 
 Execute targets for a specific hook. This is called by the generated hook scripts:
 
 ```bash
-stave hooks run pre-commit -- "$@"
+stave --hooks run pre-commit -- "$@"
 ```
 
 You can run this manually for debugging:
 
 ```bash
-stave hooks run pre-commit
+stave --hooks run pre-commit
 ```
 
 ## Environment Variables
@@ -240,7 +240,7 @@ fi
 [ "${STAVE_HOOKS-}" = "debug" ] && set -x
 
 if command -v stave >/dev/null 2>&1; then
-  exec stave hooks run pre-commit -- "$@"
+  exec stave --hooks run pre-commit -- "$@"
 else
   echo "stave: 'stave' binary not found on PATH; skipping pre-commit hook." >&2
   exit 0
@@ -354,7 +354,7 @@ hooks:
 ### Installation
 
 ```bash
-stave hooks install
+stave --hooks install
 ```
 
 Now every commit runs `Fmt` and `Lint`, and every push runs `Test`.
@@ -419,7 +419,7 @@ func Hooks(system string) error {
 If you're currently using Husky:
 
 1. Add `hooks` configuration to `stave.yaml` based on your `.husky/*` scripts
-2. Run `stave hooks install` or `stave Hooks stave`
+2. Run `stave --hooks install` or `stave Hooks stave`
 3. Remove Husky: `npm uninstall husky`
 4. Delete the `.husky/` directory
 5. Remove the `prepare` script from `package.json`

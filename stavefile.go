@@ -235,7 +235,7 @@ func setupHooksStave() error {
 	sh.Run("git", "config", "--unset", "core.hooksPath")
 
 	// Install stave hooks
-	if err := sh.Run("stave", "hooks", "install"); err != nil {
+	if err := sh.Run("stave", "--hooks", "install"); err != nil {
 		return fmt.Errorf("failed to install stave hooks: %w", err)
 	}
 

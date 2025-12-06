@@ -115,3 +115,52 @@ func TestAlias(t *testing.T) {
 
 	assert.Equal(t, expected, stdout.String())
 }
+
+func TestHooksFlag(t *testing.T) {
+	ctx := t.Context()
+	runFunc := func(params stave.RunParams) error {
+		assert.True(t, params.Hooks)
+		assert.Equal(t, []string{"install"}, params.Args)
+		return nil
+	}
+	rootCmd := NewRootCmd(ctx, withRunFunc(runFunc))
+	rootCmd.SetArgs([]string{"--hooks", "install"})
+	require.NoError(t, ExecuteWithFang(ctx, rootCmd))
+}
+
+func TestHooksFlagWithVerbose(t *testing.T) {
+	ctx := t.Context()
+	runFunc := func(params stave.RunParams) error {
+		assert.True(t, params.Hooks)
+		assert.True(t, params.Verbose)
+		assert.Equal(t, []string{"list"}, params.Args)
+		return nil
+	}
+	rootCmd := NewRootCmd(ctx, withRunFunc(runFunc))
+	rootCmd.SetArgs([]string{"--verbose", "--hooks", "list"})
+	require.NoError(t, ExecuteWithFang(ctx, rootCmd))
+}
+
+func TestConfigFlag(t *testing.T) {
+	ctx := t.Context()
+	runFunc := func(params stave.RunParams) error {
+		assert.True(t, params.Config)
+		assert.Equal(t, []string{"show"}, params.Args)
+		return nil
+	}
+	rootCmd := NewRootCmd(ctx, withRunFunc(runFunc))
+	rootCmd.SetArgs([]string{"--config", "show"})
+	require.NoError(t, ExecuteWithFang(ctx, rootCmd))
+}
+
+func TestConfigFlagNoSubcommand(t *testing.T) {
+	ctx := t.Context()
+	runFunc := func(params stave.RunParams) error {
+		assert.True(t, params.Config)
+		assert.Empty(t, params.Args)
+		return nil
+	}
+	rootCmd := NewRootCmd(ctx, withRunFunc(runFunc))
+	rootCmd.SetArgs([]string{"--config"})
+	require.NoError(t, ExecuteWithFang(ctx, rootCmd))
+}

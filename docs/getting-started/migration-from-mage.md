@@ -61,7 +61,7 @@ Stave maintains compatibility with Mage features and adds:
 | `stave:import`         | Yes  | Yes   |
 | Dry-run mode           | No   | Yes   |
 | XDG configuration      | No   | Yes   |
-| `stave config` command | No   | Yes   |
+| `stave --config` command | No   | Yes   |
 | `STAVE_NUM_PROCESSORS` | No   | Yes   |
 
 ## Stave-Only Features

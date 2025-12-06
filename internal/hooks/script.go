@@ -34,7 +34,7 @@ fi
 [ "${STAVE_HOOKS-}" = "debug" ] && set -x
 
 if command -v stave >/dev/null 2>&1; then
-  exec stave hooks run {{.HookName}} -- "$@"
+  exec stave --hooks run {{.HookName}} -- "$@"
 else
   echo "stave: 'stave' binary not found on PATH; skipping {{.HookName}} hook." >&2
   exit 0

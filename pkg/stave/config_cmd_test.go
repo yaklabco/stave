@@ -172,7 +172,7 @@ func TestRunConfigCommand_Help(t *testing.T) {
 	}
 
 	output := stdout.String()
-	if !strings.Contains(output, "stave config") {
+	if !strings.Contains(output, "stave --config") {
 		t.Errorf("Expected help output, got: %s", output)
 	}
 }

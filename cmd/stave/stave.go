@@ -12,21 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// exitError is returned when a subcommand fails with a non-zero exit code.
-type exitError struct {
-	code int
-	cmd  string
-}
-
-func (e *exitError) Error() string {
-	return e.cmd + " command failed"
-}
-
-// ExitCode returns the exit code from the failed command.
-func (e *exitError) ExitCode() int {
-	return e.code
-}
-
 const (
 	shortDescription = "Stave is a Go-native, make-like command runner. " +
 		"It is a fork of Mage. See https://github.com/yaklabco/stave"
@@ -66,36 +51,13 @@ func NewRootCmd(ctx context.Context, opts ...Option) *cobra.Command {
 	stave build
 
 	# Manage Git hooks
-	stave hooks install
-	stave hooks list
+	stave --hooks install
+	stave --hooks list
 
 	# Manage configuration
-	stave config show`,
+	stave --config show`,
 		Version: version.OverallVersionStringColorized(ctx),
-		//nolint:contextcheck // context is passed via cmd.Context() to subcommands and via runParams.BaseCtx to main run
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Handle built-in subcommands before delegating to target execution
-			if len(args) > 0 {
-				switch args[0] {
-				case "hooks":
-					hooksParams := stave.HooksParams{
-						Debug:   runParams.Debug,
-						Verbose: runParams.Verbose,
-					}
-					exitCode := stave.RunHooksCommandWithParams(cmd.Context(), os.Stdout, os.Stderr, hooksParams, args[1:])
-					if exitCode != 0 {
-						return &exitError{code: exitCode, cmd: "hooks"}
-					}
-					return nil
-				case "config":
-					exitCode := stave.RunConfigCommandContext(cmd.Context(), os.Stdout, os.Stderr, args[1:])
-					if exitCode != 0 {
-						return &exitError{code: exitCode, cmd: "config"}
-					}
-					return nil
-				}
-			}
-
 			runParams.Args = args
 			runParams.WriterForLogger = os.Stdout
 			runParams.BaseCtx = cmd.Context() //nolint:fatcontext // intentionally setting context from cmd
@@ -128,6 +90,8 @@ func NewRootCmd(ctx context.Context, opts ...Option) *cobra.Command {
 	rootCmd.PersistentFlags().BoolVar(&runParams.Init, "init", false, "create a starting template if no stave files exist")
 	rootCmd.PersistentFlags().BoolVar(&runParams.Clean, "clean", false, "clean out old generated binaries from CACHE_DIR")
 	rootCmd.PersistentFlags().BoolVar(&runParams.Exec, "exec", false, "execute commands under stave")
+	rootCmd.PersistentFlags().BoolVar(&runParams.Hooks, "hooks", false, "manage git hooks (install, list, run, etc.)")
+	rootCmd.PersistentFlags().BoolVar(&runParams.Config, "config", false, "manage stave configuration")
 	rootCmd.PersistentFlags().StringVar(&runParams.CompileOut, "compile", "", "output a static binary to the given path")
 
 	return rootCmd

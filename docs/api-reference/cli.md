@@ -41,12 +41,12 @@ Used with `--compile`:
 
 ## Subcommands
 
-### stave config
+### stave --config
 
 Manage configuration.
 
 ```bash
-stave config [subcommand]
+stave --config [subcommand]
 ```
 
 | Subcommand | Description                                          |
@@ -56,12 +56,12 @@ stave config [subcommand]
 | `show`     | Show effective configuration (same as no subcommand) |
 | `path`     | Show configuration file paths                        |
 
-### stave hooks
+### stave --hooks
 
 Manage Git hooks.
 
 ```bash
-stave hooks [subcommand]
+stave --hooks [subcommand]
 ```
 
 | Subcommand  | Description                                        |
@@ -73,30 +73,30 @@ stave hooks [subcommand]
 | `list`      | List configured hooks and installation status      |
 | `run`       | Execute targets for a specific hook                |
 
-#### stave hooks install
+#### stave --hooks install
 
 ```bash
-stave hooks install [--force]
+stave --hooks install [--force]
 ```
 
 | Flag      | Description                        |
 | --------- | ---------------------------------- |
 | `--force` | Overwrite existing non-Stave hooks |
 
-#### stave hooks uninstall
+#### stave --hooks uninstall
 
 ```bash
-stave hooks uninstall [--all]
+stave --hooks uninstall [--all]
 ```
 
 | Flag    | Description                                          |
 | ------- | ---------------------------------------------------- |
 | `--all` | Remove all Stave-managed hooks (not just configured) |
 
-#### stave hooks run
+#### stave --hooks run
 
 ```bash
-stave hooks run <hook-name> [-- args...]
+stave --hooks run <hook-name> [-- args...]
 ```
 
 Executes all configured targets for the named hook. Called by generated hook scripts.

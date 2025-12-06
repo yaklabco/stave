@@ -227,7 +227,7 @@ This section will be expanded as issues are reported.
 Run hooks manually to debug issues:
 
 ```bash
-stave hooks run pre-commit
+stave --hooks run pre-commit
 ```
 
 Enable debug output in hook scripts:

@@ -34,9 +34,9 @@ func TestGenerateScript_ContainsHookName(t *testing.T) {
 			t.Parallel()
 			script := GenerateScript(ScriptParams{HookName: testCase.hookName})
 
-			// Should appear in both the stave hooks run command and the error message
-			if !strings.Contains(script, "stave hooks run "+testCase.hookName) {
-				t.Errorf("Generated script should contain 'stave hooks run %s'", testCase.hookName)
+			// Should appear in both the stave --hooks run command and the error message
+			if !strings.Contains(script, "stave --hooks run "+testCase.hookName) {
+				t.Errorf("Generated script should contain 'stave --hooks run %s'", testCase.hookName)
 			}
 			if !strings.Contains(script, "skipping "+testCase.hookName+" hook") {
 				t.Errorf("Generated script should contain 'skipping %s hook'", testCase.hookName)
@@ -114,7 +114,7 @@ func TestGenerateScript_UsesExec(t *testing.T) {
 	script := GenerateScript(ScriptParams{HookName: "pre-commit"})
 
 	// Check that exec is used to replace the shell process
-	if !strings.Contains(script, "exec stave hooks run") {
+	if !strings.Contains(script, "exec stave --hooks run") {
 		t.Error("Script should use exec to replace shell process")
 	}
 }

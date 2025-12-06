@@ -26,7 +26,7 @@ The user config file location follows XDG conventions:
 Create a default config file:
 
 ```bash
-stave config init
+stave --config init
 ```
 
 Example `config.yaml`:
@@ -120,35 +120,35 @@ Each hook entry supports:
 After configuring hooks, install them with:
 
 ```bash
-stave hooks install
+stave --hooks install
 ```
 
 See [Git Hooks](hooks.md) for complete documentation.
 
-## stave config Subcommands
+## stave --config Subcommands
 
-### stave config
+### stave --config
 
 Display effective configuration:
 
 ```bash
-stave config
+stave --config
 ```
 
-### stave config init
+### stave --config init
 
 Create a default user config file:
 
 ```bash
-stave config init
+stave --config init
 ```
 
-### stave config path
+### stave --config path
 
 Show configuration paths:
 
 ```bash
-stave config path
+stave --config path
 ```
 
 Output:

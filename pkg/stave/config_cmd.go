@@ -27,13 +27,13 @@ const (
 	exitCodeUsageError = 2
 )
 
-// RunConfigCommand handles the `stave config` subcommand.
+// RunConfigCommand handles the `stave --config` subcommand.
 // It returns the exit code.
 func RunConfigCommand(stdout, stderr io.Writer, args []string) int {
 	return RunConfigCommandContext(context.Background(), stdout, stderr, args)
 }
 
-// RunConfigCommandContext handles the `stave config` subcommand with context.
+// RunConfigCommandContext handles the `stave --config` subcommand with context.
 // It returns the exit code.
 func RunConfigCommandContext(_ context.Context, stdout, stderr io.Writer, args []string) int {
 	flagSet := flag.NewFlagSet("config", flag.ContinueOnError)
@@ -133,7 +133,7 @@ func runConfigPath(stdout, _ io.Writer) int {
 // configUsage prints the config command usage.
 func configUsage(w io.Writer) {
 	_, _ = fmt.Fprint(w, `
-stave config [subcommand]
+stave --config [subcommand]
 
 Manage Stave configuration.
 
@@ -143,9 +143,9 @@ Subcommands:
   path    Show configuration file paths
 
 Examples:
-  stave config           # Show effective configuration
-  stave config init      # Create ~/.config/stave/config.yaml
-  stave config show      # Same as 'stave config'
-  stave config path      # Show config file locations
+  stave --config           # Show effective configuration
+  stave --config init      # Create ~/.config/stave/config.yaml
+  stave --config show      # Same as 'stave --config'
+  stave --config path      # Show config file locations
 `[1:])
 }

@@ -47,7 +47,7 @@ This installs:
 Stave uses its own native hook system. Install hooks after cloning:
 
 ```bash
-stave hooks install
+stave --hooks install
 ```
 
 This installs Git hooks defined in `stave.yaml`. The `pre-push` hook runs `Test` to ensure code quality before pushing.
@@ -55,7 +55,7 @@ This installs Git hooks defined in `stave.yaml`. The `pre-push` hook runs `Test`
 To view configured hooks:
 
 ```bash
-stave hooks list
+stave --hooks list
 ```
 
 See [Git Hooks](../user-guide/hooks.md) for more details on hook configuration.

@@ -53,10 +53,12 @@ type RunParams struct {
 
 	WriterForLogger io.Writer // writer for logger to write to
 
-	List  bool // tells the stavefile to print out a list of targets
-	Init  bool // create an initial stavefile from template
-	Clean bool // clean out old generated binaries from cache dir
-	Exec  bool // tells the stavefile to treat the rest of the command-line as a command to execute
+	List   bool // tells the stavefile to print out a list of targets
+	Init   bool // create an initial stavefile from template
+	Clean  bool // clean out old generated binaries from cache dir
+	Exec   bool // tells the stavefile to treat the rest of the command-line as a command to execute
+	Hooks  bool // triggers hooks management mode
+	Config bool // triggers config management mode
 
 	Debug      bool          // turn on debug messages
 	Dir        string        // directory to read stavefiles from
@@ -105,7 +107,7 @@ func Run(params RunParams) error {
 	}
 
 	if howManyThingsToDo(params) > 1 {
-		return errors.New("only one of -init, -clean, -list, or explicit targets may be specified")
+		return errors.New("only one of --init, --clean, --list, --hooks, --config, or explicit targets may be specified")
 	}
 
 	if params.Init {
@@ -128,6 +130,14 @@ func Run(params RunParams) error {
 
 	if params.Exec {
 		return execInStave(ctx, params)
+	}
+
+	if params.Hooks {
+		return runHooksMode(ctx, params)
+	}
+
+	if params.Config {
+		return runConfigMode(ctx, params)
 	}
 
 	return stave(ctx, params)
@@ -156,6 +166,26 @@ func execInStave(ctx context.Context, params RunParams) error {
 	theCmd.Env = env.ToAssignments(envMap)
 
 	return theCmd.Run()
+}
+
+func runHooksMode(ctx context.Context, params RunParams) error {
+	hooksParams := HooksParams{
+		Debug:   params.Debug,
+		Verbose: params.Verbose,
+	}
+	exitCode := RunHooksCommandWithParams(ctx, params.Stdout, params.Stderr, hooksParams, params.Args)
+	if exitCode != 0 {
+		return st.Fatal(exitCode, "hooks command failed")
+	}
+	return nil
+}
+
+func runConfigMode(ctx context.Context, params RunParams) error {
+	exitCode := RunConfigCommandContext(ctx, params.Stdout, params.Stderr, params.Args)
+	if exitCode != 0 {
+		return st.Fatal(exitCode, "config command failed")
+	}
+	return nil
 }
 
 func stave(ctx context.Context, params RunParams) error {
@@ -286,6 +316,10 @@ func howManyThingsToDo(params RunParams) int {
 	case params.Clean:
 		nThingsToDo++
 	case params.Exec:
+		nThingsToDo++
+	case params.Hooks:
+		nThingsToDo++
+	case params.Config:
 		nThingsToDo++
 	case len(params.Args) > 0:
 		nThingsToDo++

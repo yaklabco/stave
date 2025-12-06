@@ -63,13 +63,13 @@ func newStaveTargetRunner(cfg *config.Config) hooks.TargetRunnerFunc {
 	}
 }
 
-// RunHooksCommand handles the `stave hooks` subcommand.
+// RunHooksCommand handles the `stave --hooks` subcommand.
 // It returns the exit code.
 func RunHooksCommand(stdout, stderr io.Writer, args []string) int {
 	return RunHooksCommandContext(context.Background(), stdout, stderr, args)
 }
 
-// RunHooksCommandWithParams handles the `stave hooks` subcommand with debug/verbose params.
+// RunHooksCommandWithParams handles the `stave --hooks` subcommand with debug/verbose params.
 // It returns the exit code.
 func RunHooksCommandWithParams(ctx context.Context, stdout, stderr io.Writer, params HooksParams, args []string) int {
 	// Set up pretty logging with appropriate level
@@ -98,7 +98,7 @@ const (
 	HooksRun       HooksSubcommand = "run"
 )
 
-// RunHooksCommandContext handles the `stave hooks` subcommand with context.
+// RunHooksCommandContext handles the `stave --hooks` subcommand with context.
 // It returns the exit code.
 //
 // Deprecated: Use RunHooksCommandWithParams for proper debug/verbose support.
@@ -201,7 +201,7 @@ func printHooksInitInstructions(out io.Writer) {
 	_, _ = fmt.Fprintln(out, "  pre-push:")
 	_, _ = fmt.Fprintln(out, "    - target: test")
 	_, _ = fmt.Fprintln(out)
-	_, _ = fmt.Fprintln(out, "Then run: stave hooks install")
+	_, _ = fmt.Fprintln(out, "Then run: stave --hooks install")
 }
 
 // runHooksInstall installs hook scripts to the Git repository.
@@ -243,7 +243,7 @@ func runHooksInstall(ctx context.Context, stdout, stderr io.Writer, args []strin
 	if len(cfg.Hooks) == 0 {
 		slog.Debug("no hooks configured in config")
 		_, _ = fmt.Fprintln(stderr, "No hooks configured in stave.yaml")
-		_, _ = fmt.Fprintln(stderr, "Run 'stave hooks init' for setup instructions.")
+		_, _ = fmt.Fprintln(stderr, "Run 'stave --hooks init' for setup instructions.")
 		return exitError
 	}
 
@@ -411,7 +411,7 @@ func runHooksList(ctx context.Context, stdout, stderr io.Writer) int {
 	if len(cfg.Hooks) == 0 {
 		slog.Debug("no hooks configured")
 		_, _ = fmt.Fprintln(stdout, "No hooks configured.")
-		_, _ = fmt.Fprintln(stdout, "Run 'stave hooks init' for setup instructions.")
+		_, _ = fmt.Fprintln(stdout, "Run 'stave --hooks init' for setup instructions.")
 		return exitOK
 	}
 
@@ -471,7 +471,7 @@ func printInstallationStatus(repo *hooks.GitRepo, hookNames []string, out io.Wri
 		if len(missing) > 0 {
 			sort.Strings(missing)
 			_, _ = fmt.Fprintf(out, "Missing: %s\n", strings.Join(missing, ", "))
-			_, _ = fmt.Fprintln(out, "Run 'stave hooks install' to install missing hooks.")
+			_, _ = fmt.Fprintln(out, "Run 'stave --hooks install' to install missing hooks.")
 		}
 	}
 }
@@ -492,7 +492,7 @@ func runHooksRun(ctx context.Context, stdout, stderr io.Writer, args []string) i
 	remaining := flagSet.Args()
 	if len(remaining) == 0 {
 		_, _ = fmt.Fprintln(stderr, "Error: hook name required")
-		_, _ = fmt.Fprintln(stderr, "Usage: stave hooks run <hook-name> [-- args...]")
+		_, _ = fmt.Fprintln(stderr, "Usage: stave --hooks run <hook-name> [-- args...]")
 		return exitUsage
 	}
 
@@ -540,7 +540,7 @@ func parseHookArgs(args []string) []string {
 // hooksUsage prints the hooks command usage.
 func hooksUsage(w io.Writer) {
 	_, _ = fmt.Fprint(w, `
-stave hooks [subcommand]
+stave --hooks [subcommand]
 
 Manage Git hooks for this repository.
 
@@ -562,12 +562,12 @@ Environment Variables:
   STAVE_HOOKS=debug  Enable debug output in hook scripts
 
 Examples:
-  stave hooks                    # List configured hooks
-  stave hooks init               # Show setup instructions
-  stave hooks install            # Install all configured hooks
-  stave hooks install --force    # Overwrite existing hooks
-  stave hooks uninstall          # Remove configured hooks
-  stave hooks uninstall --all    # Remove all Stave hooks
-  stave hooks run pre-commit     # Execute pre-commit targets
+  stave --hooks                    # List configured hooks
+  stave --hooks init               # Show setup instructions
+  stave --hooks install            # Install all configured hooks
+  stave --hooks install --force    # Overwrite existing hooks
+  stave --hooks uninstall          # Remove configured hooks
+  stave --hooks uninstall --all    # Remove all Stave hooks
+  stave --hooks run pre-commit     # Execute pre-commit targets
 `[1:])
 }

@@ -102,8 +102,8 @@ func TestRunHooksCommand_Help(t *testing.T) {
 	if code != 0 {
 		t.Errorf("RunHooksCommand -h returned %d, want 0", code)
 	}
-	if !strings.Contains(stdout.String(), "stave hooks") {
-		t.Error("Help output should contain 'stave hooks'")
+	if !strings.Contains(stdout.String(), "stave --hooks") {
+		t.Error("Help output should contain 'stave --hooks'")
 	}
 }
 
