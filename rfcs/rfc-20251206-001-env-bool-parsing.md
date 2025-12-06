@@ -32,13 +32,13 @@ This consolidation will:
 
 During a code review, five distinct boolean parsing implementations were identified across the codebase, each with subtly different behavior:
 
-| Location | Method | Trims Whitespace | Error Behavior |
-|----------|--------|------------------|----------------|
-| `pkg/st/runtime.go:137-149` | `strconv.ParseBool` | Yes | Returns `true` |
-| `config/config.go:312-314` | Exact string match | No | Returns `false` |
-| `mainfile.gotmpl:36-47` | `strconv.ParseBool` | No | Returns `false` + warning |
-| `mainfile.gotmpl:221` | `strconv.ParseBool` | No | Returns `false` silently |
-| `mainfile.gotmpl:453` | `strconv.ParseBool` | No | Returns `false` silently |
+| Location                    | Method              | Trims Whitespace | Error Behavior            |
+| --------------------------- | ------------------- | ---------------- | ------------------------- |
+| `pkg/st/runtime.go:137-149` | `strconv.ParseBool` | Yes              | Returns `true`            |
+| `config/config.go:312-314`  | Exact string match  | No               | Returns `false`           |
+| `mainfile.gotmpl:36-47`     | `strconv.ParseBool` | No               | Returns `false` + warning |
+| `mainfile.gotmpl:221`       | `strconv.ParseBool` | No               | Returns `false` silently  |
+| `mainfile.gotmpl:453`       | `strconv.ParseBool` | No               | Returns `false` silently  |
 
 This inconsistency creates several problems:
 
@@ -84,12 +84,12 @@ graph TD
         A[STAVEFILE_VERBOSE] --> B[st/runtime.go parseEnvBool]
         A --> C[config/config.go parseBoolValue]
         A --> D[mainfile.gotmpl parseBool]
-        
+
         B --> E[Returns true on error]
         C --> F[Returns false, limited values]
         D --> G[Returns false + warning]
     end
-    
+
     style B fill:#f9f,stroke:#333
     style C fill:#bbf,stroke:#333
     style D fill:#bfb,stroke:#333
@@ -104,17 +104,17 @@ graph TD
         C[STAVEFILE_DEBUG] --> B
         D[STAVEFILE_HASHFAST] --> B
         E[Other STAVEFILE_* bools] --> B
-        
+
         B --> F{Valid?}
         F -->|yes| G[Return parsed bool]
         F -->|no| H[Return error]
-        
+
         I[ParseBoolEnvDefaultFalse] --> B
         J[ParseBoolEnvDefaultTrue] --> B
         I -->|error| K[Returns false]
         J -->|error| L[Returns true]
     end
-    
+
     style B fill:#9f9,stroke:#333
 ```
 
@@ -179,7 +179,7 @@ func ParseBool(value string) (bool, error) {
     if value == "" {
         return false, nil
     }
-    
+
     switch strings.ToLower(value) {
     case "true", "yes", "1":
         return true, nil
@@ -229,6 +229,7 @@ func ParseBoolEnvDefaultTrue(envVar string) bool {
 4. **Error on invalid values**: Rather than silently returning a default, `ParseBool` returns an error for invalid values. This allows callers to handle configuration errors appropriately (log, fail fast, etc.).
 
 5. **Two default wrappers**: Different use cases require different default behaviors:
+
    - `ParseBoolEnvDefaultFalse`: Fail-safe for features that should be opt-in. Invalid config does not accidentally enable features.
    - `ParseBoolEnvDefaultTrue`: For features that should be enabled by default and only disabled by explicit configuration.
 
@@ -240,30 +241,30 @@ func ParseBoolEnvDefaultTrue(envVar string) bool {
 
 The canonical implementation will accept the following values (case-insensitive after trimming and lowercasing):
 
-| Value | Result | Error |
-|-------|--------|-------|
-| `"true"` | `true` | no |
-| `"TRUE"` | `true` | no |
-| `"True"` | `true` | no |
-| `"yes"` | `true` | no |
-| `"YES"` | `true` | no |
-| `"Yes"` | `true` | no |
-| `"1"` | `true` | no |
-| `"false"` | `false` | no |
-| `"FALSE"` | `false` | no |
-| `"False"` | `false` | no |
-| `"no"` | `false` | no |
-| `"NO"` | `false` | no |
-| `"No"` | `false` | no |
-| `"0"` | `false` | no |
-| `""` (empty) | `false` | no |
-| `"  true  "` | `true` | no (whitespace trimmed) |
-| `"  YES  "` | `true` | no (whitespace trimmed) |
-| `"t"` | `false` | **yes** (invalid) |
-| `"f"` | `false` | **yes** (invalid) |
-| `"on"` | `false` | **yes** (invalid) |
-| `"off"` | `false` | **yes** (invalid) |
-| `"enabled"` | `false` | **yes** (invalid) |
+| Value        | Result  | Error                   |
+| ------------ | ------- | ----------------------- |
+| `"true"`     | `true`  | no                      |
+| `"TRUE"`     | `true`  | no                      |
+| `"True"`     | `true`  | no                      |
+| `"yes"`      | `true`  | no                      |
+| `"YES"`      | `true`  | no                      |
+| `"Yes"`      | `true`  | no                      |
+| `"1"`        | `true`  | no                      |
+| `"false"`    | `false` | no                      |
+| `"FALSE"`    | `false` | no                      |
+| `"False"`    | `false` | no                      |
+| `"no"`       | `false` | no                      |
+| `"NO"`       | `false` | no                      |
+| `"No"`       | `false` | no                      |
+| `"0"`        | `false` | no                      |
+| `""` (empty) | `false` | no                      |
+| `"  true  "` | `true`  | no (whitespace trimmed) |
+| `"  YES  "`  | `true`  | no (whitespace trimmed) |
+| `"t"`        | `false` | **yes** (invalid)       |
+| `"f"`        | `false` | **yes** (invalid)       |
+| `"on"`       | `false` | **yes** (invalid)       |
+| `"off"`      | `false` | **yes** (invalid)       |
+| `"enabled"`  | `false` | **yes** (invalid)       |
 
 Note: Values like `"t"`, `"f"`, `"on"`, `"off"` which `strconv.ParseBool` accepts (or rejects inconsistently) are explicitly rejected. This is intentional to maintain a strict, predictable set of accepted values.
 
@@ -361,16 +362,16 @@ This matches the canonical behavior without requiring additional imports in the 
 
 ## Behavioral Changes Summary
 
-| Context | Current Behavior | New Behavior | Impact |
-|---------|------------------|--------------|--------|
-| `st.Verbose()` with `"yes"` | Returns `true` (bug) | Returns `true` | Now correct |
-| `st.Verbose()` with `"invalid"` | Returns `true` (bug) | Returns `false` | Bug fix |
-| `config.Load()` with `"yes"` | Returns `false` | Returns `true` | Expanded acceptance |
-| `config.Load()` with `"no"` | Returns `false` | Returns `false` | Expanded acceptance |
-| `config.Load()` with `"t"` | Returns `false` | Returns `false` + error | Stricter validation |
-| `config.Load()` with `"  true  "` | Returns `false` | Returns `true` | Whitespace tolerance |
-| Generated binary with `"yes"` | Returns `false` | Returns `true` | Expanded acceptance |
-| Generated binary with `"invalid"` | Returns `false` + warning | Returns `false` (silent) | Cleaner output |
+| Context                           | Current Behavior          | New Behavior             | Impact               |
+| --------------------------------- | ------------------------- | ------------------------ | -------------------- |
+| `st.Verbose()` with `"yes"`       | Returns `true` (bug)      | Returns `true`           | Now correct          |
+| `st.Verbose()` with `"invalid"`   | Returns `true` (bug)      | Returns `false`          | Bug fix              |
+| `config.Load()` with `"yes"`      | Returns `false`           | Returns `true`           | Expanded acceptance  |
+| `config.Load()` with `"no"`       | Returns `false`           | Returns `false`          | Expanded acceptance  |
+| `config.Load()` with `"t"`        | Returns `false`           | Returns `false` + error  | Stricter validation  |
+| `config.Load()` with `"  true  "` | Returns `false`           | Returns `true`           | Whitespace tolerance |
+| Generated binary with `"yes"`     | Returns `false`           | Returns `true`           | Expanded acceptance  |
+| Generated binary with `"invalid"` | Returns `false` + warning | Returns `false` (silent) | Cleaner output       |
 
 ---
 
@@ -413,11 +414,13 @@ The generated code in `mainfile.gotmpl` already returns `false` on error. The ch
 Use the Go standard library function for parsing boolean strings.
 
 **Pros:**
+
 - Go idiomatic.
 - Well-documented, stable behavior.
 - Widely understood by Go developers.
 
 **Cons:**
+
 - Does not accept `"yes"` and `"no"` which are common in configuration.
 - Accepts `"t"`, `"T"`, `"f"`, `"F"` which are less intuitive.
 - Case-sensitive matching for mixed case values.
@@ -429,10 +432,12 @@ Use the Go standard library function for parsing boolean strings.
 Update each implementation independently to have consistent behavior.
 
 **Pros:**
+
 - No new shared code.
 - Smaller diff.
 
 **Cons:**
+
 - Does not address the maintenance burden.
 - Risk of drift over time.
 - No single source of truth.
@@ -442,10 +447,12 @@ Update each implementation independently to have consistent behavior.
 Standardize on the "any non-empty value means true" behavior.
 
 **Pros:**
+
 - Backward compatible with `st/runtime.go`.
 - Permissive.
 
 **Cons:**
+
 - Violates principle of least surprise.
 - Could mask configuration errors.
 - Makes it impossible to distinguish between intentional `true` and misconfiguration.
@@ -455,9 +462,11 @@ Standardize on the "any non-empty value means true" behavior.
 Make the environment utilities public so generated code can import them.
 
 **Pros:**
+
 - Single implementation everywhere, including generated code.
 
 **Cons:**
+
 - Adds a runtime dependency to compiled stavefiles.
 - Increases binary size.
 - Generated code should remain self-contained for portability.
@@ -467,10 +476,12 @@ Make the environment utilities public so generated code can import them.
 Only provide `ParseBoolEnvDefaultFalse`, not `ParseBoolEnvDefaultTrue`.
 
 **Pros:**
+
 - Simpler API.
 - Encourages fail-safe defaults.
 
 **Cons:**
+
 - Some use cases require features to be enabled by default.
 - Forces awkward workarounds for opt-out configuration.
 
@@ -481,9 +492,11 @@ Only provide `ParseBoolEnvDefaultFalse`, not `ParseBoolEnvDefaultTrue`.
 When `ParseBoolEnv` encounters an invalid value, log a warning.
 
 **Pros:**
+
 - Helps users identify configuration mistakes.
 
 **Cons:**
+
 - Adds complexity.
 - Warning destination unclear in library context.
 - The current `mainfile.gotmpl` implementation does this, and removing it is considered an improvement (cleaner output).
@@ -515,7 +528,7 @@ func TestParseBool(t *testing.T) {
         {"YES", true, false},
         {"Yes", true, false},
         {"yEs", true, false},
-        
+
         // False values (case-insensitive)
         {"0", false, false},
         {"false", false, false},
@@ -526,10 +539,10 @@ func TestParseBool(t *testing.T) {
         {"NO", false, false},
         {"No", false, false},
         {"nO", false, false},
-        
+
         // Empty
         {"", false, false},
-        
+
         // Whitespace handling
         {"  true  ", true, false},
         {"  false  ", false, false},
@@ -539,7 +552,7 @@ func TestParseBool(t *testing.T) {
         {"  0  ", false, false},
         {"\ttrue\n", true, false},
         {"\tYES\n", true, false},
-        
+
         // Invalid values (return error)
         {"t", false, true},
         {"f", false, true},
@@ -555,7 +568,7 @@ func TestParseBool(t *testing.T) {
         {"y", false, true},
         {"n", false, true},
     }
-    
+
     for _, tt := range tests {
         t.Run(tt.input, func(t *testing.T) {
             got, err := ParseBool(tt.input)
@@ -589,7 +602,7 @@ func TestParseBoolEnvDefaultFalse(t *testing.T) {
         {"invalid", "enabled", true, false},
         {"whitespace", "  true  ", true, true},
     }
-    
+
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
             const envVar = "TEST_PARSE_BOOL_ENV_DEFAULT_FALSE"
@@ -621,7 +634,7 @@ func TestParseBoolEnvDefaultTrue(t *testing.T) {
         {"invalid", "enabled", true, true}, // Default true on error
         {"whitespace", "  false  ", true, false},
     }
-    
+
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
             const envVar = "TEST_PARSE_BOOL_ENV_DEFAULT_TRUE"
@@ -681,21 +694,21 @@ Existing tests in `config/config_test.go` and `pkg/st/` will be updated to use v
 ## Open Questions
 
 1. **Should we log warnings for invalid boolean values?**
-   
+
    Currently proposed: No. Invalid values return an error which wrapper functions can handle. The wrappers silently return their default value.
-   
+
    Alternative: Log a warning to help users identify configuration mistakes. This would require determining where to log (stderr? structured logging?) and could add noise.
 
 2. **Should `ParseBool` be public (`pkg/env`)?**
-   
+
    Currently proposed: No. Keep it internal; generated code inlines the logic.
-   
+
    Alternative: Make it public for consistency. Downstream users could benefit from a well-tested boolean parser.
 
 3. **Should empty string return an error or be treated as valid?**
-   
+
    Currently proposed: Empty string returns `false` with no error. This allows unset environment variables to work naturally without requiring explicit handling.
-   
+
    Alternative: Treat empty string as invalid and return an error. The wrappers would then apply the default. This would make the behavior more explicit but could cause unexpected errors for users who expect unset variables to behave like `false`.
 
 ---
