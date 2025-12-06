@@ -13,7 +13,7 @@ func _() {
 	_ = x[Green-2]
 	_ = x[Yellow-3]
 	_ = x[Blue-4]
-	_ = x[Staventa-5]
+	_ = x[Magenta-5]
 	_ = x[Cyan-6]
 	_ = x[White-7]
 	_ = x[BrightBlack-8]
@@ -21,14 +21,14 @@ func _() {
 	_ = x[BrightGreen-10]
 	_ = x[BrightYellow-11]
 	_ = x[BrightBlue-12]
-	_ = x[BrightStaventa-13]
+	_ = x[BrightMagenta-13]
 	_ = x[BrightCyan-14]
 	_ = x[BrightWhite-15]
 }
 
-const _Color_name = "BlackRedGreenYellowBlueStaventaCyanWhiteBrightBlackBrightRedBrightGreenBrightYellowBrightBlueBrightStaventaBrightCyanBrightWhite"
+const _Color_name = "BlackRedGreenYellowBlueMagentaCyanWhiteBrightBlackBrightRedBrightGreenBrightYellowBrightBlueBrightMagentaBrightCyanBrightWhite"
 
-var _Color_index = [...]uint8{0, 5, 8, 13, 19, 23, 31, 35, 40, 51, 60, 71, 83, 93, 107, 117, 128}
+var _Color_index = [...]uint8{0, 5, 8, 13, 19, 23, 30, 34, 39, 50, 59, 70, 82, 92, 105, 115, 126}
 
 func (i Color) String() string {
 	idx := int(i) - 0

@@ -8,7 +8,6 @@ import (
 	_fmt "fmt"
 	_io "io"
 	_log "log"
-	_slog "log/slog"
 	"os"
 	"os/signal"
 	_filepath "path/filepath"
@@ -18,8 +17,6 @@ import (
 	"syscall"
 	_tabwriter "text/tabwriter"
 	"time"
-
-	_cblog "github.com/charmbracelet/log"
 
 {{range .Imports}}{{.UniqueName}} "{{.Path}}"
 {{end}}
@@ -61,6 +58,7 @@ func main() {
 		}
 		return d
 	}
+
 	args := arguments{}
 	fs := _flag.FlagSet{}
 	fs.SetOutput(os.Stdout)
@@ -378,24 +376,13 @@ func main() {
 		os.Setenv("STAVEFILE_DEBUG", "0")
 	}
 
-	logHandler := _cblog.NewWithOptions(
-		os.Stdout,
-		_cblog.Options{
-			Level:           _cblog.InfoLevel,
-			ReportTimestamp: true,
-			ReportCaller:    true,
-		},
-	)
-	structuredLogger := _slog.New(logHandler)
-	_slog.SetDefault(structuredLogger)
-
 	if args.Debug {
-		logHandler.SetLevel(_cblog.DebugLevel)
+		// Debug
 	} else {
 		if args.Verbose {
-			logHandler.SetLevel(_cblog.InfoLevel)
+			// Info
 		} else {
-				logHandler.SetLevel(_cblog.WarnLevel)
+			// Warn
 		}
 	}
 
@@ -505,7 +492,7 @@ func main() {
 				os.Exit(2)
 			}
 			if args.Verbose {
-				logger.Println("Running target:", "{{.TargetName}}")
+				logger.Println("Running target: <{{.TargetName}}>")
 			}
 			{{.ExecCode}}
 			handleError(logger, ret)
@@ -522,7 +509,7 @@ func main() {
 				os.Exit(2)
 			}
 			if args.Verbose {
-				logger.Println("Running target:", "{{.TargetName}}")
+				logger.Println("Running target: <{{.TargetName}}>")
 			}
 			{{.ExecCode}}
 			handleError(logger, ret)

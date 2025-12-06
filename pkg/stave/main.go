@@ -55,13 +55,13 @@ type RunParams struct {
 
 	Init  bool // create an initial stavefile from template
 	Clean bool // clean out old generated binaries from cache dir
+	List  bool // tells the stavefile to print out a list of targets
 
 	Debug      bool          // turn on debug messages
 	Dir        string        // directory to read stavefiles from
 	WorkDir    string        // directory where stavefiles will run
 	Force      bool          // forces recreation of the compiled binary
 	Verbose    bool          // tells the stavefile to print out log statements
-	List       bool          // tells the stavefile to print out a list of targets
 	Info       bool          // tells the stavefile to print out docstring for a specific target
 	Keep       bool          // tells stave to keep the generated main file after compiling
 	DryRun     bool          // tells stave that all sh.Run* commands should print, but not execute
