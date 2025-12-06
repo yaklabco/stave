@@ -6,6 +6,16 @@ import (
 	"testing"
 )
 
+const (
+	// testValidChangelog is a minimal valid changelog for testing.
+	testValidChangelog = `# Changelog
+
+## [Unreleased]
+`
+	// testMergeBase is a test merge base commit hash.
+	testMergeBase = "abc123"
+)
+
 func TestPrePushCheck_BypassEnv(t *testing.T) {
 	t.Setenv("BYPASS_CHANGELOG_CHECK", "1")
 
@@ -45,7 +55,7 @@ func TestPrePushCheck_ValidChangelog(t *testing.T) {
 	// Mock that returns CHANGELOG.md in changed files
 	mock := &mockGitOps{
 		changedFiles:  []string{"README.md", "CHANGELOG.md", "main.go"},
-		mergeBase:     "abc123",
+		mergeBase:     testMergeBase,
 		refExists:     map[string]bool{"refs/remotes/origin/main": true},
 		currentBranch: "feature-branch",
 	}
@@ -60,7 +70,7 @@ func TestPrePushCheck_ValidChangelog(t *testing.T) {
 				LocalRef:  "refs/heads/feature",
 				LocalSHA:  "def456",
 				RemoteRef: "refs/heads/feature",
-				RemoteSHA: "abc123",
+				RemoteSHA: testMergeBase,
 			},
 		},
 	})
@@ -95,7 +105,7 @@ func TestPrePushCheck_MissingChangelog(t *testing.T) {
 	// Mock that does NOT include CHANGELOG.md in changed files
 	mock := &mockGitOps{
 		changedFiles:  []string{"README.md", "main.go"},
-		mergeBase:     "abc123",
+		mergeBase:     testMergeBase,
 		refExists:     map[string]bool{"refs/remotes/origin/main": true},
 		currentBranch: "feature-branch",
 	}
@@ -110,7 +120,7 @@ func TestPrePushCheck_MissingChangelog(t *testing.T) {
 				LocalRef:  "refs/heads/feature",
 				LocalSHA:  "def456",
 				RemoteRef: "refs/heads/feature",
-				RemoteSHA: "abc123",
+				RemoteSHA: testMergeBase,
 			},
 		},
 	})
@@ -148,7 +158,7 @@ func TestPrePushCheck_InvalidFormat(t *testing.T) {
 
 	mock := &mockGitOps{
 		changedFiles: []string{"CHANGELOG.md"},
-		mergeBase:    "abc123",
+		mergeBase:    testMergeBase,
 		refExists:    map[string]bool{"refs/remotes/origin/main": true},
 	}
 
@@ -162,7 +172,7 @@ func TestPrePushCheck_InvalidFormat(t *testing.T) {
 				LocalRef:  "refs/heads/feature",
 				LocalSHA:  "def456",
 				RemoteRef: "refs/heads/feature",
-				RemoteSHA: "abc123",
+				RemoteSHA: testMergeBase,
 			},
 		},
 	})
@@ -181,11 +191,7 @@ func TestPrePushCheck_SkipTagPush(t *testing.T) {
 	tmpDir := t.TempDir()
 	changelogPath := filepath.Join(tmpDir, "CHANGELOG.md")
 
-	validChangelog := `# Changelog
-
-## [Unreleased]
-`
-	if err := os.WriteFile(changelogPath, []byte(validChangelog), 0o600); err != nil {
+	if err := os.WriteFile(changelogPath, []byte(testValidChangelog), 0o600); err != nil {
 		t.Fatalf("Failed to write changelog: %v", err)
 	}
 
@@ -220,11 +226,7 @@ func TestPrePushCheck_SkipMainBranch(t *testing.T) {
 	tmpDir := t.TempDir()
 	changelogPath := filepath.Join(tmpDir, "CHANGELOG.md")
 
-	validChangelog := `# Changelog
-
-## [Unreleased]
-`
-	if err := os.WriteFile(changelogPath, []byte(validChangelog), 0o600); err != nil {
+	if err := os.WriteFile(changelogPath, []byte(testValidChangelog), 0o600); err != nil {
 		t.Fatalf("Failed to write changelog: %v", err)
 	}
 
@@ -242,7 +244,7 @@ func TestPrePushCheck_SkipMainBranch(t *testing.T) {
 				LocalRef:  "refs/heads/main",
 				LocalSHA:  "def456",
 				RemoteRef: "refs/heads/main",
-				RemoteSHA: "abc123",
+				RemoteSHA: testMergeBase,
 			},
 		},
 	})
@@ -266,24 +268,20 @@ func TestPrePushCheck_SkipSVUEnvVars(t *testing.T) {
 		{"GORELEASER", "GORELEASER", "true"},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
 			changelogPath := filepath.Join(tmpDir, "CHANGELOG.md")
 
-			validChangelog := `# Changelog
-
-## [Unreleased]
-`
-			if err := os.WriteFile(changelogPath, []byte(validChangelog), 0o600); err != nil {
+			if err := os.WriteFile(changelogPath, []byte(testValidChangelog), 0o600); err != nil {
 				t.Fatalf("Failed to write changelog: %v", err)
 			}
 
-			t.Setenv(tt.envKey, tt.envVal)
+			t.Setenv(testCase.envKey, testCase.envVal)
 
 			mock := &mockGitOps{
 				changedFiles: []string{"CHANGELOG.md"},
-				mergeBase:    "abc123",
+				mergeBase:    testMergeBase,
 				refExists:    map[string]bool{"refs/remotes/origin/main": true},
 			}
 
@@ -297,7 +295,7 @@ func TestPrePushCheck_SkipSVUEnvVars(t *testing.T) {
 						LocalRef:  "refs/heads/feature",
 						LocalSHA:  "def456",
 						RemoteRef: "refs/heads/feature",
-						RemoteSHA: "abc123",
+						RemoteSHA: testMergeBase,
 					},
 				},
 			})
@@ -315,17 +313,13 @@ func TestPrePushCheck_NewBranch(t *testing.T) {
 	tmpDir := t.TempDir()
 	changelogPath := filepath.Join(tmpDir, "CHANGELOG.md")
 
-	validChangelog := `# Changelog
-
-## [Unreleased]
-`
-	if err := os.WriteFile(changelogPath, []byte(validChangelog), 0o600); err != nil {
+	if err := os.WriteFile(changelogPath, []byte(testValidChangelog), 0o600); err != nil {
 		t.Fatalf("Failed to write changelog: %v", err)
 	}
 
 	mock := &mockGitOps{
 		changedFiles: []string{"CHANGELOG.md"},
-		mergeBase:    "abc123",
+		mergeBase:    testMergeBase,
 		refExists:    map[string]bool{"refs/remotes/origin/main": true},
 	}
 
@@ -414,13 +408,13 @@ func TestCheckResult_Error(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.result.Error()
-			if tt.wantNil && err != nil {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			err := testCase.result.Error()
+			if testCase.wantNil && err != nil {
 				t.Errorf("Error() = %v, want nil", err)
 			}
-			if !tt.wantNil && err == nil {
+			if !testCase.wantNil && err == nil {
 				t.Error("Error() = nil, want error")
 			}
 		})
@@ -430,29 +424,29 @@ func TestCheckResult_Error(t *testing.T) {
 func TestFindDefaultBase(t *testing.T) {
 	t.Run("main exists", func(t *testing.T) {
 		mock := &mockGitOps{
-			mergeBase: "abc123",
+			mergeBase: testMergeBase,
 			refExists: map[string]bool{"refs/remotes/origin/main": true},
 		}
 		base := findDefaultBase(mock, "origin", "def456")
-		if base != "abc123" {
+		if base != testMergeBase {
 			t.Errorf("findDefaultBase() = %q, want abc123", base)
 		}
 	})
 
 	t.Run("master fallback", func(t *testing.T) {
 		mock := &mockGitOps{
-			mergeBase: "abc123",
+			mergeBase: testMergeBase,
 			refExists: map[string]bool{"refs/remotes/origin/master": true},
 		}
 		base := findDefaultBase(mock, "origin", "def456")
-		if base != "abc123" {
+		if base != testMergeBase {
 			t.Errorf("findDefaultBase() = %q, want abc123", base)
 		}
 	})
 
 	t.Run("no default branch", func(t *testing.T) {
 		mock := &mockGitOps{
-			mergeBase: "abc123",
+			mergeBase: testMergeBase,
 			refExists: map[string]bool{},
 		}
 		base := findDefaultBase(mock, "origin", "def456")

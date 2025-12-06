@@ -314,23 +314,24 @@ func preprocessRunParams(params *RunParams) {
 	stavefilesDir := filepath.Join(params.Dir, StavefilesDirName)
 
 	stavefilesDirStat, err := os.Stat(stavefilesDir)
-	if err == nil {
-		if stavefilesDirStat.IsDir() {
-			originalDir := params.Dir
-			params.Dir = stavefilesDir // preemptive assignment
-			// TODO: Remove this fallback and the above Stavefiles invocation when the bw compatibility is removed.
-			files, err := Stavefiles(originalDir, params.GOOS, params.GOARCH, false)
-			if err == nil {
-				if len(files) != 0 {
-					slog.Warn(
-						"You have both a stavefiles directory and stave files in the " +
-							"current directory, in future versions the files will be ignored in favor of the directory",
-					)
-					params.Dir = originalDir
-				}
-			}
-		}
+	if err != nil || !stavefilesDirStat.IsDir() {
+		return
 	}
+
+	originalDir := params.Dir
+	params.Dir = stavefilesDir // preemptive assignment
+
+	// TODO: Remove this fallback when the bw compatibility is removed.
+	files, err := Stavefiles(originalDir, params.GOOS, params.GOARCH, false)
+	if err != nil || len(files) == 0 {
+		return
+	}
+
+	slog.Warn(
+		"You have both a stavefiles directory and stave files in the " +
+			"current directory, in future versions the files will be ignored in favor of the directory",
+	)
+	params.Dir = originalDir
 }
 
 func applyBasicRunParams(params RunParams) error {
@@ -532,11 +533,11 @@ func Compile(ctx context.Context, params CompileParams) error {
 func GenerateMainfile(binaryName, path string, info *parse.PkgInfo) error {
 	slog.Debug("generating mainfile", slog.String(log.Path, path))
 
-	fd, err := os.Create(path)
+	outputFile, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("error creating generated mainfile: %w", err)
 	}
-	defer func() { _ = fd.Close() }()
+	defer func() { _ = outputFile.Close() }()
 	data := mainfileTemplateData{
 		Description: info.Description,
 		Funcs:       info.Funcs,
@@ -550,10 +551,10 @@ func GenerateMainfile(binaryName, path string, info *parse.PkgInfo) error {
 	}
 
 	slog.Debug("writing new file", slog.String(log.Path, path))
-	if err := mainfileTemplate.Execute(fd, data); err != nil {
+	if err := mainfileTemplate.Execute(outputFile, data); err != nil {
 		return fmt.Errorf("can't execute mainfile template: %w", err)
 	}
-	if err := fd.Close(); err != nil {
+	if err := outputFile.Close(); err != nil {
 		return fmt.Errorf("error closing generated mainfile: %w", err)
 	}
 	// we set an old modtime on the generated mainfile so that the go tool
@@ -594,29 +595,29 @@ func ExeName(ctx context.Context, goCmd, cacheDir string, files []string) (strin
 	return out, nil
 }
 
-func hashFile(fn string) (string, error) {
-	fd, err := os.Open(fn)
+func hashFile(filename string) (string, error) {
+	inputFile, err := os.Open(filename)
 	if err != nil {
 		return "", fmt.Errorf("can't open input file for hashing: %w", err)
 	}
-	defer func() { _ = fd.Close() }()
+	defer func() { _ = inputFile.Close() }()
 
-	h := sha256.New()
-	if _, err := io.Copy(h, fd); err != nil {
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, inputFile); err != nil {
 		return "", fmt.Errorf("can't write data to hash: %w", err)
 	}
-	return hex.EncodeToString(h.Sum(nil)), nil
+	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
 func generateInit(dir string) error {
 	slog.Debug("generating default stavefile", slog.String(log.Dir, dir))
-	fd, err := os.Create(filepath.Join(dir, initFile))
+	outputFile, err := os.Create(filepath.Join(dir, initFile))
 	if err != nil {
 		return fmt.Errorf("could not create stave template: %w", err)
 	}
-	defer func() { _ = fd.Close() }()
+	defer func() { _ = outputFile.Close() }()
 
-	if err := initOutput.Execute(fd, nil); err != nil {
+	if err := initOutput.Execute(outputFile, nil); err != nil {
 		return fmt.Errorf("can't execute stavefile template: %w", err)
 	}
 

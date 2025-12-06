@@ -45,7 +45,9 @@ func TestDepWasNotInvoked(t *testing.T) {
 			t.Fatal("expected panic, but didn't get one")
 		}
 		gotErr := fmt.Sprint(err)
-		wantErr := "non-function used as a target dependency: <nil>. The st.Deps, st.SerialDeps and st.CtxDeps functions accept function names, such as st.Deps(TargetA, TargetB)"
+		wantErr := "non-function used as a target dependency: <nil>. " +
+			"The st.Deps, st.SerialDeps and st.CtxDeps functions accept function names, " +
+			"such as st.Deps(TargetA, TargetB)"
 		if !strings.Contains(gotErr, wantErr) {
 			t.Fatalf(`expected to get "%s" but got "%s"`, wantErr, gotErr)
 		}

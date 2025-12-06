@@ -356,13 +356,13 @@ func TestIsHooksDisabled(t *testing.T) {
 		{"random", "yes", false},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv(EnvStaveHooks, tc.value)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Setenv(EnvStaveHooks, testCase.value)
 
 			got := IsHooksDisabled()
-			if got != tc.want {
-				t.Errorf("IsHooksDisabled() = %v, want %v", got, tc.want)
+			if got != testCase.want {
+				t.Errorf("IsHooksDisabled() = %v, want %v", got, testCase.want)
 			}
 		})
 	}
@@ -382,13 +382,13 @@ func TestIsDebugMode(t *testing.T) {
 		{"empty", "", false},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv(EnvStaveHooks, tc.value)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Setenv(EnvStaveHooks, testCase.value)
 
 			got := IsDebugMode()
-			if got != tc.want {
-				t.Errorf("IsDebugMode() = %v, want %v", got, tc.want)
+			if got != testCase.want {
+				t.Errorf("IsDebugMode() = %v, want %v", got, testCase.want)
 			}
 		})
 	}

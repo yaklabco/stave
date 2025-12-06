@@ -65,7 +65,8 @@ func RunV(cmd string, args ...string) error {
 // be in the format name=value.
 func RunWith(env map[string]string, cmd string, args ...string) error {
 	var output io.Writer
-	// In dryrun mode, the actual "command" will just print the cmd and args to stdout; so we want to make sure we're outputting that regardless of verbosity settings.
+	// In dryrun mode, the actual "command" will just print the cmd and args to stdout,
+	// so we want to make sure we're outputting that regardless of verbosity settings.
 	if st.Verbose() || dryrun.IsDryRun() {
 		output = os.Stdout
 	}

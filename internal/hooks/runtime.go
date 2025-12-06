@@ -109,31 +109,12 @@ func (r *Runtime) Run(ctx context.Context, hookName string, args []string) (*Run
 		Targets: []TargetResult{},
 	}
 
-	// Check if hooks are disabled
 	if IsHooksDisabled() {
-		slog.Debug("hooks disabled via environment",
-			slog.String("hook", hookName),
-			slog.String("env", EnvStaveHooks))
-		result.Disabled = true
-		result.TotalTime = time.Since(startTime)
-		if r.Stderr != nil {
-			_, _ = fmt.Fprintf(r.Stderr, "stave: hooks disabled (STAVE_HOOKS=0)\n")
-		}
-		return result, nil
+		return r.handleDisabledHooks(result, hookName, startTime)
 	}
 
-	// Get hook configuration
-	if r.Config == nil || r.Config.Hooks == nil {
-		slog.Debug("no hooks configured",
-			slog.String("hook", hookName))
-		result.TotalTime = time.Since(startTime)
-		return result, nil
-	}
-
-	targets := r.Config.Hooks.Get(hookName)
-	if len(targets) == 0 {
-		slog.Debug("no targets for hook",
-			slog.String("hook", hookName))
+	targets := r.getTargetsForHook(hookName)
+	if targets == nil {
 		result.TotalTime = time.Since(startTime)
 		return result, nil
 	}
@@ -142,75 +123,129 @@ func (r *Runtime) Run(ctx context.Context, hookName string, args []string) (*Run
 		slog.String("hook", hookName),
 		slog.Int("target_count", len(targets)))
 
-	// Ensure we have a target runner
-	runner := r.TargetRunner
-	if runner == nil {
-		runner = defaultTargetRunner
-	}
+	runner := r.getRunner()
+	r.executeTargets(ctx, result, hookName, targets, args, runner, startTime)
 
-	// Execute each target sequentially
-	for _, target := range targets {
-		targetStart := time.Now()
-
-		// Combine configured args with any args passed to the hook.
-		// Copy to avoid mutating the original slice.
-		targetArgs := make([]string, 0, len(target.Args)+len(args))
-		targetArgs = append(targetArgs, target.Args...)
-		targetArgs = append(targetArgs, args...)
-
-		slog.Debug("target starting",
-			slog.String("hook", hookName),
-			slog.String("target", target.Target),
-			slog.Any("args", targetArgs))
-
-		// Determine stdin handling
-		var stdin io.Reader
-		if target.PassStdin {
-			stdin = os.Stdin
-		}
-
-		// Run the target
-		exitCode, err := runner(ctx, target.Target, targetArgs, stdin, r.Stdout, r.Stderr)
-
-		targetResult := TargetResult{
-			Name:     target.Target,
-			Args:     targetArgs,
-			ExitCode: exitCode,
-			Duration: time.Since(targetStart),
-			Error:    err,
-		}
-		result.Targets = append(result.Targets, targetResult)
-
-		slog.Debug("target completed",
-			slog.String("target", target.Target),
-			slog.Int("exit_code", exitCode),
-			slog.Duration("duration", targetResult.Duration))
-
-		// Fail-fast on first failure
-		if exitCode != 0 || err != nil {
-			result.ExitCode = exitCode
-			if result.ExitCode == 0 && err != nil {
-				result.ExitCode = 1
-			}
-			result.TotalTime = time.Since(startTime)
-
-			// Print failure message
-			if r.Stderr != nil {
-				_, _ = fmt.Fprintf(r.Stderr, "stave: hook %s failed at target %s (exit %d)\n",
-					hookName, target.Target, result.ExitCode)
-			}
-			return result, nil
-		}
-	}
-
-	result.TotalTime = time.Since(startTime)
-
-	if st.Verbose() {
+	if result.ExitCode == 0 && st.Verbose() {
 		log.SimpleConsoleLogger.Printf("Hook completed: %s (%d targets, %v)",
 			hookName, len(result.Targets), result.TotalTime)
 	}
 
 	return result, nil
+}
+
+// handleDisabledHooks handles the case when hooks are disabled via environment.
+func (r *Runtime) handleDisabledHooks(
+	result *RunResult,
+	hookName string,
+	startTime time.Time,
+) (*RunResult, error) {
+	slog.Debug("hooks disabled via environment",
+		slog.String("hook", hookName),
+		slog.String("env", EnvStaveHooks))
+	result.Disabled = true
+	result.TotalTime = time.Since(startTime)
+	if r.Stderr != nil {
+		_, _ = fmt.Fprintf(r.Stderr, "stave: hooks disabled (STAVE_HOOKS=0)\n")
+	}
+	return result, nil
+}
+
+// getTargetsForHook returns the targets configured for a hook, or nil if none.
+func (r *Runtime) getTargetsForHook(hookName string) []config.HookTarget {
+	if r.Config == nil || r.Config.Hooks == nil {
+		slog.Debug("no hooks configured", slog.String("hook", hookName))
+		return nil
+	}
+
+	targets := r.Config.Hooks.Get(hookName)
+	if len(targets) == 0 {
+		slog.Debug("no targets for hook", slog.String("hook", hookName))
+		return nil
+	}
+	return targets
+}
+
+// getRunner returns the target runner, using default if none is set.
+func (r *Runtime) getRunner() TargetRunnerFunc {
+	if r.TargetRunner != nil {
+		return r.TargetRunner
+	}
+	return defaultTargetRunner
+}
+
+// executeTargets runs all targets sequentially, stopping on first failure.
+func (r *Runtime) executeTargets(
+	ctx context.Context,
+	result *RunResult,
+	hookName string,
+	targets []config.HookTarget,
+	args []string,
+	runner TargetRunnerFunc,
+	startTime time.Time,
+) {
+	for _, target := range targets {
+		targetResult := r.executeTarget(ctx, hookName, target, args, runner)
+		result.Targets = append(result.Targets, targetResult)
+
+		if !targetResult.Success() {
+			result.ExitCode = targetResult.ExitCode
+			if result.ExitCode == 0 && targetResult.Error != nil {
+				result.ExitCode = 1
+			}
+			result.TotalTime = time.Since(startTime)
+
+			if r.Stderr != nil {
+				_, _ = fmt.Fprintf(r.Stderr, "stave: hook %s failed at target %s (exit %d)\n",
+					hookName, target.Target, result.ExitCode)
+			}
+			return
+		}
+	}
+	result.TotalTime = time.Since(startTime)
+}
+
+// executeTarget runs a single target and returns its result.
+func (r *Runtime) executeTarget(
+	ctx context.Context,
+	hookName string,
+	target config.HookTarget,
+	args []string,
+	runner TargetRunnerFunc,
+) TargetResult {
+	targetStart := time.Now()
+
+	// Combine configured args with any args passed to the hook.
+	targetArgs := make([]string, 0, len(target.Args)+len(args))
+	targetArgs = append(targetArgs, target.Args...)
+	targetArgs = append(targetArgs, args...)
+
+	slog.Debug("target starting",
+		slog.String("hook", hookName),
+		slog.String("target", target.Target),
+		slog.Any("args", targetArgs))
+
+	var stdin io.Reader
+	if target.PassStdin {
+		stdin = os.Stdin
+	}
+
+	exitCode, err := runner(ctx, target.Target, targetArgs, stdin, r.Stdout, r.Stderr)
+
+	result := TargetResult{
+		Name:     target.Target,
+		Args:     targetArgs,
+		ExitCode: exitCode,
+		Duration: time.Since(targetStart),
+		Error:    err,
+	}
+
+	slog.Debug("target completed",
+		slog.String("target", target.Target),
+		slog.Int("exit_code", exitCode),
+		slog.Duration("duration", result.Duration))
+
+	return result
 }
 
 // IsHooksDisabled returns true if hooks are disabled via STAVE_HOOKS=0.

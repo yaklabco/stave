@@ -10,9 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testdataStaveimportDir = "./testdata/staveimport"
+
 func TestStaveImportsList(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/staveimport"
+	testDataDir := testdataStaveimportDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -48,7 +50,7 @@ Targets:
 
 func TestStaveImportsHelp(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/staveimport"
+	testDataDir := testdataStaveimportDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -83,7 +85,7 @@ Usage:
 
 func TestStaveImportsHelpNamed(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/staveimport"
+	testDataDir := testdataStaveimportDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -118,7 +120,7 @@ Usage:
 
 func TestStaveImportsHelpNamedNS(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/staveimport"
+	testDataDir := testdataStaveimportDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -155,7 +157,7 @@ Aliases: nsd2
 
 func TestStaveImportsRoot(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/staveimport"
+	testDataDir := testdataStaveimportDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -181,7 +183,7 @@ func TestStaveImportsRoot(t *testing.T) {
 
 func TestStaveImportsNamedNS(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/staveimport"
+	testDataDir := testdataStaveimportDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -207,7 +209,7 @@ func TestStaveImportsNamedNS(t *testing.T) {
 
 func TestStaveImportsNamedRoot(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/staveimport"
+	testDataDir := testdataStaveimportDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -234,7 +236,7 @@ func TestStaveImportsNamedRoot(t *testing.T) {
 
 func TestStaveImportsRootImportNS(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/staveimport"
+	testDataDir := testdataStaveimportDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -260,7 +262,7 @@ func TestStaveImportsRootImportNS(t *testing.T) {
 
 func TestStaveImportsRootImport(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/staveimport"
+	testDataDir := testdataStaveimportDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -286,7 +288,7 @@ func TestStaveImportsRootImport(t *testing.T) {
 
 func TestStaveImportsAliasToNS(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/staveimport"
+	testDataDir := testdataStaveimportDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()

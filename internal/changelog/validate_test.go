@@ -126,17 +126,17 @@ func TestChangelog_Validate(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := tt.changelog.Validate()
-			if len(result.Errors) != tt.wantErrors {
-				t.Errorf("Errors count = %d, want %d", len(result.Errors), tt.wantErrors)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			result := testCase.changelog.Validate()
+			if len(result.Errors) != testCase.wantErrors {
+				t.Errorf("Errors count = %d, want %d", len(result.Errors), testCase.wantErrors)
 				for i, e := range result.Errors {
 					t.Logf("  Error[%d]: line %d: %s", i, e.Line, e.Message)
 				}
 			}
-			if len(result.Warnings) != tt.wantWarns {
-				t.Errorf("Warnings count = %d, want %d", len(result.Warnings), tt.wantWarns)
+			if len(result.Warnings) != testCase.wantWarns {
+				t.Errorf("Warnings count = %d, want %d", len(result.Warnings), testCase.wantWarns)
 				for i, w := range result.Warnings {
 					t.Logf("  Warning[%d]: line %d: %s", i, w.Line, w.Message)
 				}
@@ -163,10 +163,10 @@ func TestValidationResult_HasErrors(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.result.HasErrors(); got != tt.want {
-				t.Errorf("HasErrors() = %v, want %v", got, tt.want)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			if got := testCase.result.HasErrors(); got != testCase.want {
+				t.Errorf("HasErrors() = %v, want %v", got, testCase.want)
 			}
 		})
 	}
@@ -210,10 +210,10 @@ func TestValidationResult_Error(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.result.Error()
-			if tt.wantNil {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			err := testCase.result.Error()
+			if testCase.wantNil {
 				if err != nil {
 					t.Errorf("Error() = %v, want nil", err)
 				}
@@ -222,8 +222,8 @@ func TestValidationResult_Error(t *testing.T) {
 			if err == nil {
 				t.Fatal("Error() = nil, want error")
 			}
-			if err.Error() != tt.wantMsg {
-				t.Errorf("Error() = %q, want %q", err.Error(), tt.wantMsg)
+			if err.Error() != testCase.wantMsg {
+				t.Errorf("Error() = %q, want %q", err.Error(), testCase.wantMsg)
 			}
 		})
 	}

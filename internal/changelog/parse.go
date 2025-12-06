@@ -15,7 +15,10 @@ var (
 	titlePattern = regexp.MustCompile(`^#\s+Changelog\s*$`)
 
 	// headingPattern matches version headings like "## [Unreleased]" or "## [1.2.3] - 2025-01-01".
-	headingPattern = regexp.MustCompile(`^##\s+\[(Unreleased|[0-9]+\.[0-9]+\.[0-9]+)\](\s+-\s+([0-9]{4}-[0-9]{2}-[0-9]{2}))?`)
+
+	headingPattern = regexp.MustCompile(
+		`^##\s+\[(Unreleased|[0-9]+\.[0-9]+\.[0-9]+)\](\s+-\s+([0-9]{4}-[0-9]{2}-[0-9]{2}))?`,
+	)
 
 	// Link pattern: "[1.2.3]: https://..." or "[Unreleased]: https://..."
 	linkPattern = regexp.MustCompile(`^\[([0-9]+\.[0-9]+\.[0-9]+|[Uu]nreleased)\]:\s*(https?://.+)$`)
@@ -36,7 +39,7 @@ func Parse(content string) (*Changelog, error) {
 		return nil, ErrEmptyContent
 	}
 
-	cl := &Changelog{
+	changelog := &Changelog{
 		Headings: []Heading{},
 		Links:    []Link{},
 	}
@@ -50,19 +53,19 @@ func Parse(content string) (*Changelog, error) {
 		// Check for title
 		if titlePattern.MatchString(line) {
 			foundTitle = true
-			cl.Title = ChangelogTitle
+			changelog.Title = ChangelogTitle
 			continue
 		}
 
 		// Check for heading
 		if h, ok := parseHeading(line, lineNum); ok {
-			cl.Headings = append(cl.Headings, *h)
+			changelog.Headings = append(changelog.Headings, *h)
 			continue
 		}
 
 		// Check for link
 		if l, ok := parseLink(line, lineNum); ok {
-			cl.Links = append(cl.Links, *l)
+			changelog.Links = append(changelog.Links, *l)
 			continue
 		}
 	}
@@ -71,7 +74,7 @@ func Parse(content string) (*Changelog, error) {
 		return nil, ErrMissingTitle
 	}
 
-	return cl, nil
+	return changelog, nil
 }
 
 // parseHeading parses a version heading line.

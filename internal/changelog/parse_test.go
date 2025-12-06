@@ -10,7 +10,7 @@ func TestParse(t *testing.T) {
 		name     string
 		content  string
 		wantErr  error
-		validate func(t *testing.T, cl *Changelog)
+		validate func(t *testing.T, parsedChangelog *Changelog)
 	}{
 		{
 			name:    "empty content",
@@ -33,18 +33,18 @@ func TestParse(t *testing.T) {
 
 ## [Unreleased]
 `,
-			validate: func(t *testing.T, cl *Changelog) {
+			validate: func(t *testing.T, parsedChangelog *Changelog) {
 				t.Helper()
-				if cl.Title != "Changelog" {
-					t.Errorf("Title = %q, want Changelog", cl.Title)
+				if parsedChangelog.Title != "Changelog" {
+					t.Errorf("Title = %q, want Changelog", parsedChangelog.Title)
 				}
-				if len(cl.Headings) != 1 {
-					t.Fatalf("Headings count = %d, want 1", len(cl.Headings))
+				if len(parsedChangelog.Headings) != 1 {
+					t.Fatalf("Headings count = %d, want 1", len(parsedChangelog.Headings))
 				}
-				if cl.Headings[0].Name != "Unreleased" {
-					t.Errorf("Heading name = %q, want Unreleased", cl.Headings[0].Name)
+				if parsedChangelog.Headings[0].Name != "Unreleased" {
+					t.Errorf("Heading name = %q, want Unreleased", parsedChangelog.Headings[0].Name)
 				}
-				if cl.Headings[0].IsRelease {
+				if parsedChangelog.Headings[0].IsRelease {
 					t.Error("Unreleased should not be marked as release")
 				}
 			},
@@ -74,43 +74,43 @@ All notable changes to this project will be documented in this file.
 [1.2.3]: https://github.com/org/repo/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/org/repo/releases/tag/v1.2.2
 `,
-			validate: func(t *testing.T, cl *Changelog) {
+			validate: func(t *testing.T, parsedChangelog *Changelog) {
 				t.Helper()
-				if cl.Title != "Changelog" {
-					t.Errorf("Title = %q, want Changelog", cl.Title)
+				if parsedChangelog.Title != "Changelog" {
+					t.Errorf("Title = %q, want Changelog", parsedChangelog.Title)
 				}
-				if len(cl.Headings) != 3 {
-					t.Fatalf("Headings count = %d, want 3", len(cl.Headings))
+				if len(parsedChangelog.Headings) != 3 {
+					t.Fatalf("Headings count = %d, want 3", len(parsedChangelog.Headings))
 				}
 
 				// Check Unreleased heading
-				if cl.Headings[0].Name != "Unreleased" {
-					t.Errorf("Heading[0].Name = %q, want Unreleased", cl.Headings[0].Name)
+				if parsedChangelog.Headings[0].Name != "Unreleased" {
+					t.Errorf("Heading[0].Name = %q, want Unreleased", parsedChangelog.Headings[0].Name)
 				}
-				if cl.Headings[0].IsRelease {
+				if parsedChangelog.Headings[0].IsRelease {
 					t.Error("Unreleased should not be a release")
 				}
 
 				// Check 1.2.3 heading
-				if cl.Headings[1].Name != "1.2.3" {
-					t.Errorf("Heading[1].Name = %q, want 1.2.3", cl.Headings[1].Name)
+				if parsedChangelog.Headings[1].Name != "1.2.3" {
+					t.Errorf("Heading[1].Name = %q, want 1.2.3", parsedChangelog.Headings[1].Name)
 				}
-				if cl.Headings[1].Date != "2025-01-15" {
-					t.Errorf("Heading[1].Date = %q, want 2025-01-15", cl.Headings[1].Date)
+				if parsedChangelog.Headings[1].Date != "2025-01-15" {
+					t.Errorf("Heading[1].Date = %q, want 2025-01-15", parsedChangelog.Headings[1].Date)
 				}
-				if !cl.Headings[1].IsRelease {
+				if !parsedChangelog.Headings[1].IsRelease {
 					t.Error("1.2.3 should be a release")
 				}
 
 				// Check links
-				if len(cl.Links) != 3 {
-					t.Fatalf("Links count = %d, want 3", len(cl.Links))
+				if len(parsedChangelog.Links) != 3 {
+					t.Fatalf("Links count = %d, want 3", len(parsedChangelog.Links))
 				}
-				if cl.Links[0].Name != "unreleased" {
-					t.Errorf("Links[0].Name = %q, want unreleased", cl.Links[0].Name)
+				if parsedChangelog.Links[0].Name != "unreleased" {
+					t.Errorf("Links[0].Name = %q, want unreleased", parsedChangelog.Links[0].Name)
 				}
-				if cl.Links[1].Name != "1.2.3" {
-					t.Errorf("Links[1].Name = %q, want 1.2.3", cl.Links[1].Name)
+				if parsedChangelog.Links[1].Name != "1.2.3" {
+					t.Errorf("Links[1].Name = %q, want 1.2.3", parsedChangelog.Links[1].Name)
 				}
 			},
 		},
@@ -120,35 +120,35 @@ All notable changes to this project will be documented in this file.
 
 ## [1.0.0]
 `,
-			validate: func(t *testing.T, cl *Changelog) {
+			validate: func(t *testing.T, parsedChangelog *Changelog) {
 				t.Helper()
-				if len(cl.Headings) != 1 {
-					t.Fatalf("Headings count = %d, want 1", len(cl.Headings))
+				if len(parsedChangelog.Headings) != 1 {
+					t.Fatalf("Headings count = %d, want 1", len(parsedChangelog.Headings))
 				}
-				if cl.Headings[0].Date != "" {
-					t.Errorf("Date should be empty, got %q", cl.Headings[0].Date)
+				if parsedChangelog.Headings[0].Date != "" {
+					t.Errorf("Date should be empty, got %q", parsedChangelog.Headings[0].Date)
 				}
 			},
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cl, err := Parse(tt.content)
-			if tt.wantErr != nil {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			parsedChangelog, err := Parse(testCase.content)
+			if testCase.wantErr != nil {
 				if err == nil {
-					t.Fatalf("Parse() error = nil, want %v", tt.wantErr)
+					t.Fatalf("Parse() error = nil, want %v", testCase.wantErr)
 				}
-				if !errors.Is(err, tt.wantErr) {
-					t.Errorf("Parse() error = %v, want %v", err, tt.wantErr)
+				if !errors.Is(err, testCase.wantErr) {
+					t.Errorf("Parse() error = %v, want %v", err, testCase.wantErr)
 				}
 				return
 			}
 			if err != nil {
 				t.Fatalf("Parse() error = %v, want nil", err)
 			}
-			if tt.validate != nil {
-				tt.validate(t, cl)
+			if testCase.validate != nil {
+				testCase.validate(t, parsedChangelog)
 			}
 		})
 	}
@@ -199,24 +199,24 @@ func TestParseHeading(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, ok := parseHeading(tt.line, 1)
-			if ok != tt.wantOK {
-				t.Errorf("parseHeading() ok = %v, want %v", ok, tt.wantOK)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			got, ok := parseHeading(testCase.line, 1)
+			if ok != testCase.wantOK {
+				t.Errorf("parseHeading() ok = %v, want %v", ok, testCase.wantOK)
 				return
 			}
-			if !tt.wantOK {
+			if !testCase.wantOK {
 				return
 			}
-			if got.Name != tt.want.Name {
-				t.Errorf("Name = %q, want %q", got.Name, tt.want.Name)
+			if got.Name != testCase.want.Name {
+				t.Errorf("Name = %q, want %q", got.Name, testCase.want.Name)
 			}
-			if got.Date != tt.want.Date {
-				t.Errorf("Date = %q, want %q", got.Date, tt.want.Date)
+			if got.Date != testCase.want.Date {
+				t.Errorf("Date = %q, want %q", got.Date, testCase.want.Date)
 			}
-			if got.IsRelease != tt.want.IsRelease {
-				t.Errorf("IsRelease = %v, want %v", got.IsRelease, tt.want.IsRelease)
+			if got.IsRelease != testCase.want.IsRelease {
+				t.Errorf("IsRelease = %v, want %v", got.IsRelease, testCase.want.IsRelease)
 			}
 		})
 	}
@@ -267,28 +267,28 @@ func TestParseLink(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, ok := parseLink(tt.line, 1)
-			if ok != tt.wantOK {
-				t.Errorf("parseLink() ok = %v, want %v", ok, tt.wantOK)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			got, ok := parseLink(testCase.line, 1)
+			if ok != testCase.wantOK {
+				t.Errorf("parseLink() ok = %v, want %v", ok, testCase.wantOK)
 				return
 			}
-			if !tt.wantOK {
+			if !testCase.wantOK {
 				return
 			}
-			if got.Name != tt.want.Name {
-				t.Errorf("Name = %q, want %q", got.Name, tt.want.Name)
+			if got.Name != testCase.want.Name {
+				t.Errorf("Name = %q, want %q", got.Name, testCase.want.Name)
 			}
-			if got.URL != tt.want.URL {
-				t.Errorf("URL = %q, want %q", got.URL, tt.want.URL)
+			if got.URL != testCase.want.URL {
+				t.Errorf("URL = %q, want %q", got.URL, testCase.want.URL)
 			}
 		})
 	}
 }
 
 func TestChangelog_HasVersion(t *testing.T) {
-	cl := &Changelog{
+	testChangelog := &Changelog{
 		Headings: []Heading{
 			{Name: "Unreleased"},
 			{Name: "1.2.3"},
@@ -307,17 +307,17 @@ func TestChangelog_HasVersion(t *testing.T) {
 		{"", false},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.version, func(t *testing.T) {
-			if got := cl.HasVersion(tt.version); got != tt.want {
-				t.Errorf("HasVersion(%q) = %v, want %v", tt.version, got, tt.want)
+	for _, testCase := range tests {
+		t.Run(testCase.version, func(t *testing.T) {
+			if got := testChangelog.HasVersion(testCase.version); got != testCase.want {
+				t.Errorf("HasVersion(%q) = %v, want %v", testCase.version, got, testCase.want)
 			}
 		})
 	}
 }
 
 func TestChangelog_HasLinkForVersion(t *testing.T) {
-	cl := &Changelog{
+	testChangelog := &Changelog{
 		Links: []Link{
 			{Name: "unreleased"},
 			{Name: "1.2.3"},
@@ -336,10 +336,10 @@ func TestChangelog_HasLinkForVersion(t *testing.T) {
 		{"", false},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.version, func(t *testing.T) {
-			if got := cl.HasLinkForVersion(tt.version); got != tt.want {
-				t.Errorf("HasLinkForVersion(%q) = %v, want %v", tt.version, got, tt.want)
+	for _, testCase := range tests {
+		t.Run(testCase.version, func(t *testing.T) {
+			if got := testChangelog.HasLinkForVersion(testCase.version); got != testCase.want {
+				t.Errorf("HasLinkForVersion(%q) = %v, want %v", testCase.version, got, testCase.want)
 			}
 		})
 	}

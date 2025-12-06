@@ -35,35 +35,68 @@ func FindGitRepo(dir string) (*GitRepo, error) {
 // FindGitRepoContext locates the Git repository from the given directory with context.
 // If dir is empty, the current working directory is used.
 func FindGitRepoContext(ctx context.Context, dir string) (*GitRepo, error) {
+	absDir, err := resolveStartDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	slog.Debug("finding git repository", slog.String("start_dir", absDir))
+
+	dirs, err := findGitDirs(ctx, absDir)
+	if err != nil {
+		return nil, err
+	}
+
+	rootDir, gitDirPath, err := resolveCanonicalPaths(dirs.rootDir, dirs.gitDir)
+	if err != nil {
+		return nil, err
+	}
+
+	customHooksPath := getCustomHooksPath(ctx, absDir)
+
+	logRepoFound(rootDir, gitDirPath, customHooksPath)
+
+	return &GitRepo{
+		RootDir:         rootDir,
+		GitDir:          gitDirPath,
+		customHooksPath: customHooksPath,
+	}, nil
+}
+
+// resolveStartDir resolves the starting directory to an absolute path.
+func resolveStartDir(dir string) (string, error) {
 	if dir == "" {
 		var err error
 		dir, err = os.Getwd()
 		if err != nil {
-			return nil, fmt.Errorf("getting working directory: %w", err)
+			return "", fmt.Errorf("getting working directory: %w", err)
 		}
 	}
 
-	slog.Debug("finding git repository",
-		slog.String("start_dir", dir))
-
-	// Make dir absolute
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
-		return nil, fmt.Errorf("resolving absolute path: %w", err)
+		return "", fmt.Errorf("resolving absolute path: %w", err)
 	}
+	return absDir, nil
+}
 
-	// Get repository root
+// gitDirs holds root and git directory paths.
+type gitDirs struct {
+	rootDir string
+	gitDir  string
+}
+
+// findGitDirs finds the root and git directories for a repository.
+func findGitDirs(ctx context.Context, absDir string) (gitDirs, error) {
 	rootDir, err := gitOutput(ctx, absDir, "rev-parse", "--show-toplevel")
 	if err != nil {
-		slog.Debug("not a git repository",
-			slog.String("dir", absDir))
-		return nil, fmt.Errorf("%w: %s", ErrNotGitRepo, absDir)
+		slog.Debug("not a git repository", slog.String("dir", absDir))
+		return gitDirs{}, fmt.Errorf("%w: %s", ErrNotGitRepo, absDir)
 	}
 
-	// Get git directory
 	gitDir, err := gitOutput(ctx, absDir, "rev-parse", "--git-dir")
 	if err != nil {
-		return nil, fmt.Errorf("finding git directory: %w", err)
+		return gitDirs{}, fmt.Errorf("finding git directory: %w", err)
 	}
 
 	// Make gitDir absolute if it isn't already
@@ -71,27 +104,37 @@ func FindGitRepoContext(ctx context.Context, dir string) (*GitRepo, error) {
 		gitDir = filepath.Join(absDir, gitDir)
 	}
 
-	// Resolve symlinks to get canonical paths (important on macOS where
-	// /var is a symlink to /private/var)
+	return gitDirs{rootDir: rootDir, gitDir: gitDir}, nil
+}
+
+// resolveCanonicalPaths resolves symlinks and cleans paths.
+// This is important on macOS where /var is a symlink to /private/var.
+func resolveCanonicalPaths(rootDir, gitDir string) (string, string, error) {
+	var err error
 	rootDir, err = filepath.EvalSymlinks(rootDir)
 	if err != nil {
-		return nil, fmt.Errorf("resolving root dir symlinks: %w", err)
+		return "", "", fmt.Errorf("resolving root dir symlinks: %w", err)
 	}
+
 	gitDir, err = filepath.EvalSymlinks(gitDir)
 	if err != nil {
-		return nil, fmt.Errorf("resolving git dir symlinks: %w", err)
+		return "", "", fmt.Errorf("resolving git dir symlinks: %w", err)
 	}
 
-	// Clean paths
-	rootDir = filepath.Clean(rootDir)
-	gitDir = filepath.Clean(gitDir)
+	return filepath.Clean(rootDir), filepath.Clean(gitDir), nil
+}
 
-	// Check for custom hooks path (ignoring error since empty is valid)
+// getCustomHooksPath returns the configured core.hooksPath or empty string.
+func getCustomHooksPath(ctx context.Context, absDir string) string {
 	customHooksPath, err := gitOutput(ctx, absDir, "config", "--get", "core.hooksPath")
 	if err != nil {
-		customHooksPath = ""
+		return ""
 	}
+	return customHooksPath
+}
 
+// logRepoFound logs debug information about the found repository.
+func logRepoFound(rootDir, gitDir, customHooksPath string) {
 	slog.Debug("git repository found",
 		slog.String("root", rootDir),
 		slog.String("git_dir", gitDir))
@@ -100,12 +143,6 @@ func FindGitRepoContext(ctx context.Context, dir string) (*GitRepo, error) {
 		slog.Debug("custom hooks path configured",
 			slog.String("path", customHooksPath))
 	}
-
-	return &GitRepo{
-		RootDir:         rootDir,
-		GitDir:          gitDir,
-		customHooksPath: customHooksPath,
-	}, nil
 }
 
 // HooksPath returns the effective hooks directory for this repository.

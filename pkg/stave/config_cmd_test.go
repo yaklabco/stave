@@ -122,7 +122,7 @@ func TestRunConfigCommand_InitAlreadyExists(t *testing.T) {
 		t.Fatalf("Failed to create config dir: %v", err)
 	}
 	configPath := filepath.Join(configDir, "config.yaml")
-	if err := os.WriteFile(configPath, []byte("test"), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte("test"), 0o600); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 

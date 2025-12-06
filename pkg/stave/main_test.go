@@ -40,7 +40,9 @@ const (
 
 	dotExe = ".exe"
 
-	testdataCompiled = "./testdata/compiled"
+	testdataDir        = "./testdata"
+	testdataCompiled   = testdataDir + "/compiled"
+	testdataNamespaces = testdataDir + "/namespaces"
 
 	targetsBuild = "Targets:\n  build    \n"
 
@@ -312,7 +314,7 @@ func TestListStavefilesIgnoresRespectsGOOSArg(t *testing.T) {
 
 func TestCompileDiffGoosGoarch(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata"
+	testDataDir := testdataDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -557,7 +559,7 @@ func TestSetDirWithStavefilesFolder(t *testing.T) {
 
 func TestGoRun(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata"
+	testDataDir := testdataDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -574,7 +576,7 @@ func TestGoRun(t *testing.T) {
 
 func TestVerbose(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata"
+	testDataDir := testdataDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -781,7 +783,7 @@ Targets:
 
 func TestTargetError(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata"
+	testDataDir := testdataDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -808,7 +810,7 @@ func TestTargetError(t *testing.T) {
 
 func TestStdinCopy(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata"
+	testDataDir := testdataDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -836,7 +838,7 @@ func TestStdinCopy(t *testing.T) {
 
 func TestTargetPanics(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata"
+	testDataDir := testdataDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -863,7 +865,7 @@ func TestTargetPanics(t *testing.T) {
 
 func TestPanicsErr(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata"
+	testDataDir := testdataDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -1001,7 +1003,7 @@ func TestNoSelfDependencies(t *testing.T) {
 
 func TestMultipleTargets(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata"
+	testDataDir := testdataDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -1031,7 +1033,7 @@ func TestMultipleTargets(t *testing.T) {
 
 func TestFirstTargetFails(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata"
+	testDataDir := testdataDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -1059,7 +1061,7 @@ func TestFirstTargetFails(t *testing.T) {
 
 func TestBadSecondTargets(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata"
+	testDataDir := testdataDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -1166,7 +1168,7 @@ func TestTimeout(t *testing.T) {
 
 func TestInfoTarget(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata"
+	testDataDir := testdataDir
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -1364,7 +1366,8 @@ func TestCompiledFlags(t *testing.T) {
 	// get info for target with flag -i target
 	err = run(stdout, stderr, name, "-i", "deploy")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
-	want := "This is the synopsis for Deploy. This part shouldn't show up.\n\nUsage:\n\n\t" + filepath.Base(name) + " deploy"
+	want := "This is the synopsis for Deploy. This part shouldn't show up.\n\nUsage:\n\n\t" +
+		filepath.Base(name) + " deploy"
 	assert.Equal(t, want, strings.TrimSpace(stdout.String()))
 
 	// run target with verbose flag -v
@@ -1442,7 +1445,8 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 
 	err = run(stdout, stderr, name, "STAVEFILE_INFO=1", "deploy")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
-	want := "This is the synopsis for Deploy. This part shouldn't show up.\n\nUsage:\n\n\t" + filepath.Base(name) + " deploy\n\n"
+	want := "This is the synopsis for Deploy. This part shouldn't show up.\n\nUsage:\n\n\t" +
+		filepath.Base(name) + " deploy\n\n"
 	assert.Equal(t, want, stdout.String())
 
 	err = run(stdout, stderr, name, st.VerboseEnv+"=1", "testverbose")
@@ -1512,7 +1516,8 @@ func TestCompiledVerboseFlag(t *testing.T) {
 		cmd.Stderr = &stderr
 		cmd.Stdout = &stdout
 		err := cmd.Run()
-		require.NoError(t, err, "running '%s %s' failed with: %v\nstdout: %s\nstderr: %s", filename, strings.Join(args, " "), err, stdout.String(), stderr.String())
+		require.NoError(t, err, "running '%s %s' failed\nstdout: %s\nstderr: %s",
+			filename, strings.Join(args, " "), stdout.String(), stderr.String())
 
 		return strings.TrimSpace(stdout.String())
 	}
@@ -1667,14 +1672,14 @@ func TestCompiledDeterministic(t *testing.T) {
 
 			err := Run(runParams)
 			require.NoError(t, err)
-			fd, err := os.Open(outFile)
+			outputFile, err := os.Open(outFile)
 			require.NoError(t, err)
 			defer func() {
-				assert.NoError(t, fd.Close())
+				assert.NoError(t, outputFile.Close())
 			}()
 
 			hasher := sha256.New()
-			_, err = io.Copy(hasher, fd)
+			_, err = io.Copy(hasher, outputFile)
 			require.NoError(t, err)
 
 			got := hex.EncodeToString(hasher.Sum(nil))
@@ -1697,14 +1702,14 @@ func TestGoCmd(t *testing.T) {
 	t.Setenv(testExeEnv, textOutput)
 
 	// fake out the compiled file, since the code checks for it.
-	fd, err := os.CreateTemp("", "")
+	tempFile, err := os.CreateTemp("", "")
 	require.NoError(t, err)
-	name := fd.Name()
+	name := tempFile.Name()
 	dir := filepath.Dir(name)
 	defer func() {
 		assert.NoError(t, os.Remove(name))
 	}()
-	_ = fd.Close()
+	_ = tempFile.Close()
 
 	buf := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
@@ -1786,7 +1791,7 @@ Targets:
 
 func TestNamespaceDep(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/namespaces"
+	testDataDir := testdataNamespaces
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -1813,7 +1818,7 @@ func TestNamespaceDep(t *testing.T) {
 
 func TestNamespace(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/namespaces"
+	testDataDir := testdataNamespaces
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -1840,7 +1845,7 @@ func TestNamespace(t *testing.T) {
 
 func TestNamespaceDefault(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/namespaces"
+	testDataDir := testdataNamespaces
 	mu := mutexByDir(testDataDir)
 	mu.Lock()
 	defer mu.Unlock()
@@ -1940,22 +1945,22 @@ const (
 // fileData tells us if the given file is mac or windows and if they're 32bit or
 // 64 bit.  Other exe versions are not supported.
 func fileData(file string) (exeType, archSize, error) {
-	fd, err := os.Open(file)
+	inputFile, err := os.Open(file)
 	if err != nil {
 		return -1, -1, err
 	}
-	defer func() { _ = fd.Close() }()
+	defer func() { _ = inputFile.Close() }()
 	data := make([]byte, 16)
-	if _, err := io.ReadFull(fd, data); err != nil {
+	if _, err := io.ReadFull(inputFile, data); err != nil {
 		return -1, -1, err
 	}
 	if bytes.HasPrefix(data, []byte("MZ")) {
 		// hello windows exe!
-		e, err := pe.NewFile(fd)
+		peFile, err := pe.NewFile(inputFile)
 		if err != nil {
 			return -1, -1, err
 		}
-		if e.Machine == pe.IMAGE_FILE_MACHINE_AMD64 {
+		if peFile.Machine == pe.IMAGE_FILE_MACHINE_AMD64 {
 			return winExe, arch64, nil
 		}
 		return winExe, arch32, nil
@@ -1963,11 +1968,11 @@ func fileData(file string) (exeType, archSize, error) {
 
 	if bytes.HasPrefix(data, []byte("\xFE\xED\xFA")) || bytes.HasPrefix(data[1:], []byte("\xFA\xED\xFE")) {
 		// hello mac exe!
-		fe, err := macho.NewFile(fd)
+		machoFile, err := macho.NewFile(inputFile)
 		if err != nil {
 			return -1, -1, err
 		}
-		if fe.Cpu&0x01000000 != 0 {
+		if machoFile.Cpu&0x01000000 != 0 {
 			return macExe, arch64, nil
 		}
 		return macExe, arch32, nil

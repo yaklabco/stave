@@ -53,6 +53,8 @@ func (r ValidationResult) Error() error {
 
 // Validate checks the changelog against Keep a Changelog conventions.
 // Returns a ValidationResult containing any errors and warnings found.
+//
+
 func (c *Changelog) Validate() ValidationResult {
 	result := ValidationResult{}
 

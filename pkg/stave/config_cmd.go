@@ -21,6 +21,12 @@ const (
 	ConfigPath ConfigSubcommand = "path"
 )
 
+// Exit codes.
+const (
+	exitCodeOK         = 0
+	exitCodeUsageError = 2
+)
+
 // RunConfigCommand handles the `stave config` subcommand.
 // It returns the exit code.
 func RunConfigCommand(stdout, stderr io.Writer, args []string) int {
@@ -30,21 +36,21 @@ func RunConfigCommand(stdout, stderr io.Writer, args []string) int {
 // RunConfigCommandContext handles the `stave config` subcommand with context.
 // It returns the exit code.
 func RunConfigCommandContext(_ context.Context, stdout, stderr io.Writer, args []string) int {
-	fs := flag.NewFlagSet("config", flag.ContinueOnError)
-	fs.SetOutput(stdout)
-	fs.Usage = func() {
+	flagSet := flag.NewFlagSet("config", flag.ContinueOnError)
+	flagSet.SetOutput(stdout)
+	flagSet.Usage = func() {
 		configUsage(stdout)
 	}
 
-	if err := fs.Parse(args); err != nil {
+	if err := flagSet.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			return 0
+			return exitCodeOK
 		}
 		_, _ = fmt.Fprintf(stderr, "Error: %v\n", err)
-		return 2
+		return exitCodeUsageError
 	}
 
-	subArgs := fs.Args()
+	subArgs := flagSet.Args()
 	if len(subArgs) == 0 {
 		// No subcommand, show effective config
 		return runConfigShow(stdout, stderr)
@@ -61,7 +67,7 @@ func RunConfigCommandContext(_ context.Context, stdout, stderr io.Writer, args [
 	default:
 		_, _ = fmt.Fprintf(stderr, "Error: unknown config subcommand %q\n", subArgs[0])
 		configUsage(stderr)
-		return 2
+		return exitCodeUsageError
 	}
 }
 

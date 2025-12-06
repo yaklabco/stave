@@ -39,51 +39,66 @@ func F(target interface{}, args ...interface{}) Fn {
 	if err != nil {
 		panic(err)
 	}
-	id, err := json.Marshal(args)
+	argsID, err := json.Marshal(args)
 	if err != nil {
 		panic(fmt.Errorf("can't convert args into a stave-compatible id for st.Deps: %w", err))
 	}
 	return fn{
-		name: funcName(target),
-		id:   string(id),
-		f: func(ctx context.Context) error {
-			theValue := reflect.ValueOf(target)
-			count := len(args)
-			if hasContext {
-				count++
-			}
-			if isNamespace {
-				count++
-			}
-			vargs := make([]reflect.Value, count)
-			iArg := 0
-			if isNamespace {
-				vargs[0] = reflect.ValueOf(struct{}{})
-				iArg++
-			}
-			if hasContext {
-				vargs[iArg] = reflect.ValueOf(ctx)
-				iArg++
-			}
-			for y := range args {
-				vargs[iArg+y] = reflect.ValueOf(args[y])
-			}
-			ret := theValue.Call(vargs)
-			if len(ret) > 0 {
-				// we only allow functions with a single error return, so this should be safe.
-				if ret[0].IsNil() {
-					return nil
-				}
-				err, ok := ret[0].Interface().(error)
-				if !ok {
-					return fmt.Errorf("expected function to return an error, but got %T instead", ret[0].Interface())
-				}
-				return err
-			}
-			return nil
-		},
+		name:       funcName(target),
+		id:         string(argsID),
+		f:          buildRunner(target, args, hasContext, isNamespace),
 		underlying: funcObj(target),
 	}
+}
+
+// buildRunner creates the runner function for a target with the given arguments.
+func buildRunner(target interface{}, args []interface{}, hasContext, isNamespace bool) func(context.Context) error {
+	return func(ctx context.Context) error {
+		vargs := buildCallArgs(ctx, args, hasContext, isNamespace)
+		return callAndHandleResult(reflect.ValueOf(target), vargs)
+	}
+}
+
+// buildCallArgs constructs the reflect.Value slice for calling the target function.
+func buildCallArgs(ctx context.Context, args []interface{}, hasContext, isNamespace bool) []reflect.Value {
+	count := len(args)
+	if hasContext {
+		count++
+	}
+	if isNamespace {
+		count++
+	}
+	vargs := make([]reflect.Value, count)
+	argIndex := 0
+	if isNamespace {
+		vargs[0] = reflect.ValueOf(struct{}{})
+		argIndex++
+	}
+	if hasContext {
+		vargs[argIndex] = reflect.ValueOf(ctx)
+		argIndex++
+	}
+	for idx := range args {
+		vargs[argIndex+idx] = reflect.ValueOf(args[idx])
+	}
+	return vargs
+}
+
+// callAndHandleResult calls the function and handles the error return value.
+func callAndHandleResult(theValue reflect.Value, vargs []reflect.Value) error {
+	ret := theValue.Call(vargs)
+	if len(ret) == 0 {
+		return nil
+	}
+	// we only allow functions with a single error return, so this should be safe.
+	if ret[0].IsNil() {
+		return nil
+	}
+	retErr, ok := ret[0].Interface().(error)
+	if !ok {
+		return fmt.Errorf("expected function to return an error, but got %T instead", ret[0].Interface())
+	}
+	return retErr
 }
 
 type fn struct {
@@ -115,74 +130,116 @@ func (f fn) Underlying() *runtime.Func {
 
 func checkF(target interface{}, args []interface{}) (bool, bool, error) {
 	theType := reflect.TypeOf(target)
-	if theType == nil || theType.Kind() != reflect.Func {
-		return false, false, fmt.Errorf("non-function passed to st.F: %T. The st.F function accepts function names, such as st.F(TargetA, \"arg1\", \"arg2\")", target)
+	if err := validateTargetType(theType, target); err != nil {
+		return false, false, err
 	}
-
-	if theType.NumOut() > 1 {
-		return false, false, fmt.Errorf("target has too many return values, must be zero or just an error: %T", target)
+	if err := validateReturnType(theType); err != nil {
+		return false, false, err
 	}
-	if theType.NumOut() == 1 && theType.Out(0) != errType {
-		return false, false, errors.New("target's return value is not an error")
+	if err := validateArgCount(theType, args); err != nil {
+		return false, false, err
 	}
-
-	// more inputs than slots is an error if not variadic
-	if len(args) > theType.NumIn() && !theType.IsVariadic() {
-		return false, false, fmt.Errorf("too many arguments for target, got %d for %T", len(args), target)
-	}
-
 	if theType.NumIn() == 0 {
 		return false, false, nil
 	}
+	return validateArgs(theType, args)
+}
 
-	iArg := 0
+// validateTargetType checks that target is a function.
+func validateTargetType(theType reflect.Type, target interface{}) error {
+	if theType == nil || theType.Kind() != reflect.Func {
+		return fmt.Errorf(
+			"non-function passed to st.F: %T. "+
+				"The st.F function accepts function names, such as st.F(TargetA, \"arg1\", \"arg2\")",
+			target,
+		)
+	}
+	return nil
+}
+
+// validateReturnType checks the function has zero or one error return.
+func validateReturnType(theType reflect.Type) error {
+	if theType.NumOut() > 1 {
+		return errors.New("target has too many return values, must be zero or just an error")
+	}
+	if theType.NumOut() == 1 && theType.Out(0) != errType {
+		return errors.New("target's return value is not an error")
+	}
+	return nil
+}
+
+// validateArgCount checks the number of arguments is valid for the target.
+func validateArgCount(theType reflect.Type, args []interface{}) error {
+	if len(args) > theType.NumIn() && !theType.IsVariadic() {
+		return fmt.Errorf("too many arguments for target, got %d", len(args))
+	}
+	return nil
+}
+
+// validateArgs checks each argument matches the expected type and returns context/namespace flags.
+func validateArgs(theType reflect.Type, args []interface{}) (bool, bool, error) {
+	argIndex := 0
 	inputs := theType.NumIn()
+	isNamespace := false
+	hasContext := false
 
-	var isNamespace bool
-	var hasContext bool
+	// Check for namespace receiver
 	if theType.In(0).AssignableTo(emptyType) {
-		// nameSpace func
 		isNamespace = true
-		iArg++
-		// callers must leave off the namespace value
-		inputs--
+		argIndex++
+		inputs-- // callers must leave off the namespace value
 	}
-	if theType.NumIn() > iArg && theType.In(iArg) == ctxType {
-		// callers must leave off the context
-		inputs--
 
-		// let the upper function know it should pass us a context.
+	// Check for context parameter
+	if theType.NumIn() > argIndex && theType.In(argIndex) == ctxType {
+		inputs-- // callers must leave off the context
 		hasContext = true
-
-		// skip checking the first argument in the below loop if it's a context, since first arg is
-		// special.
-		iArg++
+		argIndex++ // skip context in argument checking loop
 	}
 
+	// Validate argument count
+	if err := checkArgCountForVariadic(theType, args, inputs); err != nil {
+		return false, false, err
+	}
+
+	// Validate each argument type
+	if err := checkArgTypes(theType, args, argIndex); err != nil {
+		return false, false, err
+	}
+
+	return hasContext, isNamespace, nil
+}
+
+// checkArgCountForVariadic validates argument count considering variadic functions.
+func checkArgCountForVariadic(theType reflect.Type, args []interface{}, inputs int) error {
 	if theType.IsVariadic() {
 		if len(args) < inputs-1 {
-			return false, false, fmt.Errorf("too few arguments for target, got %d for %T", len(args), target)
+			return fmt.Errorf("too few arguments for target, got %d", len(args))
 		}
 	} else if len(args) != inputs {
-		return false, false, fmt.Errorf("wrong number of arguments for target, got %d for %T", len(args), target)
+		return fmt.Errorf("wrong number of arguments for target, got %d", len(args))
 	}
+	return nil
+}
 
+// checkArgTypes validates each argument matches its expected type.
+func checkArgTypes(theType reflect.Type, args []interface{}, startIndex int) error {
+	argIndex := startIndex
 	for _, arg := range args {
-		argT := theType.In(iArg)
-		if theType.IsVariadic() && iArg == theType.NumIn()-1 {
-			// For the variadic argument, use the slice element type.
-			argT = argT.Elem()
+		argType := theType.In(argIndex)
+		if theType.IsVariadic() && argIndex == theType.NumIn()-1 {
+			argType = argType.Elem() // For variadic, use the slice element type
 		}
-		if !argTypes[argT] {
-			return false, false, fmt.Errorf("argument %d (%s), is not a supported argument type", iArg, argT)
+		if !argTypes[argType] {
+			return fmt.Errorf("argument %d (%s), is not a supported argument type", argIndex, argType)
 		}
-		passedT := reflect.TypeOf(arg)
-		if argT != passedT {
-			return false, false, fmt.Errorf("argument %d expected to be %s, but is %s", iArg, argT, passedT)
+		passedType := reflect.TypeOf(arg)
+		if argType != passedType {
+			return fmt.Errorf("argument %d expected to be %s, but is %s", argIndex, argType, passedType)
 		}
-		if iArg < theType.NumIn()-1 {
-			iArg++
+		if argIndex < theType.NumIn()-1 {
+			argIndex++
 		}
 	}
-	return hasContext, isNamespace, nil
+	return nil
 }

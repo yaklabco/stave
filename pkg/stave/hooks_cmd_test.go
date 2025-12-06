@@ -18,6 +18,13 @@ const testConfigPerm = 0o644
 // testHookPerm is the permission mode for test hook scripts.
 const testHookPerm = 0o755
 
+// testPreCommitFmtConfig is the standard pre-commit hook configuration for tests.
+const testPreCommitFmtConfig = `
+hooks:
+  pre-commit:
+    - target: fmt
+`
+
 // testChdir changes to the given directory and returns a cleanup function.
 func testChdir(t *testing.T, dir string) {
 	t.Helper()
@@ -190,13 +197,8 @@ func TestRunHooksCommand_Install_NotGitRepo(t *testing.T) {
 
 	// Create temp directory (not a git repo)
 	tmpDir := t.TempDir()
-	configContent := `
-hooks:
-  pre-commit:
-    - target: fmt
-`
 	configPath := filepath.Join(tmpDir, "stave.yaml")
-	if err := os.WriteFile(configPath, []byte(configContent), testConfigPerm); err != nil {
+	if err := os.WriteFile(configPath, []byte(testPreCommitFmtConfig), testConfigPerm); err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
@@ -336,13 +338,8 @@ func TestRunHooksCommand_Install_ExistingNonStaveHook_Fails(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	configContent := `
-hooks:
-  pre-commit:
-    - target: fmt
-`
 	configPath := filepath.Join(tmpDir, "stave.yaml")
-	if err := os.WriteFile(configPath, []byte(configContent), testConfigPerm); err != nil {
+	if err := os.WriteFile(configPath, []byte(testPreCommitFmtConfig), testConfigPerm); err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
@@ -384,13 +381,8 @@ func TestRunHooksCommand_Install_Force(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	configContent := `
-hooks:
-  pre-commit:
-    - target: fmt
-`
 	configPath := filepath.Join(tmpDir, "stave.yaml")
-	if err := os.WriteFile(configPath, []byte(configContent), testConfigPerm); err != nil {
+	if err := os.WriteFile(configPath, []byte(testPreCommitFmtConfig), testConfigPerm); err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
@@ -438,13 +430,8 @@ func TestRunHooksCommand_Install_UpdatesStaveHook(t *testing.T) {
 		t.Fatalf("WriteHookScript failed: %v", err)
 	}
 
-	configContent := `
-hooks:
-  pre-commit:
-    - target: fmt
-`
 	configPath := filepath.Join(tmpDir, "stave.yaml")
-	if err := os.WriteFile(configPath, []byte(configContent), testConfigPerm); err != nil {
+	if err := os.WriteFile(configPath, []byte(testPreCommitFmtConfig), testConfigPerm); err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
@@ -483,13 +470,8 @@ func TestRunHooksCommand_Uninstall(t *testing.T) {
 		t.Fatalf("WriteHookScript failed: %v", err)
 	}
 
-	configContent := `
-hooks:
-  pre-commit:
-    - target: fmt
-`
 	configPath := filepath.Join(tmpDir, "stave.yaml")
-	if err := os.WriteFile(configPath, []byte(configContent), testConfigPerm); err != nil {
+	if err := os.WriteFile(configPath, []byte(testPreCommitFmtConfig), testConfigPerm); err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
@@ -574,13 +556,8 @@ func TestRunHooksCommand_Run_UnconfiguredHook(t *testing.T) {
 
 	// Create temp directory with config (but no pre-push)
 	tmpDir := t.TempDir()
-	configContent := `
-hooks:
-  pre-commit:
-    - target: fmt
-`
 	configPath := filepath.Join(tmpDir, "stave.yaml")
-	if err := os.WriteFile(configPath, []byte(configContent), testConfigPerm); err != nil {
+	if err := os.WriteFile(configPath, []byte(testPreCommitFmtConfig), testConfigPerm); err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 

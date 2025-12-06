@@ -25,6 +25,7 @@ var (
 //
 // If ignoreMissingDeps is true, dependencies that are not present in the provided
 // items slice are ignored instead of causing an error.
+
 func Sort[T interface{ TopoSortable }](items []T, ignoreMissingDeps bool) ([]T, error) {
 	nItems := len(items)
 	if nItems == 0 {
@@ -43,17 +44,17 @@ func Sort[T interface{ TopoSortable }](items []T, ignoreMissingDeps bool) ([]T, 
 	indeg := make(map[string]int, nItems)
 
 	// initialize indegree for each node
-	for id := range idToItem {
-		indeg[id] = 0
+	for itemID := range idToItem {
+		indeg[itemID] = 0
 	}
 
 	// Build graph edges
 	for _, it := range items {
-		id := it.TPID()
+		itemID := it.TPID()
 		for _, dep := range it.DependencyTPIDs() {
-			if dep == id {
+			if dep == itemID {
 				// self-cycle
-				return nil, fmt.Errorf("%w: self dependency at %q", ErrCircularDependency, id)
+				return nil, fmt.Errorf("%w: self dependency at %q", ErrCircularDependency, itemID)
 			}
 			// If dependency is unknown, consider it as an external node and error out
 			// to avoid silently accepting incomplete graphs.
@@ -62,10 +63,11 @@ func Sort[T interface{ TopoSortable }](items []T, ignoreMissingDeps bool) ([]T, 
 					// Skip edges to missing nodes
 					continue
 				}
-				return nil, fmt.Errorf("dependency %q of %q not found: %w", dep, id, ErrMissingDependency)
+				return nil, fmt.Errorf(
+					"dependency %q of %q not found: %w", dep, itemID, ErrMissingDependency)
 			}
-			adj[dep] = append(adj[dep], id)
-			indeg[id]++
+			adj[dep] = append(adj[dep], itemID)
+			indeg[itemID]++
 		}
 	}
 

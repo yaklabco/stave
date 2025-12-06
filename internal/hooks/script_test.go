@@ -29,17 +29,17 @@ func TestGenerateScript_ContainsHookName(t *testing.T) {
 		{"prepare-commit-msg"},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.hookName, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.hookName, func(t *testing.T) {
 			t.Parallel()
-			script := GenerateScript(ScriptParams{HookName: tc.hookName})
+			script := GenerateScript(ScriptParams{HookName: testCase.hookName})
 
 			// Should appear in both the stave hooks run command and the error message
-			if !strings.Contains(script, "stave hooks run "+tc.hookName) {
-				t.Errorf("Generated script should contain 'stave hooks run %s'", tc.hookName)
+			if !strings.Contains(script, "stave hooks run "+testCase.hookName) {
+				t.Errorf("Generated script should contain 'stave hooks run %s'", testCase.hookName)
 			}
-			if !strings.Contains(script, "skipping "+tc.hookName+" hook") {
-				t.Errorf("Generated script should contain 'skipping %s hook'", tc.hookName)
+			if !strings.Contains(script, "skipping "+testCase.hookName+" hook") {
+				t.Errorf("Generated script should contain 'skipping %s hook'", testCase.hookName)
 			}
 		})
 	}
@@ -127,6 +127,8 @@ func TestIsStaveManaged_True(t *testing.T) {
 
 	// Write a Stave-managed hook
 	content := GenerateScript(ScriptParams{HookName: "pre-commit"})
+
+	//#nosec G306 -- test hook script requires executable permission
 	if err := os.WriteFile(hookPath, []byte(content), 0o755); err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}

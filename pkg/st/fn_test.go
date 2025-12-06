@@ -99,7 +99,10 @@ func TestFuncCheck(t *testing.T) {
 		t.Error("func is on a namespace")
 	}
 
-	hasContext, isNamespace, err = checkF(func(int, bool, string, time.Duration) {}, []interface{}{1, true, "s", time.Second})
+	hasContext, isNamespace, err = checkF(
+		func(int, bool, string, time.Duration) {},
+		[]interface{}{1, true, "s", time.Second},
+	)
 	if err != nil {
 		t.Error(err)
 	}
@@ -215,39 +218,43 @@ func TestFNilError(t *testing.T) {
 }
 
 func TestFVariadic(t *testing.T) {
-	fn := F(func(args ...string) {
+	testFn := F(func(args ...string) {
 		if !reflect.DeepEqual(args, []string{"a", "b"}) {
 			t.Errorf("Wrong args, got %v, want [a b]", args)
 		}
 	}, "a", "b")
-	err := fn.Run(context.Background())
+	err := testFn.Run(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fn = F(func(a string, b ...string) {}, "a", "b1", "b2") //nolint:revive // Let's keep this as it is for the sake of the test.
-	err = fn.Run(context.Background())
+	//nolint:revive // Let's keep this as it is for the sake of the test.
+	testFn = F(func(a string, b ...string) {}, "a", "b1", "b2")
+	err = testFn.Run(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fn = F(func(a ...string) {}) //nolint:revive // Let's keep this as it is for the sake of the test.
-	err = fn.Run(context.Background())
+	//nolint:revive // Let's keep this as it is for the sake of the test.
+	testFn = F(func(a ...string) {})
+	err = testFn.Run(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	func() {
 		defer func() {
-			err, ok := recover().(error)
+			panicErr, ok := recover().(error)
 			if !ok {
 				t.Fatalf("expected panic with an error value, but got %T instead", recover())
 			}
-			if err == nil || err.Error() != "too few arguments for target, got 0 for func(string, ...string)" {
-				t.Fatal(err)
+			wantMsg := "too few arguments for target, got 0"
+			if panicErr == nil || panicErr.Error() != wantMsg {
+				t.Fatal(panicErr)
 			}
 		}()
-		F(func(a string, b ...string) {}) //nolint:revive // Let's keep this as it is for the sake of the test.
+		//nolint:revive // Let's keep this as it is for the sake of the test.
+		F(func(a string, b ...string) {})
 	}()
 }
 
@@ -261,6 +268,9 @@ func (Foo) BareCtx(context.Context) {}
 
 func (Foo) CtxError(context.Context) error { return nil }
 
-func (Foo) CtxErrorArgs(ctx context.Context, i int, s string, b bool, d time.Duration) error { //nolint:revive // Let's keep this as it is for the sake of the test.
+//nolint:revive // Let's keep this as it is for the sake of the test.
+func (Foo) CtxErrorArgs(
+	ctx context.Context, i int, s string, b bool, d time.Duration,
+) error {
 	return nil
 }

@@ -5,103 +5,75 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
+
+// testFilePermission is the permission mode for test files.
+const testFilePermission = 0o644
+
+// setupTestDir creates a temp dir with test files and returns cleanup function.
+func setupTestDir(t *testing.T, files []string) string {
+	t.Helper()
+	dir, err := os.MkdirTemp("", "")
+	require.NoError(t, err, "creating temp dir")
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+
+	for _, name := range files {
+		out := filepath.Join(dir, name)
+		require.NoError(t, os.WriteFile(out, []byte("hi!"), testFilePermission))
+	}
+	return dir
+}
+
+// appendToFile appends content to a file.
+func appendToFile(t *testing.T, path string) {
+	t.Helper()
+	fh, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, testFilePermission)
+	require.NoError(t, err, "opening file to append")
+	_, err = fh.WriteString("\nbye!\n")
+	require.NoError(t, err, "appending to file")
+	require.NoError(t, fh.Close(), "closing file")
+}
 
 func TestNewestModTime(t *testing.T) {
 	t.Parallel()
-	dir, err := os.MkdirTemp("", "")
-	if err != nil {
-		t.Fatalf("error creating temp dir: %s", err.Error())
-	}
-	defer func() { _ = os.RemoveAll(dir) }()
-	for _, name := range []string{"a", "b", "c", "d"} {
-		out := filepath.Join(dir, name)
-		if err := os.WriteFile(out, []byte("hi!"), 0644); err != nil {
-			t.Fatalf("error writing file: %s", err.Error())
-		}
-	}
+	dir := setupTestDir(t, []string{"a", "b", "c", "d"})
+
 	time.Sleep(10 * time.Millisecond)
 	outName := filepath.Join(dir, "c")
-	outfh, err := os.OpenFile(outName, os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		t.Fatalf("error opening file to append: %s", err.Error())
-	}
-	if _, err := outfh.WriteString("\nbye!\n"); err != nil {
-		t.Fatalf("error appending to file: %s", err.Error())
-	}
-	if err := outfh.Close(); err != nil {
-		t.Fatalf("error closing file: %s", err.Error())
-	}
+	appendToFile(t, outName)
 
 	afi, err := os.Stat(filepath.Join(dir, "a"))
-	if err != nil {
-		t.Fatalf("error stating unmodified file: %s", err.Error())
-	}
+	require.NoError(t, err, "stating unmodified file")
 
 	cfi, err := os.Stat(outName)
-	if err != nil {
-		t.Fatalf("error stating modified file: %s", err.Error())
-	}
-	if afi.ModTime().Equal(cfi.ModTime()) {
-		t.Fatal("modified and unmodified file mtimes equal")
-	}
+	require.NoError(t, err, "stating modified file")
+	require.False(t, afi.ModTime().Equal(cfi.ModTime()), "modified and unmodified file mtimes equal")
 
 	newest, err := NewestModTime(dir)
-	if err != nil {
-		t.Fatalf("error finding newest mod time: %s", err.Error())
-	}
-	if !newest.Equal(cfi.ModTime()) {
-		t.Fatal("expected newest mod time to match c")
-	}
+	require.NoError(t, err, "finding newest mod time")
+	require.True(t, newest.Equal(cfi.ModTime()), "expected newest mod time to match c")
 }
 
 func TestOldestModTime(t *testing.T) {
 	t.Parallel()
-	dir, err := os.MkdirTemp("", "")
-	if err != nil {
-		t.Fatalf("error creating temp dir: %s", err.Error())
-	}
-	defer func() { _ = os.RemoveAll(dir) }()
-	for _, name := range []string{"a", "b", "c", "d"} {
-		out := filepath.Join(dir, name)
-		if err := os.WriteFile(out, []byte("hi!"), 0644); err != nil {
-			t.Fatalf("error writing file: %s", err.Error())
-		}
-	}
+	dir := setupTestDir(t, []string{"a", "b", "c", "d"})
+
 	time.Sleep(10 * time.Millisecond)
 	for _, name := range []string{"a", "b", "d"} {
-		outName := filepath.Join(dir, name)
-		outfh, err := os.OpenFile(outName, os.O_APPEND|os.O_WRONLY, 0644)
-		if err != nil {
-			t.Fatalf("error opening file to append: %s", err.Error())
-		}
-		if _, err := outfh.WriteString("\nbye!\n"); err != nil {
-			t.Fatalf("error appending to file: %s", err.Error())
-		}
-		if err := outfh.Close(); err != nil {
-			t.Fatalf("error closing file: %s", err.Error())
-		}
+		appendToFile(t, filepath.Join(dir, name))
 	}
 
 	afi, err := os.Stat(filepath.Join(dir, "a"))
-	if err != nil {
-		t.Fatalf("error stating unmodified file: %s", err.Error())
-	}
+	require.NoError(t, err, "stating modified file")
 
 	outName := filepath.Join(dir, "c")
 	cfi, err := os.Stat(outName)
-	if err != nil {
-		t.Fatalf("error stating modified file: %s", err.Error())
-	}
-	if afi.ModTime().Equal(cfi.ModTime()) {
-		t.Fatal("modified and unmodified file mtimes equal")
-	}
+	require.NoError(t, err, "stating unmodified file")
+	require.False(t, afi.ModTime().Equal(cfi.ModTime()), "modified and unmodified file mtimes equal")
 
-	newest, err := OldestModTime(dir)
-	if err != nil {
-		t.Fatalf("error finding oldest mod time: %s", err.Error())
-	}
-	if !newest.Equal(cfi.ModTime()) {
-		t.Fatal("expected newest mod time to match c")
-	}
+	oldest, err := OldestModTime(dir)
+	require.NoError(t, err, "finding oldest mod time")
+	require.True(t, oldest.Equal(cfi.ModTime()), "expected oldest mod time to match c")
 }

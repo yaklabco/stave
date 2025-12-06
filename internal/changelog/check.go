@@ -60,146 +60,187 @@ type PrePushCheckOptions struct {
 func PrePushCheck(opts PrePushCheckOptions) (*CheckResult, error) {
 	result := &CheckResult{}
 
-	// Check for bypass environment variable
 	if os.Getenv("BYPASS_CHANGELOG_CHECK") == "1" {
 		result.Skipped = true
 		result.SkipReason = "BYPASS_CHANGELOG_CHECK=1"
 		return result, nil
 	}
 
-	changelogPath := opts.ChangelogPath
-	if changelogPath == "" {
-		changelogPath = ChangelogFile
+	changelogPath := resolveChangelogPath(opts.ChangelogPath)
+
+	changelog, err := readAndParseChangelog(changelogPath, result)
+	if err != nil {
+		if errors.Is(err, errParseFailure) {
+			return result, nil // Parse error already recorded
+		}
+		return nil, err
 	}
 
-	// For git diff comparison, we always use the relative filename
-	changelogFilename := ChangelogFile
+	validateChangelogFormat(changelog, changelogPath, result)
 
-	// Read and parse changelog
-	content, err := os.ReadFile(changelogPath)
-	if err != nil {
-		return nil, fmt.Errorf("reading %s: %w", changelogPath, err)
-	}
+	sawBranchPush := checkRefChanges(opts, result)
 
-	cl, err := Parse(string(content))
-	if err != nil {
-		result.Errors = append(result.Errors, fmt.Sprintf("parsing %s: %s", changelogPath, err))
+	if shouldSkipSVUCheck(opts.SkipSVUCheck, sawBranchPush) {
+		result.Skipped = true
+		result.SkipReason = "svu check skipped (release/tag-only/opt-out)"
+		result.NextVersionPresent = true
 		return result, nil
 	}
 
-	// Validate changelog format
-	validationResult := cl.Validate()
+	verifyNextVersionInChangelog(changelog, changelogPath, result)
+
+	return result, nil
+}
+
+// resolveChangelogPath returns the changelog path with a default fallback.
+func resolveChangelogPath(path string) string {
+	if path == "" {
+		return ChangelogFile
+	}
+	return path
+}
+
+// errParseFailure is returned when changelog parsing fails but errors are recorded in result.
+var errParseFailure = errors.New("changelog parse failure")
+
+// readAndParseChangelog reads and parses the changelog file.
+// Returns errParseFailure if parsing fails, with error recorded in result.
+func readAndParseChangelog(path string, result *CheckResult) (*Changelog, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("reading %s: %w", path, err)
+	}
+
+	changelog, err := Parse(string(content))
+	if err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("parsing %s: %s", path, err))
+		return nil, errParseFailure
+	}
+	return changelog, nil
+}
+
+// validateChangelogFormat validates the changelog and records any errors.
+func validateChangelogFormat(changelog *Changelog, path string, result *CheckResult) {
+	validationResult := changelog.Validate()
 	if validationResult.HasErrors() {
 		result.ChangelogValid = false
-		for _, e := range validationResult.Errors {
-			if e.Line > 0 {
-				result.Errors = append(result.Errors, fmt.Sprintf("%s line %d: %s", changelogPath, e.Line, e.Message))
+		for _, validationErr := range validationResult.Errors {
+			if validationErr.Line > 0 {
+				result.Errors = append(
+					result.Errors,
+					fmt.Sprintf("%s line %d: %s", path, validationErr.Line, validationErr.Message))
 			} else {
-				result.Errors = append(result.Errors, fmt.Sprintf("%s: %s", changelogPath, e.Message))
+				result.Errors = append(
+					result.Errors, fmt.Sprintf("%s: %s", path, validationErr.Message))
 			}
 		}
 	} else {
 		result.ChangelogValid = true
 	}
+}
 
-	// Check if changelog was updated in any of the refs being pushed
+// checkRefChanges checks each ref being pushed for changelog updates.
+// Returns true if any branch pushes were seen.
+func checkRefChanges(opts PrePushCheckOptions, result *CheckResult) bool {
 	sawBranchPush := false
 	missingChangelog := false
 
 	for _, ref := range opts.Refs {
-		// Skip deleted refs
-		if ref.LocalSHA == ZeroSHA {
+		if skipRef(ref) {
 			continue
 		}
 
-		// Skip tag pushes
-		if strings.HasPrefix(ref.RemoteRef, "refs/tags/") {
-			continue
-		}
-
-		// Track if we saw any branch pushes
 		if strings.HasPrefix(ref.RemoteRef, "refs/heads/") {
 			sawBranchPush = true
 		}
 
-		// Skip main/master branches
-		if ref.RemoteRef == "refs/heads/main" || ref.RemoteRef == "refs/heads/master" {
+		if isMainBranch(ref.RemoteRef) {
 			continue
 		}
 
-		// Determine base for diff
-		base := ref.RemoteSHA
-		if base == ZeroSHA {
-			// New branch - find merge base with default branch
-			base = findDefaultBase(opts.GitOps, opts.RemoteName, ref.LocalSHA)
-		}
-
-		if base == "" {
-			// Can't determine base - be conservative and require changelog
+		if !checkRefForChangelog(opts, ref, result) {
 			missingChangelog = true
-			result.Errors = append(result.Errors, fmt.Sprintf("missing %s update for push to %s", changelogFilename, ref.RemoteRef))
-			continue
-		}
-
-		// Get changed files
-		files, err := opts.GitOps.ChangedFiles(base, ref.LocalSHA)
-		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("failed to get changed files: %s", err))
-			continue
-		}
-
-		if len(files) == 0 {
-			// No changed files - be conservative
-			missingChangelog = true
-			result.Errors = append(result.Errors, fmt.Sprintf("missing %s update for push to %s", changelogFilename, ref.RemoteRef))
-			continue
-		}
-
-		if !ContainsFile(files, changelogFilename) {
-			missingChangelog = true
-			result.Errors = append(result.Errors, fmt.Sprintf("missing %s update for push to %s", changelogFilename, ref.RemoteRef))
 		}
 	}
 
 	result.ChangelogUpdated = !missingChangelog
+	return sawBranchPush
+}
 
-	// Skip SVU check if:
-	// - Explicitly opted out via opts.SkipSVUCheck
-	// - SKIP_SVU_CHANGELOG_CHECK=1
-	// - GORELEASER_CURRENT_TAG or GORELEASER are set
-	// - Only tag pushes (no branch pushes)
-	skipSVU := opts.SkipSVUCheck ||
+// skipRef returns true if this ref should be skipped (deleted or tag).
+func skipRef(ref PushRef) bool {
+	return ref.LocalSHA == ZeroSHA || strings.HasPrefix(ref.RemoteRef, "refs/tags/")
+}
+
+// isMainBranch returns true if the ref is main or master branch.
+func isMainBranch(remoteRef string) bool {
+	return remoteRef == "refs/heads/main" || remoteRef == "refs/heads/master"
+}
+
+// checkRefForChangelog checks if changelog was updated for a specific ref.
+// Returns false if changelog is missing.
+func checkRefForChangelog(opts PrePushCheckOptions, ref PushRef, result *CheckResult) bool {
+	base := ref.RemoteSHA
+	if base == ZeroSHA {
+		base = findDefaultBase(opts.GitOps, opts.RemoteName, ref.LocalSHA)
+	}
+
+	if base == "" {
+		result.Errors = append(
+			result.Errors,
+			fmt.Sprintf("missing %s update for push to %s", ChangelogFile, ref.RemoteRef))
+		return false
+	}
+
+	files, err := opts.GitOps.ChangedFiles(base, ref.LocalSHA)
+	if err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("failed to get changed files: %s", err))
+		return false
+	}
+
+	if len(files) == 0 || !ContainsFile(files, ChangelogFile) {
+		result.Errors = append(
+			result.Errors,
+			fmt.Sprintf("missing %s update for push to %s", ChangelogFile, ref.RemoteRef))
+		return false
+	}
+
+	return true
+}
+
+// shouldSkipSVUCheck returns true if the svu version check should be skipped.
+func shouldSkipSVUCheck(optOut bool, sawBranchPush bool) bool {
+	return optOut ||
 		os.Getenv("SKIP_SVU_CHANGELOG_CHECK") == "1" ||
 		os.Getenv("GORELEASER_CURRENT_TAG") != "" ||
 		os.Getenv("GORELEASER") != "" ||
 		!sawBranchPush
+}
 
-	if skipSVU {
-		result.Skipped = true
-		result.SkipReason = "svu check skipped (release/tag-only/opt-out)"
-		result.NextVersionPresent = true // Skip means we don't fail for this
-		return result, nil
-	}
-
-	// Verify next version exists in changelog
+// verifyNextVersionInChangelog checks that the svu next-version exists.
+func verifyNextVersionInChangelog(changelog *Changelog, path string, result *CheckResult) {
 	nextVersion, err := NextVersion()
 	if err != nil {
-		result.Errors = append(result.Errors, fmt.Sprintf("failed to get next version from svu: %s", err))
-		return result, nil
+		result.Errors = append(
+			result.Errors,
+			fmt.Sprintf("failed to get next version from svu: %s", err))
+		return
 	}
 
 	switch {
-	case !cl.HasVersion(nextVersion):
+	case !changelog.HasVersion(nextVersion):
 		result.NextVersionPresent = false
-		result.Errors = append(result.Errors, fmt.Sprintf("%s is missing release heading for version [%s]", changelogPath, nextVersion))
-	case !cl.HasLinkForVersion(nextVersion):
+		result.Errors = append(
+			result.Errors,
+			fmt.Sprintf("%s is missing release heading for version [%s]", path, nextVersion))
+	case !changelog.HasLinkForVersion(nextVersion):
 		result.NextVersionPresent = false
-		result.Errors = append(result.Errors, fmt.Sprintf("%s is missing link reference for [%s]", changelogPath, nextVersion))
+		result.Errors = append(
+			result.Errors,
+			fmt.Sprintf("%s is missing link reference for [%s]", path, nextVersion))
 	default:
 		result.NextVersionPresent = true
 	}
-
-	return result, nil
 }
 
 // findDefaultBase attempts to find the merge base with the default branch.
@@ -225,12 +266,12 @@ func ValidateFile(path string) error {
 		return fmt.Errorf("reading %s: %w", path, err)
 	}
 
-	cl, err := Parse(string(content))
+	parsedChangelog, err := Parse(string(content))
 	if err != nil {
 		return fmt.Errorf("parsing %s: %w", path, err)
 	}
 
-	result := cl.Validate()
+	result := parsedChangelog.Validate()
 	if result.HasErrors() {
 		return result.Error()
 	}
@@ -246,7 +287,7 @@ func VerifyNextVersion(path string) error {
 		return fmt.Errorf("reading %s: %w", path, err)
 	}
 
-	cl, err := Parse(string(content))
+	parsedChangelog, err := Parse(string(content))
 	if err != nil {
 		return fmt.Errorf("parsing %s: %w", path, err)
 	}
@@ -256,11 +297,11 @@ func VerifyNextVersion(path string) error {
 		return fmt.Errorf("getting next version: %w", err)
 	}
 
-	if !cl.HasVersion(nextVersion) {
+	if !parsedChangelog.HasVersion(nextVersion) {
 		return fmt.Errorf("%s is missing release heading for version [%s]", path, nextVersion)
 	}
 
-	if !cl.HasLinkForVersion(nextVersion) {
+	if !parsedChangelog.HasLinkForVersion(nextVersion) {
 		return fmt.Errorf("%s is missing link reference for [%s]", path, nextVersion)
 	}
 

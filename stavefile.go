@@ -11,9 +11,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -29,11 +27,29 @@ import (
 	"github.com/yaklabco/stave/pkg/ui"
 )
 
+// outputf writes a formatted string to stdout.
+// Uses fmt.Fprintf for output (avoids forbidigo which bans fmt.Print* patterns).
+func outputf(format string, args ...interface{}) {
+	_, _ = fmt.Fprintf(os.Stdout, format, args...)
+}
+
+// outputln writes a string to stdout with a trailing newline.
+func outputln(s string) {
+	_, _ = fmt.Fprintln(os.Stdout, s)
+}
+
+// Aliases maps target aliases to their implementations.
+// This is a stave convention - stavefiles define this global to create target aliases.
+//
+
 var Aliases = map[string]interface{}{
 	"Speak": Say,
 }
 
 // Default target to run when none is specified.
+// This is a stave convention - stavefiles define this global to set the default target.
+//
+
 var Default = All
 
 func All() error {
@@ -126,21 +142,24 @@ func setupHooksHusky() error {
 		hooksSuffix = " (" + strings.Join(configuredHooks, ", ") + ")"
 	}
 
-	fmt.Printf("%s %s %s%s\n",
+	outputf("%s %s %s%s\n",
 		successStyle.Render("✓"),
 		labelStyle.Render("Git hooks:"),
 		valueStyle.Render("Husky"),
 		hooksSuffix,
 	)
 	if st.Verbose() {
-		fmt.Printf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(".husky/"))
+		outputf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(".husky/"))
 	}
 	return nil
 }
 
 // findHuskyHooks returns a list of hook names configured in .husky directory.
 func findHuskyHooks() []string {
-	knownHooks := []string{"pre-commit", "prepare-commit-msg", "commit-msg", "post-commit", "pre-push", "pre-rebase", "post-checkout", "post-merge"}
+	knownHooks := []string{
+		"pre-commit", "prepare-commit-msg", "commit-msg", "post-commit",
+		"pre-push", "pre-rebase", "post-checkout", "post-merge",
+	}
 	var found []string
 	for _, hook := range knownHooks {
 		hookPath := filepath.Join(".husky", hook)
@@ -227,15 +246,15 @@ func setupHooksStave() error {
 		hooksSuffix = " (" + strings.Join(configuredHooks, ", ") + ")"
 	}
 
-	fmt.Printf("%s %s %s%s\n",
+	outputf("%s %s %s%s\n",
 		successStyle.Render("✓"),
 		labelStyle.Render("Git hooks:"),
 		valueStyle.Render("Stave"),
 		hooksSuffix,
 	)
 	if st.Verbose() {
-		fmt.Printf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(".git/hooks/"))
-		fmt.Printf("  %s %s\n", labelStyle.Render("Config:"), valueStyle.Render("stave.yaml"))
+		outputf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(".git/hooks/"))
+		outputf("  %s %s\n", labelStyle.Render("Config:"), valueStyle.Render("stave.yaml"))
 	}
 	return nil
 }
@@ -270,7 +289,8 @@ hooks:
   pre-push:
     - target: Test
 `
-	if err := os.WriteFile(staveYAML, []byte(defaultConfig), 0o600); err != nil {
+	const configFilePerm = 0o600
+	if err := os.WriteFile(staveYAML, []byte(defaultConfig), configFilePerm); err != nil {
 		return fmt.Errorf("failed to create stave.yaml: %w", err)
 	}
 
@@ -305,9 +325,9 @@ func LintGo() error {
 	out, err := sh.Output("golangci-lint", "run", "--fix", "--allow-parallel-runners", "--build-tags='!ignore'")
 	if err != nil {
 		titleStyle, blockStyle := ui.GetBlockStyles()
-		_, _ = fmt.Println(titleStyle.Render("golangci-lint output"))
-		_, _ = fmt.Println(blockStyle.Render(out))
-		_, _ = fmt.Println()
+		outputln(titleStyle.Render("golangci-lint output"))
+		outputln(blockStyle.Render(out))
+		outputln("")
 		return err
 	}
 
@@ -447,8 +467,8 @@ func Release() error { // stave:help=Create and push a new tag with svu, then go
 }
 
 func ParallelismCheck() {
-	fmt.Printf("STAVE_NUM_PROCESSORS=%q\n", os.Getenv("STAVE_NUM_PROCESSORS"))
-	fmt.Printf("GOMAXPROCS=%q\n", os.Getenv("GOMAXPROCS"))
+	outputf("STAVE_NUM_PROCESSORS=%q\n", os.Getenv("STAVE_NUM_PROCESSORS"))
+	outputf("GOMAXPROCS=%q\n", os.Getenv("GOMAXPROCS"))
 }
 
 // setSkipSVUChangelogCheck sets the SKIP_SVU_CHANGELOG_CHECK environment variable.
@@ -457,28 +477,10 @@ func setSkipSVUChangelogCheck() error {
 	return os.Setenv("SKIP_SVU_CHANGELOG_CHECK", "1")
 }
 
-// getRepoRoot returns the absolute path to the repository root (git top-level).
-func getRepoRoot() (string, error) {
-	out, err := sh.Output("git", "rev-parse", "--show-toplevel")
-	if err != nil {
-		slog.Warn("error running `git rev-parse --show-toplevel`", slog.Any("error", err))
-
-		// Fallback to current working dir on failure
-		cwd, err := os.Getwd()
-		if err != nil {
-			return "", err
-		}
-
-		return cwd, nil
-	}
-
-	return strings.TrimSpace(out), nil
-}
-
 // Say says something.
 func Say(msg string, i int, b bool, d time.Duration) error {
-	_, err := fmt.Printf("%v(%T) %v(%T) %v(%T) %v(%T)\n", msg, msg, i, i, b, b, d, d)
-	return err
+	outputf("%v(%T) %v(%T) %v(%T) %v(%T)\n", msg, msg, i, i, b, b, d, d)
+	return nil
 }
 
 // Install runs "go install" for stave. This also generates version info for the binary.
@@ -505,7 +507,8 @@ func Install() error {
 	}
 	// specifically don't mkdirall, if you have an invalid gopath in the first
 	// place, that's not on us to fix.
-	if err := os.Mkdir(bin, 0o700); err != nil && !os.IsExist(err) {
+	const binDirPerm = 0o700
+	if err := os.Mkdir(bin, binDirPerm); err != nil && !os.IsExist(err) {
 		return fmt.Errorf("failed to create %q: %w", bin, err)
 	}
 	path := filepath.Join(bin, name)
@@ -515,36 +518,6 @@ func Install() error {
 	// machines that have go installed in a non-writeable directory (such as
 	// normal OS installs in /usr/bin)
 	return sh.RunV(gocmd, "build", "-o", path, "-ldflags="+flags(), "github.com/yaklabco/stave")
-}
-
-var releaseTag = regexp.MustCompile(`^v1\.[0-9]+\.[0-9]+$`)
-
-// origRelease generates a new release. Expects a version tag in v1.x.x format.
-// It is the original `Release` target for Mage.
-func origRelease(tag string) error {
-	if _, err := exec.LookPath("goreleaser"); err != nil {
-		return fmt.Errorf("can't find goreleaser: %w", err)
-	}
-	if !releaseTag.MatchString(tag) {
-		return errors.New("TAG environment variable must be in semver v1.x.x format, but was " + tag)
-	}
-
-	if err := sh.RunV("git", "tag", "-a", tag, "-m", tag); err != nil {
-		return err
-	}
-	if err := sh.RunV("git", "push", "origin", tag); err != nil {
-		return err
-	}
-	var releaseErr error
-	defer func() {
-		if releaseErr != nil {
-			_ = sh.RunV("git", "tag", "--delete", tag)            //nolint:errcheck // This is last-ditch cleanup.
-			_ = sh.RunV("git", "push", "--delete", "origin", tag) //nolint:errcheck // This is last-ditch cleanup.
-		}
-	}()
-	releaseErr = sh.RunV("goreleaser")
-
-	return releaseErr
 }
 
 // Clean removes the temporarily generated files from Release.
