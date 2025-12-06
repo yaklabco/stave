@@ -53,13 +53,15 @@ func TestBadIntArg(t *testing.T) {
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
+	logOutput := &bytes.Buffer{}
 
 	runParams := RunParams{
-		BaseCtx: ctx,
-		Dir:     testDataDir,
-		Stderr:  stderr,
-		Stdout:  stdout,
-		Args:    []string{"count", "abc123"},
+		BaseCtx:         ctx,
+		Dir:             testDataDir,
+		Stderr:          stderr,
+		Stdout:          stdout,
+		WriterForLogger: logOutput, // Isolate slog from stderr
+		Args:            []string{"count", "abc123"},
 	}
 
 	err := Run(runParams)
@@ -107,13 +109,15 @@ func TestBadDurationArg(t *testing.T) {
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
+	logOutput := &bytes.Buffer{}
 
 	runParams := RunParams{
-		BaseCtx: ctx,
-		Dir:     testDataDir,
-		Stderr:  stderr,
-		Stdout:  stdout,
-		Args:    []string{"wait", "abc123"},
+		BaseCtx:         ctx,
+		Dir:             testDataDir,
+		Stderr:          stderr,
+		Stdout:          stdout,
+		WriterForLogger: logOutput, // Isolate slog from stderr
+		Args:            []string{"wait", "abc123"},
 	}
 
 	err := Run(runParams)
@@ -134,13 +138,15 @@ func TestBadFloat64Arg(t *testing.T) {
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
+	logOutput := &bytes.Buffer{}
 
 	runParams := RunParams{
-		BaseCtx: ctx,
-		Dir:     testDataDir,
-		Stderr:  stderr,
-		Stdout:  stdout,
-		Args:    []string{"doubleIt", "abc123"},
+		BaseCtx:         ctx,
+		Dir:             testDataDir,
+		Stderr:          stderr,
+		Stdout:          stdout,
+		WriterForLogger: logOutput, // Isolate slog from stderr
+		Args:            []string{"doubleIt", "abc123"},
 	}
 
 	err := Run(runParams)
@@ -161,13 +167,15 @@ func TestMissingArgs(t *testing.T) {
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
+	logOutput := &bytes.Buffer{}
 
 	runParams := RunParams{
-		BaseCtx: ctx,
-		Dir:     testDataDir,
-		Stderr:  stderr,
-		Stdout:  stdout,
-		Args:    []string{"say", "hi"},
+		BaseCtx:         ctx,
+		Dir:             testDataDir,
+		Stderr:          stderr,
+		Stdout:          stdout,
+		WriterForLogger: logOutput, // Isolate slog from stderr
+		Args:            []string{"say", "hi"},
 	}
 
 	err := Run(runParams)

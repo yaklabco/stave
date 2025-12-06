@@ -1038,14 +1038,15 @@ func TestFirstTargetFails(t *testing.T) {
 
 	ctx := t.Context()
 
-	var stderr, stdout bytes.Buffer
+	var stderr, stdout, logOutput bytes.Buffer
 	runParams := RunParams{
-		BaseCtx: ctx,
-		Dir:     testDataDir,
-		Stdout:  &stdout,
-		Stderr:  &stderr,
-		Args:    []string{"ReturnsNonNilError", "ReturnsNilError"},
-		Verbose: true,
+		BaseCtx:         ctx,
+		Dir:             testDataDir,
+		Stdout:          &stdout,
+		Stderr:          &stderr,
+		WriterForLogger: &logOutput, // Isolate slog from stderr
+		Args:            []string{"ReturnsNonNilError", "ReturnsNilError"},
+		Verbose:         true,
 	}
 
 	err := Run(runParams)
@@ -1065,13 +1066,14 @@ func TestBadSecondTargets(t *testing.T) {
 
 	ctx := t.Context()
 
-	var stderr, stdout bytes.Buffer
+	var stderr, stdout, logOutput bytes.Buffer
 	runParams := RunParams{
-		BaseCtx: ctx,
-		Dir:     testDataDir,
-		Stdout:  &stdout,
-		Stderr:  &stderr,
-		Args:    []string{"TestVerbose", "NotGonnaWork"},
+		BaseCtx:         ctx,
+		Dir:             testDataDir,
+		Stdout:          &stdout,
+		Stderr:          &stderr,
+		WriterForLogger: &logOutput, // Separate buffer to isolate slog from stderr
+		Args:            []string{"TestVerbose", "NotGonnaWork"},
 	}
 
 	err := Run(runParams)
@@ -1297,9 +1299,13 @@ func TestInvalidAlias(t *testing.T) {
 }
 
 func TestRunCompiledPrintsError(t *testing.T) {
-	t.Parallel()
+	// Not parallel - this test modifies the global slog handler and would
+	// cause race conditions with other tests that also use/modify slog.
 
 	ctx := t.Context()
+
+	// Set up a discard logger to avoid polluting other tests' stderr.
+	slog.SetDefault(slog.New(slog.DiscardHandler))
 
 	err := RunCompiled(ctx, RunParams{}, "thiswon'texist")
 	require.Error(t, err)
@@ -1547,12 +1553,14 @@ func TestSignals(t *testing.T) {
 		assert.NoError(t, os.RemoveAll(compileDir))
 	}()
 
+	var logOutput bytes.Buffer
 	runParams := RunParams{
-		BaseCtx:    ctx,
-		Dir:        dir,
-		Stdout:     stdout,
-		Stderr:     stderr,
-		CompileOut: outName,
+		BaseCtx:         ctx,
+		Dir:             dir,
+		Stdout:          stdout,
+		Stderr:          stderr,
+		WriterForLogger: &logOutput, // Isolate slog from stderr
+		CompileOut:      outName,
 	}
 
 	err = Run(runParams)
@@ -1571,7 +1579,9 @@ func TestSignals(t *testing.T) {
 
 		pid := cmd.Process.Pid
 		go func() {
-			time.Sleep(time.Millisecond * 500)
+			// Wait longer for process to start and set up signal handlers,
+			// especially important when running in parallel with other tests.
+			time.Sleep(time.Second * 1)
 			for _, s := range signals {
 				killErr := syscall.Kill(pid, s)
 				if killErr != nil {
