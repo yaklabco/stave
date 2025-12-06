@@ -76,6 +76,7 @@ func NewRootCmd(ctx context.Context, opts ...Option) *cobra.Command {
 	rootCmd.PersistentFlags().BoolVarP(&runParams.List, "list", "l", false, "list stave targets in this directory")
 	rootCmd.PersistentFlags().BoolVar(&runParams.Init, "init", false, "create a starting template if no stave files exist")
 	rootCmd.PersistentFlags().BoolVar(&runParams.Clean, "clean", false, "clean out old generated binaries from CACHE_DIR")
+	rootCmd.PersistentFlags().BoolVar(&runParams.Exec, "exec", false, "execute commands under stave")
 	rootCmd.PersistentFlags().StringVar(&runParams.CompileOut, "compile", "", "output a static binary to the given path")
 
 	return rootCmd
