@@ -44,9 +44,22 @@ This installs:
 
 ## Setup Git Hooks
 
-Stave uses its own native hook system. Install hooks after cloning:
+Stave uses its own native hook system.
+
+### Fresh Clone
+
+For new clones, install hooks:
 
 ```bash
+stave --hooks install
+```
+
+### Switching from Husky
+
+If your local clone still has Husky configured (via `core.hooksPath`), unset it first:
+
+```bash
+git config --unset core.hooksPath
 stave --hooks install
 ```
 

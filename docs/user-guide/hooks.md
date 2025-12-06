@@ -375,6 +375,70 @@ hooks:
 stave --hooks install
 ```
 
+Now every commit runs `Fmt` and `Lint`, and every push runs `Test`.
+
+## Switching Hook Systems
+
+If your repository uses Husky or another hook manager that sets `core.hooksPath`, you must unset it before installing Stave hooks.
+
+### Switch to Native Stave Hooks
+
+```bash
+# Unset any custom hooks path (e.g., from Husky)
+git config --unset core.hooksPath
+
+# Install Stave-managed hooks
+stave --hooks install
+```
+
+### Switch Back to Husky
+
+```bash
+# Uninstall Stave hooks
+stave --hooks uninstall
+
+# Restore Husky's hooks path
+git config core.hooksPath .husky
+```
+
+### Optional: Add a Convenience Target
+
+For projects that need to switch between hook systems frequently, you can add a `Hooks` target to your `stavefile.go`:
+
+```go
+// SwitchHooks configures git hooks to use either "husky" or "stave" (native).
+func SwitchHooks(system string) error {
+    switch strings.ToLower(system) {
+    case "husky":
+        _ = sh.Run("stave", "--hooks", "uninstall")
+        return sh.Run("git", "config", "core.hooksPath", ".husky")
+    case "stave":
+        _ = sh.Run("git", "config", "--unset", "core.hooksPath")
+        return sh.Run("stave", "--hooks", "install")
+    default:
+        return fmt.Errorf("unknown hooks system %q: use 'husky' or 'stave'", system)
+    }
+}
+```
+
+This enables:
+
+```bash
+stave SwitchHooks stave   # Switch to native Stave hooks
+stave SwitchHooks husky   # Switch to Husky
+```
+
+## Migration from Husky
+
+To permanently migrate from Husky to Stave hooks:
+
+1. Add `hooks` configuration to `stave.yaml` based on your `.husky/*` scripts
+2. Unset the Husky hooks path: `git config --unset core.hooksPath`
+3. Install Stave hooks: `stave --hooks install`
+4. Remove Husky: `npm uninstall husky`
+5. Delete the `.husky/` directory
+6. Remove the `prepare` script from `package.json`
+
 ---
 
 ## See Also
