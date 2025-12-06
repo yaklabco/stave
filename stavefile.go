@@ -82,20 +82,7 @@ func Init() error { // stave:help=Install dev tools (Brewfile), setup hooks (res
 		return err
 	}
 
-	// Install npm (required for Husky).
-	if os.Getenv("CI") == "" {
-		if err := sh.Run("npm", "ci"); err != nil {
-			if err := sh.Run("npm", "install"); err != nil {
-				return err
-			}
-		}
-	} else {
-		slog.Debug("in CI; skipping explicit npm installation")
-	}
-
-	// Set up git hooks, respecting the user's current choice.
-	// Only defaults to Husky if no hook system is configured.
-	if err := setupHooksRespectingChoice(); err != nil {
+	if err := setupHooksStave(); err != nil {
 		return err
 	}
 
@@ -110,64 +97,8 @@ func Init() error { // stave:help=Install dev tools (Brewfile), setup hooks (res
 	return sh.Run("go", "mod", "tidy")
 }
 
-// SwitchHooks configures git hooks to use either "husky" or "stave" (native).
-// Usage: stave SwitchHooks husky   - Use Husky (.husky/)
-//
-//	stave SwitchHooks stave   - Use native stave hooks (.git/hooks/)
-func SwitchHooks(system string) error { // stave:help=Switch git hooks system: "husky" or "stave"
-	switch strings.ToLower(system) {
-	case "husky":
-		return setupHooksHusky()
-	case "stave", "native":
-		return setupHooksStave()
-	default:
-		return fmt.Errorf("unknown hooks system %q: use 'husky' or 'stave'", system)
-	}
-}
-
-func setupHooksHusky() error {
-	cs := ui.GetFangScheme()
-	successStyle := lipgloss.NewStyle().Foreground(cs.Flag)
-	labelStyle := lipgloss.NewStyle().Foreground(cs.Base)
-	valueStyle := lipgloss.NewStyle().Bold(true).Foreground(cs.Program)
-
-	// Remove any stave-managed hooks from .git/hooks
-	hooksDir := filepath.Join(".git", "hooks")
-	for _, hook := range []string{"pre-commit", "pre-push", "commit-msg", "prepare-commit-msg"} {
-		hookPath := filepath.Join(hooksDir, hook)
-		if content, err := os.ReadFile(hookPath); err == nil {
-			if strings.Contains(string(content), "Installed by Stave") {
-				_ = os.Remove(hookPath)
-			}
-		}
-	}
-
-	// Set git to use .husky directory
-	if err := sh.Run("git", "config", "core.hooksPath", ".husky"); err != nil {
-		return err
-	}
-
-	if err := sh.Run("chmod", "+x", ".husky/pre-push"); err != nil {
-		return err
-	}
-
-	// Find configured husky hooks
-	configuredHooks := findHuskyHooks()
-	hooksSuffix := ""
-	if len(configuredHooks) > 0 {
-		hooksSuffix = " (" + strings.Join(configuredHooks, ", ") + ")"
-	}
-
-	outputf("%s %s %s%s\n",
-		successStyle.Render("⚙️"),
-		labelStyle.Render("Git hooks configured:"),
-		valueStyle.Render("Husky"),
-		hooksSuffix,
-	)
-	if st.Verbose() {
-		outputf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(".husky"+string(filepath.Separator)))
-	}
-	return nil
+func SwitchHooks() error { // stave:help=Switch git hooks system to stave
+	return setupHooksStave()
 }
 
 // findHuskyHooks returns a list of hook names configured in .husky directory.
@@ -215,24 +146,6 @@ func detectActiveHookSystem() hookSystem {
 	}
 
 	return hookSystemNone
-}
-
-// setupHooksRespectingChoice sets up hooks based on the current active system.
-// If no system is configured, defaults to Husky.
-func setupHooksRespectingChoice() error {
-	active := detectActiveHookSystem()
-
-	switch active {
-	case hookSystemStave:
-		slog.Debug("stave hooks already configured; preserving choice")
-		return setupHooksStave()
-	case hookSystemHusky:
-		slog.Debug("husky hooks already configured; preserving choice")
-		return setupHooksHusky()
-	default:
-		slog.Debug("no hooks configured; defaulting to husky")
-		return setupHooksHusky()
-	}
 }
 
 func setupHooksStave() error {

@@ -1,2 +1,0 @@
-# Delegate to existing bash script for the actual logic
-exec bash .githooks/pre-push "$@"
