@@ -3,6 +3,7 @@ package stave
 
 import (
 	"bytes"
+	"path/filepath"
 	"testing"
 
 	"github.com/samber/lo"
@@ -10,12 +11,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testdataStaveimportDir = "./testdata/staveimport"
+var (
+	testDataStaveImportDir              = filepath.Join(testDataDir, "staveimport")
+	testDataStaveImportSameNamespaceDir = filepath.Join(testDataStaveImportDir, "samenamespace")
+)
 
 func TestStaveImportsList(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataStaveimportDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataStaveImportDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -26,7 +30,7 @@ func TestStaveImportsList(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		List:    true,
@@ -50,8 +54,8 @@ Targets:
 
 func TestStaveImportsHelp(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataStaveimportDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataStaveImportDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -62,7 +66,7 @@ func TestStaveImportsHelp(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Info:    true,
@@ -85,8 +89,8 @@ Usage:
 
 func TestStaveImportsHelpNamed(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataStaveimportDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataStaveImportDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -97,7 +101,7 @@ func TestStaveImportsHelpNamed(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Info:    true,
@@ -120,8 +124,8 @@ Usage:
 
 func TestStaveImportsHelpNamedNS(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataStaveimportDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataStaveImportDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -132,7 +136,7 @@ func TestStaveImportsHelpNamedNS(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Info:    true,
@@ -157,8 +161,8 @@ Aliases: nsd2
 
 func TestStaveImportsRoot(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataStaveimportDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataStaveImportDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -169,7 +173,7 @@ func TestStaveImportsRoot(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"root"},
@@ -183,8 +187,8 @@ func TestStaveImportsRoot(t *testing.T) {
 
 func TestStaveImportsNamedNS(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataStaveimportDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataStaveImportDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -195,7 +199,7 @@ func TestStaveImportsNamedNS(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"zz:nS:deploy2"},
@@ -209,8 +213,8 @@ func TestStaveImportsNamedNS(t *testing.T) {
 
 func TestStaveImportsNamedRoot(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataStaveimportDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataStaveImportDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -221,7 +225,7 @@ func TestStaveImportsNamedRoot(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"zz:buildSubdir2"},
@@ -236,8 +240,8 @@ func TestStaveImportsNamedRoot(t *testing.T) {
 
 func TestStaveImportsRootImportNS(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataStaveimportDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataStaveImportDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -248,7 +252,7 @@ func TestStaveImportsRootImportNS(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"nS:deploy"},
@@ -262,8 +266,8 @@ func TestStaveImportsRootImportNS(t *testing.T) {
 
 func TestStaveImportsRootImport(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataStaveimportDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataStaveImportDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -274,7 +278,7 @@ func TestStaveImportsRootImport(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"buildSubdir"},
@@ -288,8 +292,8 @@ func TestStaveImportsRootImport(t *testing.T) {
 
 func TestStaveImportsAliasToNS(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataStaveimportDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataStaveImportDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -300,7 +304,7 @@ func TestStaveImportsAliasToNS(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"nsd2"},
@@ -314,8 +318,8 @@ func TestStaveImportsAliasToNS(t *testing.T) {
 
 func TestStaveImportsOneLine(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/staveimport/oneline"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := filepath.Join(testDataStaveImportDir, "oneline")
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -326,7 +330,7 @@ func TestStaveImportsOneLine(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"build"},
@@ -340,8 +344,8 @@ func TestStaveImportsOneLine(t *testing.T) {
 
 func TestStaveImportsTrailing(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/staveimport/trailing"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := filepath.Join(testDataStaveImportDir, "trailing")
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -352,7 +356,7 @@ func TestStaveImportsTrailing(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"build"},
@@ -366,8 +370,8 @@ func TestStaveImportsTrailing(t *testing.T) {
 
 func TestStaveImportsTaggedPackage(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/staveimport/tagged"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := filepath.Join(testDataStaveImportDir, "tagged")
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -378,7 +382,7 @@ func TestStaveImportsTaggedPackage(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		List:    true,
@@ -398,8 +402,8 @@ parsing stavefiles: error running "go list -f {{.Dir}}||{{.Name}} github.com/yak
 
 func TestStaveImportsSameNamespaceUniqueTargets(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/staveimport/samenamespace/uniquetargets"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := filepath.Join(testDataStaveImportSameNamespaceDir, "uniquetargets")
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -410,7 +414,7 @@ func TestStaveImportsSameNamespaceUniqueTargets(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		List:    true,
@@ -429,8 +433,8 @@ Targets:
 
 func TestStaveImportsSameNamespaceDupTargets(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/staveimport/samenamespace/duptargets"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := filepath.Join(testDataStaveImportSameNamespaceDir, "duptargets")
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -441,7 +445,7 @@ func TestStaveImportsSameNamespaceDupTargets(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		List:    true,

@@ -37,6 +37,6 @@ var mainfileTemplate = template.Must(template.New("").Funcs(map[string]interface
 var initOutput = template.Must(template.New("").Parse(staveTpl))
 
 const (
-	mainfile = "stave_output_file.go"
+	mainFile = "stave_output_file.go"
 	initFile = "stavefile.go"
 )

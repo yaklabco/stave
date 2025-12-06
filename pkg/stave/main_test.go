@@ -40,14 +40,38 @@ const (
 
 	dotExe = ".exe"
 
-	testdataDir        = "./testdata"
-	testdataCompiled   = testdataDir + "/compiled"
-	testdataNamespaces = testdataDir + "/namespaces"
-
 	targetsBuild = "Targets:\n  build    \n"
 
 	windows = "windows"
 	amd64   = "amd64"
+)
+
+var (
+	testDataCompiled = filepath.Join(testDataDir, "compiled")
+
+	testDataNamespaces = filepath.Join(testDataDir, "namespaces")
+
+	testDataTransitiveDepsDir    = filepath.Join(testDataDir, "transitiveDeps")
+	testDataTransitiveDepsDepDir = filepath.Join(testDataTransitiveDepsDir, "dep")
+
+	testDataListDir = filepath.Join(testDataDir, "list")
+
+	testDataAliasDir = filepath.Join(testDataDir, "alias")
+
+	testDataMixedMainFilesDir = filepath.Join(testDataDir, "mixed_main_files")
+
+	testDataGOOSStaveFilesDir                           = filepath.Join(testDataDir, "goos_stavefiles")
+	testDataMixedLibFilesDir                            = filepath.Join(testDataDir, "mixed_lib_files")
+	testDataWithStaveFilesFolderDir                     = filepath.Join(testDataDir, "with_stavefiles_folder")
+	testDataDirWithStaveFileFolderAndStaveFilesInDotDir = filepath.Join(testDataDir, "with_stavefiles_folder_and_stave_files_in_dot")
+	testDataWithUntaggedStaveFilesFolderDir             = filepath.Join(testDataDir, "with_untagged_stavefiles_folder")
+	testDataWithMixTaggedStaveFilesFolderDir            = filepath.Join(testDataDir, "with_mixtagged_stavefiles_folder")
+	testDataSetDirWithStaveFilesFolderDir               = filepath.Join(testDataDir, "setdir_with_stavefiles_folder")
+	testDataNoDefaultDir                                = filepath.Join(testDataDir, "no_default")
+	testDataKeepFlagDir                                 = filepath.Join(testDataDir, "keep_flag")
+	testDataInvalidAliasDir                             = filepath.Join(testDataDir, "invalid_alias")
+	testDataWrongDepDir                                 = filepath.Join(testDataDir, "wrong_dep")
+	testDataBug508Dir                                   = filepath.Join(testDataDir, "bug508")
 )
 
 func TestMain(m *testing.M) {
@@ -137,8 +161,8 @@ func resetTerm() error {
 
 func TestTransitiveDepCache(t *testing.T) {
 	t.Parallel()
-	testDataDir := "testdata/transitiveDeps"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataTransitiveDepsDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -157,7 +181,7 @@ func TestTransitiveDepCache(t *testing.T) {
 		BaseCtx: ctx,
 		Stderr:  stderr,
 		Stdout:  stdout,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Args:    []string{"Run"},
 	}
 
@@ -170,14 +194,18 @@ func TestTransitiveDepCache(t *testing.T) {
 	// ok, so baseline, the generated and cached binary should do "woof"
 	// now change out the transitive dependency that does the output
 	// so that it produces different output.
-	require.NoError(t, os.Rename("testdata/transitiveDeps/dep/dog.go", "testdata/transitiveDeps/dep/dog.notgo"))
+	require.NoError(t, os.Rename(filepath.Join(testDataTransitiveDepsDepDir, "dog.go"), filepath.Join(testDataTransitiveDepsDepDir,
+		"dog.notgo")))
 	defer func() {
-		assert.NoError(t, os.Rename("testdata/transitiveDeps/dep/dog.notgo", "testdata/transitiveDeps/dep/dog.go"))
+		assert.NoError(t, os.Rename(filepath.Join(testDataTransitiveDepsDepDir, "dog.notgo"), filepath.Join(testDataTransitiveDepsDepDir,
+			"dog.go")))
 	}()
 
-	require.NoError(t, os.Rename("testdata/transitiveDeps/dep/cat.notgo", "testdata/transitiveDeps/dep/cat.go"))
+	require.NoError(t, os.Rename(filepath.Join(testDataTransitiveDepsDepDir, "cat.notgo"), filepath.Join(testDataTransitiveDepsDepDir,
+		"cat.go")))
 	defer func() {
-		assert.NoError(t, os.Rename("testdata/transitiveDeps/dep/cat.go", "testdata/transitiveDeps/dep/cat.notgo"))
+		assert.NoError(t, os.Rename(filepath.Join(testDataTransitiveDepsDepDir, "cat.go"), filepath.Join(testDataTransitiveDepsDepDir,
+			"cat.notgo")))
 	}()
 
 	stderr.Reset()
@@ -192,8 +220,8 @@ func TestTransitiveDepCache(t *testing.T) {
 
 func TestTransitiveHashFast(t *testing.T) {
 	t.Parallel()
-	testDataDir := "testdata/transitiveDeps"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataTransitiveDepsDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -215,7 +243,7 @@ func TestTransitiveHashFast(t *testing.T) {
 		BaseCtx: ctx,
 		Stderr:  stderr,
 		Stdout:  stdout,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Args:    []string{"Run"},
 	}
 
@@ -228,14 +256,18 @@ func TestTransitiveHashFast(t *testing.T) {
 	// ok, so baseline, the generated and cached binary should do "woof"
 	// now change out the transitive dependency that does the output
 	// so that it produces different output.
-	require.NoError(t, os.Rename("testdata/transitiveDeps/dep/dog.go", "testdata/transitiveDeps/dep/dog.notgo"))
+	require.NoError(t, os.Rename(filepath.Join(testDataTransitiveDepsDepDir, "dog.go"), filepath.Join(testDataTransitiveDepsDepDir,
+		"dog.notgo")))
 	defer func() {
-		assert.NoError(t, os.Rename("testdata/transitiveDeps/dep/dog.notgo", "testdata/transitiveDeps/dep/dog.go"))
+		assert.NoError(t, os.Rename(filepath.Join(testDataTransitiveDepsDepDir, "dog.notgo"), filepath.Join(testDataTransitiveDepsDepDir,
+			"dog.go")))
 	}()
 
-	require.NoError(t, os.Rename("testdata/transitiveDeps/dep/cat.notgo", "testdata/transitiveDeps/dep/cat.go"))
+	require.NoError(t, os.Rename(filepath.Join(testDataTransitiveDepsDepDir, "cat.notgo"), filepath.Join(testDataTransitiveDepsDepDir,
+		"cat.go")))
 	defer func() {
-		assert.NoError(t, os.Rename("testdata/transitiveDeps/dep/cat.go", "testdata/transitiveDeps/dep/cat.notgo"))
+		assert.NoError(t, os.Rename(filepath.Join(testDataTransitiveDepsDepDir, "cat.go"), filepath.Join(testDataTransitiveDepsDepDir,
+			"cat.notgo")))
 	}()
 
 	stderr.Reset()
@@ -255,12 +287,12 @@ func TestListStavefilesMain(t *testing.T) {
 	t.Parallel()
 
 	buf := &bytes.Buffer{}
-	files, err := Stavefiles("testdata/mixed_main_files", "", "", false)
+	files, err := Stavefiles(testDataMixedMainFilesDir, "", "", false)
 	require.NoError(t, err, buf.String())
 
 	expected := []string{
-		filepath.FromSlash("testdata/mixed_main_files/stave_helpers.go"),
-		filepath.FromSlash("testdata/mixed_main_files/stavefile.go"),
+		filepath.FromSlash(filepath.Join(testDataMixedMainFilesDir, "stave_helpers.go")),
+		filepath.FromSlash(filepath.Join(testDataMixedMainFilesDir, "stavefile.go")),
 	}
 
 	assert.Equal(t, expected, files)
@@ -274,14 +306,14 @@ func TestListStavefilesIgnoresGOOS(t *testing.T) {
 		t.Setenv("GOOS", windows)
 	}
 
-	files, err := Stavefiles("testdata/goos_stavefiles", "", "", false)
+	files, err := Stavefiles(testDataGOOSStaveFilesDir, "", "", false)
 	require.NoError(t, err, buf.String())
 
 	var expected []string
 	if runtime.GOOS == windows {
-		expected = []string{filepath.FromSlash("testdata/goos_stavefiles/stavefile_windows.go")}
+		expected = []string{filepath.Join(testDataGOOSStaveFilesDir, "stavefile_windows.go")}
 	} else {
-		expected = []string{filepath.FromSlash("testdata/goos_stavefiles/stavefile_nonwindows.go")}
+		expected = []string{filepath.Join(testDataGOOSStaveFilesDir, "stavefile_nonwindows.go")}
 	}
 
 	assert.Equal(t, expected, files)
@@ -299,14 +331,14 @@ func TestListStavefilesIgnoresRespectsGOOSArg(t *testing.T) {
 	}
 
 	// Set GOARCH as amd64 because windows is not on all non-x86 architectures.
-	files, err := Stavefiles("testdata/goos_stavefiles", goos, amd64, false)
+	files, err := Stavefiles(testDataGOOSStaveFilesDir, goos, amd64, false)
 	require.NoError(t, err, buf.String())
 
 	var expected []string
 	if goos == windows {
-		expected = []string{filepath.FromSlash("testdata/goos_stavefiles/stavefile_windows.go")}
+		expected = []string{filepath.Join(testDataGOOSStaveFilesDir, "stavefile_windows.go")}
 	} else {
-		expected = []string{filepath.FromSlash("testdata/goos_stavefiles/stavefile_nonwindows.go")}
+		expected = []string{filepath.Join(testDataGOOSStaveFilesDir, "stavefile_nonwindows.go")}
 	}
 
 	assert.Equal(t, expected, files)
@@ -314,8 +346,8 @@ func TestListStavefilesIgnoresRespectsGOOSArg(t *testing.T) {
 
 func TestCompileDiffGoosGoarch(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -345,7 +377,7 @@ func TestCompileDiffGoosGoarch(t *testing.T) {
 		Stderr:  stderr,
 		Stdout:  stdout,
 		Debug:   true,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		// this is relative to the Dir above
 		CompileOut: filepath.Join(".", filepath.Base(target), "output"),
 		GOOS:       goos,
@@ -373,20 +405,20 @@ func TestListStavefilesLib(t *testing.T) {
 	t.Parallel()
 
 	buf := &bytes.Buffer{}
-	files, err := Stavefiles("testdata/mixed_lib_files", "", "", false)
+	files, err := Stavefiles(testDataMixedLibFilesDir, "", "", false)
 	require.NoError(t, err, buf.String())
 
 	expected := []string{
-		filepath.FromSlash("testdata/mixed_lib_files/stave_helpers.go"),
-		filepath.FromSlash("testdata/mixed_lib_files/stavefile.go"),
+		filepath.Join(testDataMixedLibFilesDir, "stave_helpers.go"),
+		filepath.Join(testDataMixedLibFilesDir, "stavefile.go"),
 	}
 	assert.Equal(t, expected, files)
 }
 
 func TestMixedStaveImports(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/mixed_lib_files"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataMixedLibFilesDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -399,7 +431,7 @@ func TestMixedStaveImports(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		List:    true,
@@ -420,7 +452,7 @@ func TestStavefilesFolder(t *testing.T) {
 	t.Log(wd)
 	require.NoError(t, err)
 
-	t.Chdir("testdata/with_stavefiles_folder")
+	t.Chdir(testDataWithStaveFilesFolderDir)
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
@@ -448,7 +480,7 @@ func TestStavefilesFolderMixedWithStavefiles(t *testing.T) {
 	t.Log(wd)
 	require.NoError(t, err)
 
-	t.Chdir("testdata/with_stavefiles_folder_and_stave_files_in_dot")
+	t.Chdir(testDataDirWithStaveFileFolderAndStaveFilesInDotDir)
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
@@ -480,7 +512,7 @@ func TestUntaggedStavefilesFolder(t *testing.T) {
 	t.Log(wd)
 	require.NoError(t, err)
 
-	t.Chdir("testdata/with_untagged_stavefiles_folder")
+	t.Chdir(testDataWithUntaggedStaveFilesFolderDir)
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
@@ -509,7 +541,7 @@ func TestMixedTaggingStavefilesFolder(t *testing.T) {
 	t.Log(wd)
 	require.NoError(t, err)
 
-	t.Chdir("testdata/with_mixtagged_stavefiles_folder")
+	t.Chdir(testDataWithMixTaggedStaveFilesFolderDir)
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
@@ -531,8 +563,8 @@ func TestMixedTaggingStavefilesFolder(t *testing.T) {
 
 func TestSetDirWithStavefilesFolder(t *testing.T) {
 	t.Parallel()
-	testDataDir := "testdata/setdir_with_stavefiles_folder"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataSetDirWithStaveFilesFolderDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -545,7 +577,7 @@ func TestSetDirWithStavefilesFolder(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		List:    true,
@@ -559,8 +591,8 @@ func TestSetDirWithStavefilesFolder(t *testing.T) {
 
 func TestGoRun(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -576,8 +608,8 @@ func TestGoRun(t *testing.T) {
 
 func TestVerbose(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -588,7 +620,7 @@ func TestVerbose(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"testverbose"},
@@ -613,8 +645,8 @@ func TestVerbose(t *testing.T) {
 
 func TestList(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/list"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataListDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -625,7 +657,7 @@ func TestList(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		List:    true,
@@ -698,7 +730,7 @@ Targets:
 
 			runParams := RunParams{
 				BaseCtx: ctx,
-				Dir:     "./testdata/list",
+				Dir:     testDataListDir,
 				Stdout:  stdout,
 				Stderr:  stderr,
 				List:    true,
@@ -720,8 +752,8 @@ Targets:
 
 func TestNoArgNoDefaultList(t *testing.T) {
 	t.Parallel()
-	testDataDir := "testdata/no_default"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataNoDefaultDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -733,7 +765,7 @@ func TestNoArgNoDefaultList(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 	}
@@ -759,7 +791,7 @@ func TestIgnoreDefault(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     "./testdata/list",
+		Dir:     testDataListDir,
 		Stdout:  stdout,
 		Stderr:  stderr,
 	}
@@ -783,8 +815,8 @@ Targets:
 
 func TestTargetError(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -795,7 +827,7 @@ func TestTargetError(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"returnsnonnilerror"},
@@ -810,8 +842,8 @@ func TestTargetError(t *testing.T) {
 
 func TestStdinCopy(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -823,7 +855,7 @@ func TestStdinCopy(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdin:   stdin,
 		Stdout:  stdout,
 		Stderr:  stderr,
@@ -838,8 +870,8 @@ func TestStdinCopy(t *testing.T) {
 
 func TestTargetPanics(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -850,7 +882,7 @@ func TestTargetPanics(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"panics"},
@@ -865,8 +897,8 @@ func TestTargetPanics(t *testing.T) {
 
 func TestPanicsErr(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -877,7 +909,7 @@ func TestPanicsErr(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"panicserr"},
@@ -900,11 +932,11 @@ func TestHashTemplate(t *testing.T) {
 
 	templ := staveMainfileTplString
 	defer func() { staveMainfileTplString = templ }()
-	name, err := ExeName(ctx, "go", st.CacheDir(), []string{"testdata/func.go", "testdata/command.go"})
+	name, err := ExeName(ctx, "go", st.CacheDir(), []string{filepath.Join(testDataDir, "func.go"), filepath.Join(testDataDir, "command.go")})
 	require.NoError(t, err)
 
 	staveMainfileTplString = "some other template"
-	changed, err := ExeName(ctx, "go", st.CacheDir(), []string{"testdata/func.go", "testdata/command.go"})
+	changed, err := ExeName(ctx, "go", st.CacheDir(), []string{filepath.Join(testDataDir, "func.go"), filepath.Join(testDataDir, "command.go")})
 	require.NoError(t, err)
 
 	assert.NotEqual(t, name, changed)
@@ -913,14 +945,14 @@ func TestHashTemplate(t *testing.T) {
 // Test if the -keep flag does keep the mainfile around after running.
 func TestKeepFlag(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/keep_flag"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataKeepFlagDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
 	ctx := t.Context()
 
-	buildFile := "./testdata/keep_flag/" + mainfile
+	buildFile := filepath.Join(testDataKeepFlagDir, mainFile)
 	_ = os.Remove(buildFile)
 	defer func() {
 		assert.NoError(t, os.Remove(buildFile))
@@ -930,7 +962,7 @@ func TestKeepFlag(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  logWriter,
 		Stderr:  logWriter,
 		List:    true,
@@ -957,14 +989,14 @@ func (t tLogWriter) Write(b []byte) (int, error) {
 // does not have dependencies on Stave itself.
 func TestNoSelfDependencies(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/onlyStdLib"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := filepath.Join(testDataDir, "onlyStdLib")
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
 	ctx := t.Context()
 
-	buildFile := "./testdata/onlyStdLib/" + mainfile
+	buildFile := filepath.Join(dataDirForThisTest, mainFile)
 	_ = os.Remove(buildFile)
 	defer func() {
 		assert.NoError(t, os.Remove(buildFile))
@@ -974,7 +1006,7 @@ func TestNoSelfDependencies(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  logWriter,
 		Stderr:  logWriter,
 		List:    true,
@@ -1003,8 +1035,8 @@ func TestNoSelfDependencies(t *testing.T) {
 
 func TestMultipleTargets(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -1013,7 +1045,7 @@ func TestMultipleTargets(t *testing.T) {
 	var stderr, stdout bytes.Buffer
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  &stdout,
 		Stderr:  &stderr,
 		Args:    []string{"TestVerbose", "ReturnsNilError"},
@@ -1033,8 +1065,8 @@ func TestMultipleTargets(t *testing.T) {
 
 func TestFirstTargetFails(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -1043,7 +1075,7 @@ func TestFirstTargetFails(t *testing.T) {
 	var stderr, stdout, logOutput bytes.Buffer
 	runParams := RunParams{
 		BaseCtx:         ctx,
-		Dir:             testDataDir,
+		Dir:             dataDirForThisTest,
 		Stdout:          &stdout,
 		Stderr:          &stderr,
 		WriterForLogger: &logOutput, // Isolate slog from stderr
@@ -1061,8 +1093,8 @@ func TestFirstTargetFails(t *testing.T) {
 
 func TestBadSecondTargets(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -1071,7 +1103,7 @@ func TestBadSecondTargets(t *testing.T) {
 	var stderr, stdout, logOutput bytes.Buffer
 	runParams := RunParams{
 		BaseCtx:         ctx,
-		Dir:             testDataDir,
+		Dir:             dataDirForThisTest,
 		Stdout:          &stdout,
 		Stderr:          &stderr,
 		WriterForLogger: &logOutput, // Separate buffer to isolate slog from stderr
@@ -1088,8 +1120,8 @@ func TestBadSecondTargets(t *testing.T) {
 
 func TestSetDir(t *testing.T) {
 	t.Parallel()
-	testDataDir := "testdata/setdir"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := filepath.Join(testDataDir, "setdir")
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -1100,7 +1132,7 @@ func TestSetDir(t *testing.T) {
 
 	err := Run(RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"TestCurrentDir"},
@@ -1113,10 +1145,13 @@ func TestSetDir(t *testing.T) {
 
 func TestSetWorkingDir(t *testing.T) {
 	t.Parallel()
-	testDataDir := "testdata/setworkdir"
-	mu := mutexByDir(testDataDir)
-	mu.Lock()
-	defer mu.Unlock()
+	dataDirForThisTest := filepath.Join(testDataDir, "setworkdir")
+	mu1 := mutexByDir(testDataDir)
+	mu1.Lock()
+	defer mu1.Unlock()
+	mu2 := mutexByDir(dataDirForThisTest)
+	mu2.Lock()
+	defer mu2.Unlock()
 
 	ctx := t.Context()
 
@@ -1125,8 +1160,8 @@ func TestSetWorkingDir(t *testing.T) {
 
 	err := Run(RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
-		WorkDir: "testdata/setworkdir/data",
+		Dir:     dataDirForThisTest,
+		WorkDir: filepath.Join(dataDirForThisTest, "data"),
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"TestWorkingDir"},
@@ -1140,8 +1175,8 @@ func TestSetWorkingDir(t *testing.T) {
 // Test the timeout option.
 func TestTimeout(t *testing.T) {
 	t.Parallel()
-	testDataDir := "testdata/context"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := filepath.Join(testDataDir, "context")
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -1152,7 +1187,7 @@ func TestTimeout(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"timeout"},
@@ -1168,8 +1203,8 @@ func TestTimeout(t *testing.T) {
 
 func TestInfoTarget(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -1180,7 +1215,7 @@ func TestInfoTarget(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"panics"},
@@ -1195,8 +1230,8 @@ func TestInfoTarget(t *testing.T) {
 
 func TestInfoAlias(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/alias"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataAliasDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -1207,7 +1242,7 @@ func TestInfoAlias(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"status"},
@@ -1221,7 +1256,7 @@ func TestInfoAlias(t *testing.T) {
 	assert.Equal(t, expected, actual)
 
 	runParams = RunParams{
-		Dir:    testDataDir,
+		Dir:    dataDirForThisTest,
 		Stdout: stdout,
 		Stderr: stderr,
 		Args:   []string{"checkout"},
@@ -1240,8 +1275,8 @@ func TestInfoAlias(t *testing.T) {
 
 func TestAlias(t *testing.T) {
 	t.Parallel()
-	testDataDir := "testdata/alias"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataAliasDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -1252,7 +1287,7 @@ func TestAlias(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"status"},
@@ -1275,8 +1310,8 @@ func TestAlias(t *testing.T) {
 
 func TestInvalidAlias(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/invalid_alias"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataInvalidAliasDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -1287,7 +1322,7 @@ func TestInvalidAlias(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"co"},
@@ -1315,7 +1350,7 @@ func TestRunCompiledPrintsError(t *testing.T) {
 
 func TestCompiledFlags(t *testing.T) {
 	t.Parallel()
-	mu := mutexByDir(testdataCompiled)
+	mu := mutexByDir(testDataCompiled)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -1323,7 +1358,7 @@ func TestCompiledFlags(t *testing.T) {
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
-	dir := testdataCompiled
+	dir := testDataCompiled
 	compileDir, err := os.MkdirTemp(dir, "")
 	require.NoError(t, err)
 	name := filepath.Join(compileDir, "stave_test_out")
@@ -1333,7 +1368,8 @@ func TestCompiledFlags(t *testing.T) {
 
 	// The CompileOut directory is relative to the
 	// invocation directory, so chop off the invocation dir.
-	outName := "./" + name[len(dir)-1:]
+	outName, err := filepath.Rel(dir, name)
+	require.NoError(t, err)
 	defer func() {
 		assert.NoError(t, os.RemoveAll(compileDir))
 	}()
@@ -1393,7 +1429,7 @@ func TestCompiledFlags(t *testing.T) {
 
 func TestCompiledEnvironmentVars(t *testing.T) {
 	t.Parallel()
-	mu := mutexByDir(testdataCompiled)
+	mu := mutexByDir(testDataCompiled)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -1402,7 +1438,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 
-	dir := testdataCompiled
+	dir := testDataCompiled
 	compileDir, err := os.MkdirTemp(dir, "")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 
@@ -1413,7 +1449,8 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 
 	// The CompileOut directory is relative to the
 	// invocation directory, so chop off the invocation dir.
-	outName := "./" + name[len(dir)-1:]
+	outName, err := filepath.Rel(dir, name)
+	require.NoError(t, err)
 	defer func() {
 		assert.NoError(t, os.RemoveAll(compileDir))
 	}()
@@ -1474,7 +1511,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 
 func TestCompiledVerboseFlag(t *testing.T) {
 	t.Parallel()
-	mu := mutexByDir(testdataCompiled)
+	mu := mutexByDir(testDataCompiled)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -1482,7 +1519,7 @@ func TestCompiledVerboseFlag(t *testing.T) {
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
-	dir := testdataCompiled
+	dir := testDataCompiled
 	compileDir, err := os.MkdirTemp(dir, "")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 	filename := filepath.Join(compileDir, "stave_test_out")
@@ -1492,7 +1529,8 @@ func TestCompiledVerboseFlag(t *testing.T) {
 
 	// The CompileOut directory is relative to the
 	// invocation directory, so chop off the invocation dir.
-	outName := "./" + filename[len(dir)-1:]
+	outName, err := filepath.Rel(dir, filename)
+	require.NoError(t, err)
 	defer func() {
 		assert.NoError(t, os.RemoveAll(compileDir))
 	}()
@@ -1546,14 +1584,15 @@ func TestSignals(t *testing.T) {
 
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
-	dir := "./testdata/signals"
+	dir := filepath.Join(testDataDir, "signals")
 	compileDir, err := os.MkdirTemp(dir, "")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 	name := filepath.Join(compileDir, "stave_test_out")
 
 	// The CompileOut directory is relative to the
 	// invocation directory, so chop off the invocation dir.
-	outName := "./" + name[len(dir)-1:]
+	outName, err := filepath.Rel(dir, name)
+	require.NoError(t, err)
 	defer func() {
 		assert.NoError(t, os.RemoveAll(compileDir))
 	}()
@@ -1635,12 +1674,12 @@ func TestSignals(t *testing.T) {
 }
 
 func TestCompiledDeterministic(t *testing.T) {
-	dir := testdataCompiled
+	dir := testDataCompiled
 	compileDir, err := os.MkdirTemp(dir, "")
 	require.NoError(t, err)
 
 	var exp string
-	outFile := filepath.Join(dir, mainfile)
+	outFile := filepath.Join(dir, mainFile)
 
 	// compile a couple times to be sure
 	for iRun, runLabel := range []string{"one", "two", "three", "four"} {
@@ -1653,7 +1692,8 @@ func TestCompiledDeterministic(t *testing.T) {
 
 			// The CompileOut directory is relative to the
 			// invocation directory, so chop off the invocation dir.
-			outName := "./" + filename[len(dir)-1:]
+			outName, err := filepath.Rel(dir, filename)
+			require.NoError(t, err)
 			defer func() {
 				assert.NoError(t, os.RemoveAll(compileDir))
 			}()
@@ -1670,7 +1710,7 @@ func TestCompiledDeterministic(t *testing.T) {
 				CompileOut: outName,
 			}
 
-			err := Run(runParams)
+			err = Run(runParams)
 			require.NoError(t, err)
 			outputFile, err := os.Open(outFile)
 			require.NoError(t, err)
@@ -1791,8 +1831,8 @@ Targets:
 
 func TestNamespaceDep(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataNamespaces
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataNamespaces
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -1803,7 +1843,7 @@ func TestNamespaceDep(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stderr:  stderr,
 		Stdout:  stdout,
 		Args:    []string{"TestNamespaceDep"},
@@ -1818,8 +1858,8 @@ func TestNamespaceDep(t *testing.T) {
 
 func TestNamespace(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataNamespaces
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataNamespaces
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -1830,7 +1870,7 @@ func TestNamespace(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"ns:error"},
@@ -1845,8 +1885,8 @@ func TestNamespace(t *testing.T) {
 
 func TestNamespaceDefault(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataNamespaces
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataNamespaces
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -1857,7 +1897,7 @@ func TestNamespaceDefault(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 	}
@@ -1874,8 +1914,8 @@ func TestAliasToImport(_ *testing.T) {
 
 func TestWrongDependency(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/wrong_dep"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataWrongDepDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -1886,7 +1926,7 @@ func TestWrongDependency(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 	}
@@ -1903,8 +1943,8 @@ func TestWrongDependency(t *testing.T) {
 // TestBug508 is a regression test for: Bug: using Default with imports selects first matching func by name.
 func TestBug508(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/bug508"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataBug508Dir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -1915,7 +1955,7 @@ func TestBug508(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stderr:  stderr,
 		Stdout:  stdout,
 	}

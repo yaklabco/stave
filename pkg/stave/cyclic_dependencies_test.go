@@ -2,17 +2,22 @@ package stave
 
 import (
 	"bytes"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	testDataCyclicDependenciesDir = filepath.Join(testDataDir, "cyclic_dependencies")
+)
+
 // TestCyclicDependencyDetection verifies proper detection of cyclic dependencies.
 func TestCyclicDependencyDetection(t *testing.T) {
 	t.Parallel()
-	testDataDir := "./testdata/cyclic_dependencies"
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataCyclicDependenciesDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -23,7 +28,7 @@ func TestCyclicDependencyDetection(t *testing.T) {
 
 	err := Run(RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"Step1"},

@@ -165,7 +165,7 @@ func setupHooksHusky() error {
 		hooksSuffix,
 	)
 	if st.Verbose() {
-		outputf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(".husky/"))
+		outputf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(".husky"+string(filepath.Separator)))
 	}
 	return nil
 }
@@ -269,7 +269,7 @@ func setupHooksStave() error {
 		hooksSuffix,
 	)
 	if st.Verbose() {
-		outputf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(".git/hooks/"))
+		outputf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(filepath.Join(".git", "hooks")+string(filepath.Separator)))
 		outputf("  %s %s\n", labelStyle.Render("Config:"), valueStyle.Render("stave.yaml"))
 	}
 	return nil
