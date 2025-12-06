@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"charm.land/lipgloss/v2"
 	"github.com/samber/lo"
 	"github.com/yaklabco/stave/cmd/stave/version"
 	"github.com/yaklabco/stave/internal/dryrun"
@@ -47,7 +48,7 @@ func Init() error { // stave:help=Install dev tools (Brewfile), setup husky hook
 		return err
 	}
 
-	// Install npm.
+	// Install npm (required for Husky).
 	if os.Getenv("CI") == "" {
 		if err := sh.Run("npm", "ci"); err != nil {
 			if err := sh.Run("npm", "install"); err != nil {
@@ -58,11 +59,8 @@ func Init() error { // stave:help=Install dev tools (Brewfile), setup husky hook
 		slog.Debug("in CI; skipping explicit npm installation")
 	}
 
-	// Set up husky git hooks.
-	if err := sh.Run("git", "config", "core.hooksPath", ".husky"); err != nil {
-		return err
-	}
-	if err := sh.Run("chmod", "+x", ".husky/pre-push"); err != nil {
+	// Set up husky git hooks (default).
+	if err := setupHooksHusky(); err != nil {
 		return err
 	}
 
@@ -75,6 +73,113 @@ func Init() error { // stave:help=Install dev tools (Brewfile), setup husky hook
 	}
 
 	return sh.Run("go", "mod", "tidy")
+}
+
+// Hooks configures git hooks to use either "husky" or "stave" (native).
+// Usage: stave Hooks husky   - Use Husky (.husky/)
+//
+//	stave Hooks stave   - Use native stave hooks (.git/hooks/)
+func Hooks(system string) error { // stave:help=Switch git hooks system: "husky" or "stave"
+	switch strings.ToLower(system) {
+	case "husky":
+		return setupHooksHusky()
+	case "stave", "native":
+		return setupHooksStave()
+	default:
+		return fmt.Errorf("unknown hooks system %q: use 'husky' or 'stave'", system)
+	}
+}
+
+func setupHooksHusky() error {
+	cs := ui.GetFangScheme()
+	successStyle := lipgloss.NewStyle().Foreground(cs.Flag)
+	labelStyle := lipgloss.NewStyle().Foreground(cs.Base)
+	valueStyle := lipgloss.NewStyle().Bold(true).Foreground(cs.Program)
+
+	// Remove any stave-managed hooks from .git/hooks
+	hooksDir := filepath.Join(".git", "hooks")
+	for _, hook := range []string{"pre-commit", "pre-push", "commit-msg", "prepare-commit-msg"} {
+		hookPath := filepath.Join(hooksDir, hook)
+		if content, err := os.ReadFile(hookPath); err == nil {
+			if strings.Contains(string(content), "Installed by Stave") {
+				_ = os.Remove(hookPath)
+			}
+		}
+	}
+
+	// Set git to use .husky directory
+	if err := sh.Run("git", "config", "core.hooksPath", ".husky"); err != nil {
+		return err
+	}
+
+	if err := sh.Run("chmod", "+x", ".husky/pre-push"); err != nil {
+		return err
+	}
+
+	fmt.Printf("%s %s %s\n",
+		successStyle.Render("✓"),
+		labelStyle.Render("Git hooks:"),
+		valueStyle.Render("Husky"),
+	)
+	fmt.Printf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(".husky/"))
+	return nil
+}
+
+func setupHooksStave() error {
+	cs := ui.GetFangScheme()
+	successStyle := lipgloss.NewStyle().Foreground(cs.Flag)
+	labelStyle := lipgloss.NewStyle().Foreground(cs.Base)
+	valueStyle := lipgloss.NewStyle().Bold(true).Foreground(cs.Program)
+
+	// Ensure stave.yaml exists with hooks config
+	if err := ensureStaveYAML(); err != nil {
+		return err
+	}
+
+	// Remove husky hooks path config
+	_ = sh.Run("git", "config", "--unset", "core.hooksPath")
+
+	// Install stave hooks
+	if err := sh.Run("stave", "hooks", "install"); err != nil {
+		return fmt.Errorf("failed to install stave hooks: %w", err)
+	}
+
+	fmt.Printf("%s %s %s\n",
+		successStyle.Render("✓"),
+		labelStyle.Render("Git hooks:"),
+		valueStyle.Render("Stave"),
+	)
+	fmt.Printf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(".git/hooks/"))
+	fmt.Printf("  %s %s\n", labelStyle.Render("Config:"), valueStyle.Render("stave.yaml"))
+	return nil
+}
+
+// ensureStaveYAML creates stave.yaml with default hooks config if it doesn't exist.
+func ensureStaveYAML() error {
+	const staveYAML = "stave.yaml"
+
+	// Check if file exists
+	if _, err := os.Stat(staveYAML); err == nil {
+		return nil
+	}
+
+	// Create default config
+	const defaultConfig = `# Stave configuration
+# See: https://github.com/yaklabco/stave
+
+# Use hash_fast for faster hook execution (skips GOCACHE check)
+hash_fast: true
+
+# Git hooks configuration
+hooks:
+  pre-push:
+    - target: Test
+`
+	if err := os.WriteFile(staveYAML, []byte(defaultConfig), 0o644); err != nil {
+		return fmt.Errorf("failed to create stave.yaml: %w", err)
+	}
+
+	return nil
 }
 
 // Markdownlint runs markdownlint-cli2 on all tracked Markdown files.
