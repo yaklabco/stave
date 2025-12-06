@@ -25,6 +25,24 @@ const (
 	exitUsage = 2
 )
 
+// printErr writes "Error: <message>\n" to w and returns exitError.
+func printErr(w io.Writer, err error) int {
+	_, _ = fmt.Fprintf(w, "Error: %v\n", err)
+	return exitError
+}
+
+// printUsageErr writes "Error: <message>\n" to w and returns exitUsage.
+func printUsageErr(w io.Writer, err error) int {
+	_, _ = fmt.Fprintf(w, "Error: %v\n", err)
+	return exitUsage
+}
+
+// printConfigErr writes "Error loading config: <message>\n" to w and returns exitError.
+func printConfigErr(w io.Writer, err error) int {
+	_, _ = fmt.Fprintf(w, "Error loading config: %v\n", err)
+	return exitError
+}
+
 // HooksParams contains parameters for the hooks command.
 type HooksParams struct {
 	Debug   bool
@@ -129,8 +147,7 @@ func runHooksCommandInternal(ctx context.Context, stdout, stderr io.Writer, args
 		if errors.Is(err, flag.ErrHelp) {
 			return exitOK
 		}
-		_, _ = fmt.Fprintf(stderr, "Error: %v\n", err)
-		return exitUsage
+		return printUsageErr(stderr, err)
 	}
 
 	subArgs := flagSet.Args()
@@ -175,8 +192,7 @@ func runHooksInit(ctx context.Context, stdout, stderr io.Writer) int {
 	// First ensure config exists
 	cfg, err := config.Load(nil)
 	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "Error loading config: %v\n", err)
-		return exitError
+		return printConfigErr(stderr, err)
 	}
 
 	// Check if hooks are already configured
@@ -214,8 +230,7 @@ func runHooksInstall(ctx context.Context, stdout, stderr io.Writer, args []strin
 		if errors.Is(err, flag.ErrHelp) {
 			return exitOK
 		}
-		_, _ = fmt.Fprintf(stderr, "Error: %v\n", err)
-		return exitUsage
+		return printUsageErr(stderr, err)
 	}
 
 	slog.Debug("hooks install starting",
@@ -224,19 +239,19 @@ func runHooksInstall(ctx context.Context, stdout, stderr io.Writer, args []strin
 	// Find Git repository
 	repo, err := hooks.FindGitRepoContext(ctx, "")
 	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "Error: %v\n", err)
 		if errors.Is(err, hooks.ErrNotGitRepo) {
+			_, _ = fmt.Fprintf(stderr, "Error: %v\n", err)
 			_, _ = fmt.Fprintln(stderr, "Run this command from within a Git repository.")
+			return exitError
 		}
-		return exitError
+		return printErr(stderr, err)
 	}
 
 	// Load configuration
 	slog.Debug("loading hooks configuration")
 	cfg, err := config.Load(nil)
 	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "Error loading config: %v\n", err)
-		return exitError
+		return printConfigErr(stderr, err)
 	}
 
 	// Check if hooks are configured
@@ -253,7 +268,7 @@ func runHooksInstall(ctx context.Context, stdout, stderr io.Writer, args []strin
 func installHooks(repo *hooks.GitRepo, cfg *config.Config, force bool, stdout, stderr io.Writer) int {
 	// Ensure hooks directory exists
 	if err := repo.EnsureHooksDir(); err != nil {
-		_, _ = fmt.Fprintf(stderr, "Error creating hooks directory: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "Error: creating hooks directory: %v\n", err)
 		return exitError
 	}
 
@@ -289,7 +304,7 @@ func installSingleHook(repo *hooks.GitRepo, hookName string, force bool, stdout,
 	// Check for existing non-Stave hook
 	managed, err := hooks.IsStaveManaged(hookPath)
 	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "Error checking %s: %v\n", hookName, err)
+		_, _ = fmt.Fprintf(stderr, "Error: checking %s: %v\n", hookName, err)
 		return exitError
 	}
 
@@ -315,7 +330,7 @@ func installSingleHook(repo *hooks.GitRepo, hookName string, force bool, stdout,
 
 	// Write the hook script
 	if err := hooks.WriteHookScript(hookPath, hooks.ScriptParams{HookName: hookName}); err != nil {
-		_, _ = fmt.Fprintf(stderr, "Error writing %s: %v\n", hookName, err)
+		_, _ = fmt.Fprintf(stderr, "Error: writing %s: %v\n", hookName, err)
 		return exitError
 	}
 	_, _ = fmt.Fprintf(stdout, "Installed %s\n", hookName)
@@ -332,22 +347,19 @@ func runHooksUninstall(ctx context.Context, stdout, stderr io.Writer, args []str
 		if errors.Is(err, flag.ErrHelp) {
 			return exitOK
 		}
-		_, _ = fmt.Fprintf(stderr, "Error: %v\n", err)
-		return exitUsage
+		return printUsageErr(stderr, err)
 	}
 
 	// Find Git repository
 	repo, err := hooks.FindGitRepoContext(ctx, "")
 	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "Error: %v\n", err)
-		return exitError
+		return printErr(stderr, err)
 	}
 
 	// Load configuration for hook names
 	cfg, err := config.Load(nil)
 	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "Error loading config: %v\n", err)
-		return exitError
+		return printConfigErr(stderr, err)
 	}
 
 	hookNames := getHookNamesToUninstall(*all, cfg)
@@ -378,7 +390,7 @@ func uninstallHooks(repo *hooks.GitRepo, hookNames []string, stdout, stderr io.W
 		hookPath := repo.HookPath(hookName)
 		wasRemoved, err := hooks.RemoveHookScript(hookPath)
 		if err != nil {
-			_, _ = fmt.Fprintf(stderr, "Error removing %s: %v\n", hookName, err)
+			_, _ = fmt.Fprintf(stderr, "Error: removing %s: %v\n", hookName, err)
 			continue
 		}
 		if wasRemoved {
@@ -404,8 +416,7 @@ func runHooksList(ctx context.Context, stdout, stderr io.Writer) int {
 
 	cfg, err := config.Load(nil)
 	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "Error loading config: %v\n", err)
-		return exitError
+		return printConfigErr(stderr, err)
 	}
 
 	if len(cfg.Hooks) == 0 {
@@ -485,8 +496,7 @@ func runHooksRun(ctx context.Context, stdout, stderr io.Writer, args []string) i
 		if errors.Is(err, flag.ErrHelp) {
 			return exitOK
 		}
-		_, _ = fmt.Fprintf(stderr, "Error: %v\n", err)
-		return exitUsage
+		return printUsageErr(stderr, err)
 	}
 
 	remaining := flagSet.Args()
@@ -507,8 +517,7 @@ func runHooksRun(ctx context.Context, stdout, stderr io.Writer, args []string) i
 	slog.Debug("loading hooks configuration")
 	cfg, err := config.Load(nil)
 	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "Error loading config: %v\n", err)
-		return exitError
+		return printConfigErr(stderr, err)
 	}
 
 	// Create runtime and execute with real target runner
@@ -521,8 +530,7 @@ func runHooksRun(ctx context.Context, stdout, stderr io.Writer, args []string) i
 
 	result, err := runtime.Run(ctx, hookName, hookArgs)
 	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "Error: %v\n", err)
-		return exitError
+		return printErr(stderr, err)
 	}
 
 	return result.ExitCode
