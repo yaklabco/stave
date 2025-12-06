@@ -4,10 +4,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strconv"
-	"strings"
 
 	"github.com/yaklabco/stave/internal/dryrun"
+	"github.com/yaklabco/stave/internal/env"
 )
 
 // CacheEnv is the environment variable that users may set to change the
@@ -79,17 +78,17 @@ const TargetColorEnv = "STAVEFILE_TARGET_COLOR"
 
 // Verbose reports whether a stavefile was run with the verbose flag.
 func Verbose() bool {
-	return parseEnvBool(VerboseEnv)
+	return env.ParseBoolEnvDefaultFalse(VerboseEnv)
 }
 
 // Debug reports whether a stavefile was run with the debug flag.
 func Debug() bool {
-	return parseEnvBool(DebugEnv)
+	return env.ParseBoolEnvDefaultFalse(DebugEnv)
 }
 
 // Info reports whether a stavefile was run with the info flag.
 func Info() bool {
-	return parseEnvBool(InfoEnv)
+	return env.ParseBoolEnvDefaultFalse(InfoEnv)
 }
 
 // GoCmd reports the command that Stave will use to build go code.  By default stave runs
@@ -104,13 +103,13 @@ func GoCmd() string {
 // HashFast reports whether the user has requested to use the fast hashing
 // mechanism rather than rely on go's rebuilding mechanism.
 func HashFast() bool {
-	return parseEnvBool(HashFastEnv)
+	return env.ParseBoolEnvDefaultFalse(HashFastEnv)
 }
 
 // IgnoreDefault reports whether the user has requested to ignore the default target
 // in the stavefile.
 func IgnoreDefault() bool {
-	return parseEnvBool(IgnoreDefaultEnv)
+	return env.ParseBoolEnvDefaultFalse(IgnoreDefaultEnv)
 }
 
 // CacheDir returns the directory where stave caches compiled binaries.  It
@@ -131,21 +130,7 @@ func CacheDir() string {
 
 // EnableColor reports whether the user has requested to enable a color output.
 func EnableColor() bool {
-	return parseEnvBool(EnableColorEnv)
-}
-
-func parseEnvBool(envVarName string) bool {
-	strVal := strings.TrimSpace(os.Getenv(envVarName))
-	if strVal == "" {
-		return false
-	}
-
-	b, err := strconv.ParseBool(strVal)
-	if err != nil {
-		return true
-	}
-
-	return b
+	return env.ParseBoolEnvDefaultFalse(EnableColorEnv)
 }
 
 // TargetColor returns the configured ANSI color name a color output.
