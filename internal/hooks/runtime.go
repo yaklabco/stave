@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/yaklabco/stave/config"
+	"github.com/yaklabco/stave/internal/log"
+	"github.com/yaklabco/stave/pkg/st"
 )
 
 // Environment variable names for hooks control.
@@ -108,6 +111,9 @@ func (r *Runtime) Run(ctx context.Context, hookName string, args []string) (*Run
 
 	// Check if hooks are disabled
 	if IsHooksDisabled() {
+		slog.Debug("hooks disabled via environment",
+			slog.String("hook", hookName),
+			slog.String("env", EnvStaveHooks))
 		result.Disabled = true
 		result.TotalTime = time.Since(startTime)
 		if r.Stderr != nil {
@@ -118,15 +124,23 @@ func (r *Runtime) Run(ctx context.Context, hookName string, args []string) (*Run
 
 	// Get hook configuration
 	if r.Config == nil || r.Config.Hooks == nil {
+		slog.Debug("no hooks configured",
+			slog.String("hook", hookName))
 		result.TotalTime = time.Since(startTime)
 		return result, nil
 	}
 
 	targets := r.Config.Hooks.Get(hookName)
 	if len(targets) == 0 {
+		slog.Debug("no targets for hook",
+			slog.String("hook", hookName))
 		result.TotalTime = time.Since(startTime)
 		return result, nil
 	}
+
+	slog.Debug("hook execution starting",
+		slog.String("hook", hookName),
+		slog.Int("target_count", len(targets)))
 
 	// Ensure we have a target runner
 	runner := r.TargetRunner
@@ -143,6 +157,11 @@ func (r *Runtime) Run(ctx context.Context, hookName string, args []string) (*Run
 		targetArgs := make([]string, 0, len(target.Args)+len(args))
 		targetArgs = append(targetArgs, target.Args...)
 		targetArgs = append(targetArgs, args...)
+
+		slog.Debug("target starting",
+			slog.String("hook", hookName),
+			slog.String("target", target.Target),
+			slog.Any("args", targetArgs))
 
 		// Determine stdin handling
 		var stdin io.Reader
@@ -162,6 +181,11 @@ func (r *Runtime) Run(ctx context.Context, hookName string, args []string) (*Run
 		}
 		result.Targets = append(result.Targets, targetResult)
 
+		slog.Debug("target completed",
+			slog.String("target", target.Target),
+			slog.Int("exit_code", exitCode),
+			slog.Duration("duration", targetResult.Duration))
+
 		// Fail-fast on first failure
 		if exitCode != 0 || err != nil {
 			result.ExitCode = exitCode
@@ -180,6 +204,12 @@ func (r *Runtime) Run(ctx context.Context, hookName string, args []string) (*Run
 	}
 
 	result.TotalTime = time.Since(startTime)
+
+	if st.Verbose() {
+		log.SimpleConsoleLogger.Printf("Hook completed: %s (%d targets, %v)",
+			hookName, len(result.Targets), result.TotalTime)
+	}
+
 	return result, nil
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -42,6 +43,9 @@ func FindGitRepoContext(ctx context.Context, dir string) (*GitRepo, error) {
 		}
 	}
 
+	slog.Debug("finding git repository",
+		slog.String("start_dir", dir))
+
 	// Make dir absolute
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
@@ -51,6 +55,8 @@ func FindGitRepoContext(ctx context.Context, dir string) (*GitRepo, error) {
 	// Get repository root
 	rootDir, err := gitOutput(ctx, absDir, "rev-parse", "--show-toplevel")
 	if err != nil {
+		slog.Debug("not a git repository",
+			slog.String("dir", absDir))
 		return nil, fmt.Errorf("%w: %s", ErrNotGitRepo, absDir)
 	}
 
@@ -86,6 +92,15 @@ func FindGitRepoContext(ctx context.Context, dir string) (*GitRepo, error) {
 		customHooksPath = ""
 	}
 
+	slog.Debug("git repository found",
+		slog.String("root", rootDir),
+		slog.String("git_dir", gitDir))
+
+	if customHooksPath != "" {
+		slog.Debug("custom hooks path configured",
+			slog.String("path", customHooksPath))
+	}
+
 	return &GitRepo{
 		RootDir:         rootDir,
 		GitDir:          gitDir,
@@ -97,14 +112,23 @@ func FindGitRepoContext(ctx context.Context, dir string) (*GitRepo, error) {
 // If core.hooksPath is configured, that path is returned (resolved relative to RootDir if relative).
 // Otherwise, returns <GitDir>/hooks.
 func (r *GitRepo) HooksPath() string {
+	var path string
 	if r.customHooksPath != "" {
 		// If custom path is relative, resolve it relative to repo root
 		if !filepath.IsAbs(r.customHooksPath) {
-			return filepath.Join(r.RootDir, r.customHooksPath)
+			path = filepath.Join(r.RootDir, r.customHooksPath)
+		} else {
+			path = r.customHooksPath
 		}
-		return r.customHooksPath
+	} else {
+		path = filepath.Join(r.GitDir, "hooks")
 	}
-	return filepath.Join(r.GitDir, "hooks")
+
+	slog.Debug("resolved hooks directory",
+		slog.String("path", path),
+		slog.Bool("custom", r.customHooksPath != ""))
+
+	return path
 }
 
 // HasCustomHooksPath returns true if core.hooksPath is configured.
@@ -132,6 +156,8 @@ const dirPerm = 0o755
 // EnsureHooksDir creates the hooks directory if it doesn't exist.
 func (r *GitRepo) EnsureHooksDir() error {
 	hooksPath := r.HooksPath()
+	slog.Debug("ensuring hooks directory exists",
+		slog.String("path", hooksPath))
 	return os.MkdirAll(hooksPath, dirPerm)
 }
 

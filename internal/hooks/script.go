@@ -3,6 +3,7 @@ package hooks
 import (
 	"bufio"
 	"bytes"
+	"log/slog"
 	"os"
 	"strings"
 	"text/template"
@@ -46,6 +47,9 @@ var scriptTmpl = template.Must(template.New("hook").Parse(hookScriptTemplate))
 // GenerateScript returns the POSIX shell script content for a hook.
 // Panics if template execution fails (indicates a programming error).
 func GenerateScript(params ScriptParams) string {
+	slog.Debug("generating hook script",
+		slog.String("hook", params.HookName))
+
 	var buf bytes.Buffer
 	if err := scriptTmpl.Execute(&buf, params); err != nil {
 		// Template is compile-time constant; failure indicates a bug.
@@ -57,9 +61,14 @@ func GenerateScript(params ScriptParams) string {
 // IsStaveManaged checks if a hook file was installed by Stave.
 // It looks for the StaveMarker in the first few lines of the file.
 func IsStaveManaged(path string) (bool, error) {
+	slog.Debug("checking stave marker",
+		slog.String("path", path))
+
 	file, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
+			slog.Debug("hook file does not exist",
+				slog.String("path", path))
 			return false, nil
 		}
 		return false, err
@@ -72,6 +81,8 @@ func IsStaveManaged(path string) (bool, error) {
 	for scanner.Scan() && lineCount < 5 {
 		line := scanner.Text()
 		if strings.Contains(line, "Installed by Stave") {
+			slog.Debug("stave marker found",
+				slog.String("path", path))
 			return true, nil
 		}
 		lineCount++
@@ -81,6 +92,8 @@ func IsStaveManaged(path string) (bool, error) {
 		return false, err
 	}
 
+	slog.Debug("stave marker not found",
+		slog.String("path", path))
 	return false, nil
 }
 
@@ -90,6 +103,10 @@ const execPerm = 0o755
 // WriteHookScript writes a hook script to the specified path.
 // The file is created with executable permissions (0755).
 func WriteHookScript(path string, params ScriptParams) error {
+	slog.Debug("writing hook script",
+		slog.String("path", path),
+		slog.String("hook", params.HookName))
+
 	content := GenerateScript(params)
 	// Hook scripts need to be executable, hence 0755.
 	// #nosec G306 -- This is intentional: hooks must be executable
@@ -104,8 +121,13 @@ func RemoveHookScript(path string) (bool, error) {
 		return false, err
 	}
 	if !managed {
+		slog.Debug("skipping removal of non-stave hook",
+			slog.String("path", path))
 		return false, nil
 	}
+
+	slog.Debug("removing hook script",
+		slog.String("path", path))
 
 	if err := os.Remove(path); err != nil {
 		return false, err
