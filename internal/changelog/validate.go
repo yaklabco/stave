@@ -54,10 +54,7 @@ func (r ValidationResult) Error() error {
 // Validate checks the changelog against Keep a Changelog conventions.
 // Returns a ValidationResult containing any errors and warnings found.
 func (c *Changelog) Validate() ValidationResult {
-	result := ValidationResult{
-		Errors:   make([]ValidationError, 0),
-		Warnings: make([]ValidationWarning, 0),
-	}
+	result := ValidationResult{}
 
 	// Rule 1: Title must be "Changelog"
 	if c.Title != ChangelogTitle {

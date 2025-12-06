@@ -58,9 +58,7 @@ type PrePushCheckOptions struct {
 // PrePushCheck runs all pre-push validations.
 // This mirrors the behavior of the bash pre-push hook.
 func PrePushCheck(opts PrePushCheckOptions) (*CheckResult, error) {
-	result := &CheckResult{
-		Errors: make([]string, 0),
-	}
+	result := &CheckResult{}
 
 	// Check for bypass environment variable
 	if os.Getenv("BYPASS_CHANGELOG_CHECK") == "1" {
