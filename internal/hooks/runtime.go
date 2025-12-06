@@ -15,21 +15,41 @@ import (
 	"github.com/yaklabco/stave/pkg/st"
 )
 
-// Environment variable names for hooks control.
+// StaveHooksEnv is the environment variable that controls hook execution.
+// Set to "0" to disable hooks, "debug" for debug output.
+const StaveHooksEnv = "STAVE_HOOKS"
+
+// StaveQuietEnv is the environment variable that suppresses hook output when set to "1".
+const StaveQuietEnv = "STAVE_QUIET"
+
+// CI environment variable names used to detect CI environments.
+// When any of these are set, hooks run in quiet mode.
 const (
-	EnvStaveHooks = "STAVE_HOOKS"
+	CIEnv            = "CI"
+	GitHubActionsEnv = "GITHUB_ACTIONS"
+	GitLabCIEnv      = "GITLAB_CI"
+	JenkinsURLEnv    = "JENKINS_URL"
+	CircleCIEnv      = "CIRCLECI"
+	BuildkiteEnv     = "BUILDKITE"
 )
 
 // ErrHooksDisabled is returned when hooks are disabled via STAVE_HOOKS=0.
-var ErrHooksDisabled = errors.New("hooks disabled via STAVE_HOOKS=0")
+var ErrHooksDisabled = errors.New("hooks disabled via " + StaveHooksEnv + "=0")
 
 // isQuietMode returns true if output should be suppressed (CI environments).
 func isQuietMode() bool {
-	if os.Getenv("STAVE_QUIET") == "1" {
+	if os.Getenv(StaveQuietEnv) == "1" {
 		return true
 	}
-	ciVars := []string{"CI", "GITHUB_ACTIONS", "GITLAB_CI", "JENKINS_URL", "CIRCLECI", "BUILDKITE"}
-	for _, v := range ciVars {
+	ciEnvVars := []string{
+		CIEnv,
+		GitHubActionsEnv,
+		GitLabCIEnv,
+		JenkinsURLEnv,
+		CircleCIEnv,
+		BuildkiteEnv,
+	}
+	for _, v := range ciEnvVars {
 		if os.Getenv(v) != "" {
 			return true
 		}
@@ -166,7 +186,7 @@ func (r *Runtime) handleDisabledHooks(
 ) (*RunResult, error) {
 	slog.Debug("hooks disabled via environment",
 		slog.String("hook", hookName),
-		slog.String("env", EnvStaveHooks))
+		slog.String("env", StaveHooksEnv))
 	result.Disabled = true
 	result.TotalTime = time.Since(startTime)
 	if r.Stderr != nil {
@@ -274,13 +294,13 @@ func (r *Runtime) executeTarget(
 
 // IsHooksDisabled returns true if hooks are disabled via STAVE_HOOKS=0.
 func IsHooksDisabled() bool {
-	val := os.Getenv(EnvStaveHooks)
+	val := os.Getenv(StaveHooksEnv)
 	return val == "0"
 }
 
 // IsDebugMode returns true if STAVE_HOOKS=debug.
 func IsDebugMode() bool {
-	val := os.Getenv(EnvStaveHooks)
+	val := os.Getenv(StaveHooksEnv)
 	return strings.ToLower(val) == "debug"
 }
 

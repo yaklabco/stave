@@ -45,7 +45,7 @@ func mockRunnerCapture(calls *[]targetCall) TargetRunnerFunc {
 }
 
 func TestRuntime_Run_HooksDisabled(t *testing.T) {
-	t.Setenv(EnvStaveHooks, "0")
+	t.Setenv(StaveHooksEnv, "0")
 
 	var stderr bytes.Buffer
 	runtime := &Runtime{
@@ -358,7 +358,7 @@ func TestIsHooksDisabled(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			t.Setenv(EnvStaveHooks, testCase.value)
+			t.Setenv(StaveHooksEnv, testCase.value)
 
 			got := IsHooksDisabled()
 			if got != testCase.want {
@@ -384,7 +384,7 @@ func TestIsDebugMode(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			t.Setenv(EnvStaveHooks, testCase.value)
+			t.Setenv(StaveHooksEnv, testCase.value)
 
 			got := IsDebugMode()
 			if got != testCase.want {
