@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Native git hook support.
+-  Git hooks management. Stave can manage your git hooks, implementing both native hooks management, and `husky`-based hooks management for support of legacy projects. See [docs/user-guide/hooks.md](./docs/user-guide/hooks.md) for details.
 
 - `--dryrun` mode.
 
