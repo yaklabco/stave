@@ -32,9 +32,9 @@ func WithWorkingDir(dir string) Option {
 	}
 }
 
-func WithEnv(env map[string]string) Option {
+func WithEnv(theEnv map[string]string) Option {
 	return func(o *mustExecOption) {
-		o.env = env
+		o.env = theEnv
 	}
 }
 
