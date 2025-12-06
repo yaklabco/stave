@@ -111,5 +111,7 @@ import (
 ## See Also
 
 - [Targets](targets.md) - Defining target functions
+- [Configuration](configuration.md) - Project configuration in `stave.yaml`
+- [Git Hooks](hooks.md) - Run targets on Git events
 - [Quickstart](../getting-started/quickstart.md) - First stavefile tutorial
 - [Home](../index.md)

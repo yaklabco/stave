@@ -91,6 +91,40 @@ STAVE_NUM_PROCESSORS=4 stave build
 
 This sets `runtime.GOMAXPROCS` and is passed to the compiled stavefile. Use it to limit CPU usage in CI or constrained environments.
 
+## Git Hooks Configuration
+
+Configure Git hooks to run Stave targets automatically:
+
+```yaml
+hooks:
+  pre-commit:
+    - target: fmt
+    - target: lint
+      args: ["--fast"]
+  pre-push:
+    - target: test
+      args: ["./..."]
+  commit-msg:
+    - target: validate-commit-message
+      passStdin: true
+```
+
+Each hook entry supports:
+
+| Option      | Type     | Description                                |
+| ----------- | -------- | ------------------------------------------ |
+| `target`    | string   | Stave target name to run (required)        |
+| `args`      | []string | Additional arguments for the target        |
+| `passStdin` | bool     | Forward stdin from Git to the target       |
+
+After configuring hooks, install them with:
+
+```bash
+stave hooks install
+```
+
+See [Git Hooks](hooks.md) for complete documentation.
+
 ## stave config Subcommands
 
 ### stave config
@@ -152,5 +186,6 @@ stave --clean
 ## See Also
 
 - [CLI Reference](../api-reference/cli.md) - Command-line flags
+- [Git Hooks](hooks.md) - Git hook management
 - [Advanced Topics](advanced.md) - CI integration, debugging
 - [Home](../index.md)
