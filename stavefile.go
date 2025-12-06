@@ -121,7 +121,9 @@ func setupHooksHusky() error {
 		labelStyle.Render("Git hooks:"),
 		valueStyle.Render("Husky"),
 	)
-	fmt.Printf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(".husky/"))
+	if st.Verbose() {
+		fmt.Printf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(".husky/"))
+	}
 	return nil
 }
 
@@ -150,8 +152,10 @@ func setupHooksStave() error {
 		labelStyle.Render("Git hooks:"),
 		valueStyle.Render("Stave"),
 	)
-	fmt.Printf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(".git/hooks/"))
-	fmt.Printf("  %s %s\n", labelStyle.Render("Config:"), valueStyle.Render("stave.yaml"))
+	if st.Verbose() {
+		fmt.Printf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(".git/hooks/"))
+		fmt.Printf("  %s %s\n", labelStyle.Render("Config:"), valueStyle.Render("stave.yaml"))
+	}
 	return nil
 }
 
