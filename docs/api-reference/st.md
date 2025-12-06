@@ -141,7 +141,7 @@ code := st.ExitStatus(err)
 func Verbose() bool
 ```
 
-Returns true if `-v` or `STAVEFILE_VERBOSE=1` is set.
+Returns true if `-v` is set or `STAVEFILE_VERBOSE` is a true value. Accepted true values are `true`, `yes`, and `1` (case-insensitive, leading/trailing whitespace ignored).
 
 ```go
 if st.Verbose() {
@@ -155,7 +155,7 @@ if st.Verbose() {
 func Debug() bool
 ```
 
-Returns true if `-d` or `STAVEFILE_DEBUG=1` is set.
+Returns true if `-d` is set or `STAVEFILE_DEBUG` is a true value (`true`, `yes`, or `1`, case-insensitive).
 
 ### Info
 
@@ -163,7 +163,7 @@ Returns true if `-d` or `STAVEFILE_DEBUG=1` is set.
 func Info() bool
 ```
 
-Returns true if `-i` or `STAVEFILE_INFO=1` is set.
+Returns true if `-i` is set or `STAVEFILE_INFO` is a true value (`true`, `yes`, or `1`, case-insensitive).
 
 ### GoCmd
 
@@ -187,7 +187,7 @@ Returns the cache directory for compiled binaries.
 func HashFast() bool
 ```
 
-Returns true if `STAVEFILE_HASHFAST=1` is set.
+Returns true if `STAVEFILE_HASHFAST` is a true value (`true`, `yes`, or `1`, case-insensitive).
 
 ### IgnoreDefault
 
@@ -195,7 +195,7 @@ Returns true if `STAVEFILE_HASHFAST=1` is set.
 func IgnoreDefault() bool
 ```
 
-Returns true if `STAVEFILE_IGNOREDEFAULT=1` is set.
+Returns true if `STAVEFILE_IGNOREDEFAULT` is a true value (`true`, `yes`, or `1`, case-insensitive).
 
 ### EnableColor
 
@@ -203,7 +203,7 @@ Returns true if `STAVEFILE_IGNOREDEFAULT=1` is set.
 func EnableColor() bool
 ```
 
-Returns true if `STAVEFILE_ENABLE_COLOR=1` is set.
+Returns true if `STAVEFILE_ENABLE_COLOR` is a true value (`true`, `yes`, or `1`, case-insensitive).
 
 ### TargetColor
 

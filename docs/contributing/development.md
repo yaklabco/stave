@@ -187,6 +187,12 @@ go tool cover -html=coverage.out -o coverage.html
 - Error messages should be lowercase without trailing punctuation
 - Wrap errors with context: `fmt.Errorf("parsing file: %w", err)`
 
+### Boolean configuration and environment parsing
+
+- Use the helpers in `internal/env` (`ParseBool`, `ParseBoolEnv`, `ParseBoolEnvDefaultFalse`, `ParseBoolEnvDefaultTrue`) instead of implementing custom boolean parsing.
+- Boolean values should accept `true`, `yes`, and `1` as true, and `false`, `no`, and `0` as false (case-insensitive, whitespace-insensitive).
+- Prefer `ParseBoolEnvDefaultFalse` for opt-in features (invalid or unset values resolve to `false`) and `ParseBoolEnvDefaultTrue` for opt-out defaults (invalid or unset values resolve to `true`).
+
 ## Commit Messages
 
 Use conventional commit format:
