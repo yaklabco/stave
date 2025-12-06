@@ -2,6 +2,7 @@ package stave
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/charmbracelet/fang"
@@ -93,6 +94,13 @@ func NewRootCmd(ctx context.Context, opts ...Option) *cobra.Command {
 	rootCmd.PersistentFlags().BoolVar(&runParams.Hooks, "hooks", false, "manage git hooks (install, list, run, etc.)")
 	rootCmd.PersistentFlags().BoolVar(&runParams.Config, "config", false, "manage stave configuration")
 	rootCmd.PersistentFlags().StringVar(&runParams.CompileOut, "compile", "", "output a static binary to the given path")
+
+	// Mark --exec as hidden for now, since it doesn't do anything interesting (yet!), and users may therefore be confused by its existence.
+	// Revisit this as Stave's functionality expands.
+	err := rootCmd.PersistentFlags().MarkHidden("exec")
+	if err != nil {
+		panic(fmt.Errorf("failed to mark --exec as hidden: %w", err))
+	}
 
 	return rootCmd
 }
