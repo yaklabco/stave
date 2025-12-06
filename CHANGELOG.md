@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Native git hook support to Stave, including documentation & a default target to switch between Husky and Stave hooks.
+- Native git hook support.
 
 - `--dryrun` mode.
 
