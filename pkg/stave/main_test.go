@@ -444,6 +444,12 @@ func TestMixedStaveImports(t *testing.T) {
 }
 
 func TestStavefilesFolder(t *testing.T) {
+	t.Parallel()
+	dataDirForThisTest := testDataWithStaveFilesFolderDir
+	mu := mutexByDir(dataDirForThisTest)
+	mu.Lock()
+	defer mu.Unlock()
+
 	ctx := t.Context()
 
 	require.NoError(t, resetTerm())
@@ -452,14 +458,12 @@ func TestStavefilesFolder(t *testing.T) {
 	t.Log(wd)
 	require.NoError(t, err)
 
-	t.Chdir(testDataWithStaveFilesFolderDir)
-
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     "",
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		List:    true,
@@ -504,6 +508,12 @@ func TestStavefilesFolderMixedWithStavefiles(t *testing.T) {
 }
 
 func TestUntaggedStavefilesFolder(t *testing.T) {
+	t.Parallel()
+	dataDirForThisTest := testDataWithUntaggedStaveFilesFolderDir
+	mu := mutexByDir(dataDirForThisTest)
+	mu.Lock()
+	defer mu.Unlock()
+
 	ctx := t.Context()
 
 	require.NoError(t, resetTerm())
@@ -512,14 +522,12 @@ func TestUntaggedStavefilesFolder(t *testing.T) {
 	t.Log(wd)
 	require.NoError(t, err)
 
-	t.Chdir(testDataWithUntaggedStaveFilesFolderDir)
-
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     "",
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		List:    true,
@@ -533,6 +541,12 @@ func TestUntaggedStavefilesFolder(t *testing.T) {
 }
 
 func TestMixedTaggingStavefilesFolder(t *testing.T) {
+	t.Parallel()
+	dataDirForThisTest := testDataWithMixTaggedStaveFilesFolderDir
+	mu := mutexByDir(dataDirForThisTest)
+	mu.Lock()
+	defer mu.Unlock()
+
 	ctx := t.Context()
 
 	require.NoError(t, resetTerm())
@@ -541,14 +555,12 @@ func TestMixedTaggingStavefilesFolder(t *testing.T) {
 	t.Log(wd)
 	require.NoError(t, err)
 
-	t.Chdir(testDataWithMixTaggedStaveFilesFolderDir)
-
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     "",
+		Dir:     dataDirForThisTest,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		List:    true,
