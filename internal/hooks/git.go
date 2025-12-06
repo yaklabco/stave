@@ -66,11 +66,7 @@ func FindGitRepoContext(ctx context.Context, dir string) (*GitRepo, error) {
 // resolveStartDir resolves the starting directory to an absolute path.
 func resolveStartDir(dir string) (string, error) {
 	if dir == "" {
-		var err error
-		dir, err = os.Getwd()
-		if err != nil {
-			return "", fmt.Errorf("getting working directory: %w", err)
-		}
+		return "", fmt.Errorf("start directory must be specified")
 	}
 
 	absDir, err := filepath.Abs(dir)

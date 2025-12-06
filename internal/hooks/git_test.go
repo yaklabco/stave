@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // testGitInit initializes a git repository in the given directory.
@@ -265,16 +267,6 @@ func TestGitRepo_HookPath(t *testing.T) {
 }
 
 func TestFindGitRepo_EmptyDir(t *testing.T) {
-	// Test that empty dir uses current working directory
-	// This test doesn't use t.Parallel() because it relies on CWD
-
-	// Get current repo (we're in a git repo)
-	repo, err := FindGitRepo("")
-	if err != nil {
-		t.Fatalf("FindGitRepo('') error = %v", err)
-	}
-
-	if repo.RootDir == "" {
-		t.Error("RootDir should not be empty")
-	}
+	_, err := FindGitRepo("")
+	require.Error(t, err)
 }

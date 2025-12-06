@@ -11,11 +11,9 @@ import (
 	"sort"
 	"strings"
 
-	cblog "github.com/charmbracelet/log"
 	"github.com/yaklabco/stave/config"
 	"github.com/yaklabco/stave/internal/hooks"
 	"github.com/yaklabco/stave/pkg/st"
-	"github.com/yaklabco/stave/pkg/stave/prettylog"
 )
 
 // Exit codes for CLI commands.
@@ -51,7 +49,7 @@ type HooksParams struct {
 
 // newStaveTargetRunner creates a TargetRunnerFunc that executes targets using stave.Run.
 // This wires the hooks runtime to the real Stave execution engine.
-func newStaveTargetRunner(cfg *config.Config) hooks.TargetRunnerFunc {
+func newStaveTargetRunner(cfg *config.Config, workingDir string) hooks.TargetRunnerFunc {
 	return func(
 		ctx context.Context,
 		target string,
@@ -64,6 +62,7 @@ func newStaveTargetRunner(cfg *config.Config) hooks.TargetRunnerFunc {
 			Stdin:   stdin,
 			Stdout:  stdout,
 			Stderr:  stderr,
+			Dir:     workingDir,
 
 			// Propagate config-level settings
 			Debug:    cfg.Debug,
@@ -81,27 +80,30 @@ func newStaveTargetRunner(cfg *config.Config) hooks.TargetRunnerFunc {
 	}
 }
 
-// RunHooksCommand handles the `stave --hooks` subcommand.
+// RunHooksCommand handles the `stave --hooks` subcommand with debug/verbose params.
 // It returns the exit code.
-func RunHooksCommand(stdout, stderr io.Writer, args []string) int {
-	return RunHooksCommandContext(context.Background(), stdout, stderr, args)
-}
-
-// RunHooksCommandWithParams handles the `stave --hooks` subcommand with debug/verbose params.
-// It returns the exit code.
-func RunHooksCommandWithParams(ctx context.Context, stdout, stderr io.Writer, params HooksParams, args []string) int {
-	// Set up pretty logging with appropriate level
-	logHandler := prettylog.SetupPrettyLogger(stdout)
-	switch {
-	case params.Debug:
-		logHandler.SetLevel(cblog.DebugLevel)
-	case params.Verbose:
-		logHandler.SetLevel(cblog.InfoLevel)
-	default:
-		logHandler.SetLevel(cblog.WarnLevel)
+func RunHooksCommand(ctx context.Context, params RunParams) int {
+	flagSet := flag.NewFlagSet("hooks", flag.ContinueOnError)
+	flagSet.SetOutput(params.Stdout)
+	flagSet.Usage = func() {
+		hooksUsage(params.Stdout)
 	}
 
-	return runHooksCommandInternal(ctx, stdout, stderr, args)
+	if err := flagSet.Parse(params.Args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return exitOK
+		}
+		_, _ = fmt.Fprintf(params.Stderr, "Error: %v\n", err)
+		return exitUsage
+	}
+
+	subArgs := flagSet.Args()
+	if len(subArgs) == 0 {
+		// No subcommand, show list
+		return runHooksList(ctx, params)
+	}
+
+	return dispatchHooksSubcommand(ctx, params, subArgs)
 }
 
 // HooksSubcommand represents a hooks subcommand.
@@ -116,50 +118,7 @@ const (
 	HooksRun       HooksSubcommand = "run"
 )
 
-// RunHooksCommandContext handles the `stave --hooks` subcommand with context.
-// It returns the exit code.
-//
-// Deprecated: Use RunHooksCommandWithParams for proper debug/verbose support.
-func RunHooksCommandContext(ctx context.Context, stdout, stderr io.Writer, args []string) int {
-	// Set up logging with defaults from environment
-	logHandler := prettylog.SetupPrettyLogger(stdout)
-	switch {
-	case st.Debug():
-		logHandler.SetLevel(cblog.DebugLevel)
-	case st.Verbose():
-		logHandler.SetLevel(cblog.InfoLevel)
-	default:
-		logHandler.SetLevel(cblog.WarnLevel)
-	}
-
-	return runHooksCommandInternal(ctx, stdout, stderr, args)
-}
-
-// runHooksCommandInternal is the internal implementation of the hooks command.
-func runHooksCommandInternal(ctx context.Context, stdout, stderr io.Writer, args []string) int {
-	flagSet := flag.NewFlagSet("hooks", flag.ContinueOnError)
-	flagSet.SetOutput(stdout)
-	flagSet.Usage = func() {
-		hooksUsage(stdout)
-	}
-
-	if err := flagSet.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			return exitOK
-		}
-		return printUsageErr(stderr, err)
-	}
-
-	subArgs := flagSet.Args()
-	if len(subArgs) == 0 {
-		// No subcommand, show list
-		return runHooksList(ctx, stdout, stderr)
-	}
-
-	return dispatchHooksSubcommand(ctx, stdout, stderr, subArgs)
-}
-
-func dispatchHooksSubcommand(ctx context.Context, stdout, stderr io.Writer, subArgs []string) int {
+func dispatchHooksSubcommand(ctx context.Context, params RunParams, subArgs []string) int {
 	subcmd := HooksSubcommand(strings.ToLower(subArgs[0]))
 
 	slog.Debug("hooks subcommand dispatching",
@@ -167,108 +126,111 @@ func dispatchHooksSubcommand(ctx context.Context, stdout, stderr io.Writer, subA
 
 	switch subcmd {
 	case HooksInit:
-		return runHooksInit(ctx, stdout, stderr)
+		return runHooksInit(ctx, params)
 	case HooksInstall:
-		return runHooksInstall(ctx, stdout, stderr, subArgs[1:])
+		return runHooksInstall(ctx, params, subArgs[1:])
 	case HooksUninstall:
-		return runHooksUninstall(ctx, stdout, stderr, subArgs[1:])
+		return runHooksUninstall(ctx, params, subArgs[1:])
 	case HooksList:
-		return runHooksList(ctx, stdout, stderr)
+		return runHooksList(ctx, params)
 	case HooksRun:
-		return runHooksRun(ctx, stdout, stderr, subArgs[1:])
+		return runHooksRun(ctx, params, subArgs[1:])
 	default:
 		slog.Debug("unknown hooks subcommand",
 			slog.String("subcommand", subArgs[0]))
-		_, _ = fmt.Fprintf(stderr, "Error: unknown hooks subcommand %q\n", subArgs[0])
-		hooksUsage(stderr)
+		_, _ = fmt.Fprintf(params.Stderr, "Error: unknown hooks subcommand %q\n", subArgs[0])
+		hooksUsage(params.Stderr)
 		return exitUsage
 	}
 }
 
 // runHooksInit initializes hooks configuration in stave.yaml.
-func runHooksInit(ctx context.Context, stdout, stderr io.Writer) int {
+func runHooksInit(ctx context.Context, params RunParams) int {
 	slog.Debug("loading hooks configuration")
 
 	// First ensure config exists
-	cfg, err := config.Load(nil)
+	cfg, err := config.Load(&config.LoadOptions{ProjectDir: params.Dir})
 	if err != nil {
-		return printConfigErr(stderr, err)
+		return printConfigErr(params.Stderr, err)
 	}
 
 	// Check if hooks are already configured
 	if len(cfg.Hooks) > 0 {
 		slog.Debug("hooks already configured",
 			slog.Int("hook_count", len(cfg.Hooks)))
-		_, _ = fmt.Fprintln(stdout, "Hooks configuration already exists in stave.yaml")
-		return runHooksList(ctx, stdout, stderr)
+		_, _ = fmt.Fprintln(params.Stdout, "Hooks configuration already exists in stave.yaml")
+		return runHooksList(ctx, params)
 	}
 
-	printHooksInitInstructions(stdout)
+	printHooksInitInstructions(params.Stdout)
 	return exitOK
 }
 
 func printHooksInitInstructions(out io.Writer) {
-	_, _ = fmt.Fprintln(out, "Add hooks configuration to your stave.yaml file:")
-	_, _ = fmt.Fprintln(out)
-	_, _ = fmt.Fprintln(out, "hooks:")
-	_, _ = fmt.Fprintln(out, "  pre-commit:")
-	_, _ = fmt.Fprintln(out, "    - target: fmt")
-	_, _ = fmt.Fprintln(out, "    - target: lint")
-	_, _ = fmt.Fprintln(out, "  pre-push:")
-	_, _ = fmt.Fprintln(out, "    - target: test")
-	_, _ = fmt.Fprintln(out)
-	_, _ = fmt.Fprintln(out, "Then run: stave --hooks install")
+	_, _ = fmt.Fprintln(out,
+		`
+Add hooks configuration to your stave.yaml file:
+
+hooks:
+  pre-commit:
+    - target: fmt
+    - target: lint
+  pre-push:
+    - target: test
+
+ "Then run: stave --hooks install
+`[1:])
 }
 
 // runHooksInstall installs hook scripts to the Git repository.
-func runHooksInstall(ctx context.Context, stdout, stderr io.Writer, args []string) int {
+func runHooksInstall(ctx context.Context, params RunParams, args []string) int {
 	flagSet := flag.NewFlagSet("install", flag.ContinueOnError)
-	flagSet.SetOutput(stdout)
+	flagSet.SetOutput(params.Stdout)
 	force := flagSet.Bool("force", false, "overwrite existing non-Stave hooks")
 
 	if err := flagSet.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return exitOK
 		}
-		return printUsageErr(stderr, err)
+		return printUsageErr(params.Stderr, err)
 	}
 
 	slog.Debug("hooks install starting",
 		slog.Bool("force", *force))
 
 	// Find Git repository
-	repo, err := hooks.FindGitRepoContext(ctx, "")
+	repo, err := hooks.FindGitRepoContext(ctx, params.Dir)
 	if err != nil {
 		if errors.Is(err, hooks.ErrNotGitRepo) {
-			_, _ = fmt.Fprintf(stderr, "Error: %v\n", err)
-			_, _ = fmt.Fprintln(stderr, "Run this command from within a Git repository.")
+			_, _ = fmt.Fprintf(params.Stderr, "Error: %v\n", err)
+			_, _ = fmt.Fprintln(params.Stderr, "Run this command from within a Git repository.")
 			return exitError
 		}
-		return printErr(stderr, err)
+		return printErr(params.Stderr, err)
 	}
 
 	// Load configuration
 	slog.Debug("loading hooks configuration")
-	cfg, err := config.Load(nil)
+	cfg, err := config.Load(&config.LoadOptions{ProjectDir: params.Dir})
 	if err != nil {
-		return printConfigErr(stderr, err)
+		return printConfigErr(params.Stderr, err)
 	}
 
 	// Check if hooks are configured
 	if len(cfg.Hooks) == 0 {
 		slog.Debug("no hooks configured in config")
-		_, _ = fmt.Fprintln(stderr, "No hooks configured in stave.yaml")
-		_, _ = fmt.Fprintln(stderr, "Run 'stave --hooks init' for setup instructions.")
+		_, _ = fmt.Fprintln(params.Stderr, "No hooks configured in stave.yaml")
+		_, _ = fmt.Fprintln(params.Stderr, "Run 'stave --hooks init' for setup instructions.")
 		return exitError
 	}
 
-	return installHooks(repo, cfg, *force, stdout, stderr)
+	return installHooks(repo, cfg, *force, params)
 }
 
-func installHooks(repo *hooks.GitRepo, cfg *config.Config, force bool, stdout, stderr io.Writer) int {
+func installHooks(repo *hooks.GitRepo, cfg *config.Config, force bool, params RunParams) int {
 	// Ensure hooks directory exists
 	if err := repo.EnsureHooksDir(); err != nil {
-		_, _ = fmt.Fprintf(stderr, "Error: creating hooks directory: %v\n", err)
+		_, _ = fmt.Fprintf(params.Stderr, "Error: creating hooks directory: %v\n", err)
 		return exitError
 	}
 
@@ -280,7 +242,7 @@ func installHooks(repo *hooks.GitRepo, cfg *config.Config, force bool, stdout, s
 
 	installed := 0
 	for _, hookName := range hookNames {
-		if code := installSingleHook(repo, hookName, force, stdout, stderr); code != exitOK {
+		if code := installSingleHook(repo, hookName, force, params.Stdout, params.Stderr); code != exitOK {
 			return code
 		}
 		installed++
@@ -290,7 +252,7 @@ func installHooks(repo *hooks.GitRepo, cfg *config.Config, force bool, stdout, s
 		slog.Int("count", installed),
 		slog.String("directory", repo.HooksPath()))
 
-	_, _ = fmt.Fprintf(stdout, "\nInstalled %d hook(s) to %s\n", installed, repo.HooksPath())
+	_, _ = fmt.Fprintf(params.Stdout, "\nInstalled %d hook(s) to %s\n", installed, repo.HooksPath())
 	return exitOK
 }
 
@@ -338,37 +300,37 @@ func installSingleHook(repo *hooks.GitRepo, hookName string, force bool, stdout,
 }
 
 // runHooksUninstall removes Stave-managed hook scripts.
-func runHooksUninstall(ctx context.Context, stdout, stderr io.Writer, args []string) int {
+func runHooksUninstall(ctx context.Context, params RunParams, args []string) int {
 	flagSet := flag.NewFlagSet("uninstall", flag.ContinueOnError)
-	flagSet.SetOutput(stdout)
+	flagSet.SetOutput(params.Stdout)
 	all := flagSet.Bool("all", false, "uninstall all Stave-managed hooks")
 
 	if err := flagSet.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return exitOK
 		}
-		return printUsageErr(stderr, err)
+		return printUsageErr(params.Stderr, err)
 	}
 
 	// Find Git repository
-	repo, err := hooks.FindGitRepoContext(ctx, "")
+	repo, err := hooks.FindGitRepoContext(ctx, params.Dir)
 	if err != nil {
-		return printErr(stderr, err)
+		return printErr(params.Stderr, err)
 	}
 
 	// Load configuration for hook names
-	cfg, err := config.Load(nil)
+	cfg, err := config.Load(&config.LoadOptions{ProjectDir: params.Dir})
 	if err != nil {
-		return printConfigErr(stderr, err)
+		return printConfigErr(params.Stderr, err)
 	}
 
 	hookNames := getHookNamesToUninstall(*all, cfg)
 	if len(hookNames) == 0 {
-		_, _ = fmt.Fprintln(stdout, "No hooks to uninstall.")
+		_, _ = fmt.Fprintln(params.Stdout, "No hooks to uninstall.")
 		return exitOK
 	}
 
-	return uninstallHooks(repo, hookNames, stdout, stderr)
+	return uninstallHooks(repo, hookNames, params.Stdout, params.Stderr)
 }
 
 func getHookNamesToUninstall(all bool, cfg *config.Config) []string {
@@ -411,30 +373,30 @@ func uninstallHooks(repo *hooks.GitRepo, hookNames []string, stdout, stderr io.W
 }
 
 // runHooksList displays configured hooks.
-func runHooksList(ctx context.Context, stdout, stderr io.Writer) int {
+func runHooksList(ctx context.Context, params RunParams) int {
 	slog.Debug("loading hooks configuration for list")
 
-	cfg, err := config.Load(nil)
+	cfg, err := config.Load(&config.LoadOptions{ProjectDir: params.Dir})
 	if err != nil {
-		return printConfigErr(stderr, err)
+		return printConfigErr(params.Stderr, err)
 	}
 
 	if len(cfg.Hooks) == 0 {
 		slog.Debug("no hooks configured")
-		_, _ = fmt.Fprintln(stdout, "No hooks configured.")
-		_, _ = fmt.Fprintln(stdout, "Run 'stave --hooks init' for setup instructions.")
+		_, _ = fmt.Fprintln(params.Stdout, "No hooks configured.")
+		_, _ = fmt.Fprintln(params.Stdout, "Run 'stave --hooks init' for setup instructions.")
 		return exitOK
 	}
 
 	slog.Debug("listing configured hooks",
 		slog.Int("hook_count", len(cfg.Hooks)))
 
-	printConfiguredHooks(cfg, stdout)
+	printConfiguredHooks(cfg, params.Stdout)
 
 	// Check installation status
-	repo, repoErr := hooks.FindGitRepoContext(ctx, "")
+	repo, repoErr := hooks.FindGitRepoContext(ctx, params.Dir)
 	if repoErr == nil {
-		printInstallationStatus(repo, cfg.Hooks.HookNames(), stdout)
+		printInstallationStatus(repo, cfg.Hooks.HookNames(), params.Stdout)
 	}
 
 	return exitOK
@@ -488,21 +450,21 @@ func printInstallationStatus(repo *hooks.GitRepo, hookNames []string, out io.Wri
 }
 
 // runHooksRun executes the targets for a specific hook.
-func runHooksRun(ctx context.Context, stdout, stderr io.Writer, args []string) int {
+func runHooksRun(ctx context.Context, params RunParams, args []string) int {
 	flagSet := flag.NewFlagSet("run", flag.ContinueOnError)
-	flagSet.SetOutput(stdout)
+	flagSet.SetOutput(params.Stdout)
 
 	if err := flagSet.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return exitOK
 		}
-		return printUsageErr(stderr, err)
+		return printUsageErr(params.Stderr, err)
 	}
 
 	remaining := flagSet.Args()
 	if len(remaining) == 0 {
-		_, _ = fmt.Fprintln(stderr, "Error: hook name required")
-		_, _ = fmt.Fprintln(stderr, "Usage: stave --hooks run <hook-name> [-- args...]")
+		_, _ = fmt.Fprintln(params.Stderr, "Error: hook name required")
+		_, _ = fmt.Fprintln(params.Stderr, "Usage: stave --hooks run <hook-name> [-- args...]")
 		return exitUsage
 	}
 
@@ -515,22 +477,22 @@ func runHooksRun(ctx context.Context, stdout, stderr io.Writer, args []string) i
 
 	// Load configuration
 	slog.Debug("loading hooks configuration")
-	cfg, err := config.Load(nil)
+	cfg, err := config.Load(&config.LoadOptions{ProjectDir: params.Dir})
 	if err != nil {
-		return printConfigErr(stderr, err)
+		return printConfigErr(params.Stderr, err)
 	}
 
 	// Create runtime and execute with real target runner
 	runtime := &hooks.Runtime{
 		Config:       cfg,
-		Stdout:       stdout,
-		Stderr:       stderr,
-		TargetRunner: newStaveTargetRunner(cfg),
+		Stdout:       params.Stdout,
+		Stderr:       params.Stderr,
+		TargetRunner: newStaveTargetRunner(cfg, params.Dir),
 	}
 
 	result, err := runtime.Run(ctx, hookName, hookArgs)
 	if err != nil {
-		return printErr(stderr, err)
+		return printErr(params.Stderr, err)
 	}
 
 	return result.ExitCode

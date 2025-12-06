@@ -169,14 +169,11 @@ func execInStave(ctx context.Context, params RunParams) error {
 }
 
 func runHooksMode(ctx context.Context, params RunParams) error {
-	hooksParams := HooksParams{
-		Debug:   params.Debug,
-		Verbose: params.Verbose,
-	}
-	exitCode := RunHooksCommandWithParams(ctx, params.Stdout, params.Stderr, hooksParams, params.Args)
+	exitCode := RunHooksCommand(ctx, params)
 	if exitCode != 0 {
 		return st.Fatal(exitCode, "hooks command failed")
 	}
+
 	return nil
 }
 

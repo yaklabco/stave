@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/preminger/goctx/pkg/util/fsutils"
+	"github.com/stretchr/testify/assert"
 	"github.com/yaklabco/stave/config"
 	"github.com/yaklabco/stave/internal/hooks"
 )
@@ -98,11 +100,14 @@ func TestRunHooksCommand_Help(t *testing.T) {
 	t.Parallel()
 
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, []string{"-h"})
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Args:   []string{"-h"},
+	})
 
-	if code != 0 {
-		t.Errorf("RunHooksCommand -h returned %d, want 0", code)
-	}
+	assert.Equalf(t, 0, code, "STDOUT WAS:\n%s\n\nSTDERR WAS:\n%s\n\n", stdout.String(), stderr.String())
 	if !strings.Contains(stdout.String(), "stave --hooks") {
 		t.Error("Help output should contain 'stave --hooks'")
 	}
@@ -112,7 +117,12 @@ func TestRunHooksCommand_UnknownSubcommand(t *testing.T) {
 	t.Parallel()
 
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, []string{"unknown"})
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Args:   []string{"unknown"},
+	})
 
 	if code != 2 {
 		t.Errorf("RunHooksCommand unknown returned %d, want 2", code)
@@ -128,11 +138,14 @@ func TestRunHooksCommand_Init(t *testing.T) {
 	config.ResetGlobal()
 
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, []string{"init"})
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Args:   []string{"init"},
+	})
 
-	if code != 0 {
-		t.Errorf("RunHooksCommand init returned %d, want 0: %s", code, stderr.String())
-	}
+	assert.Equalf(t, 0, code, "STDOUT WAS:\n%s\n\nSTDERR WAS:\n%s\n\n", stdout.String(), stderr.String())
 	if !strings.Contains(stdout.String(), "hooks:") {
 		t.Error("Init output should show example configuration")
 	}
@@ -144,17 +157,22 @@ func TestRunHooksCommand_List_NoConfig(t *testing.T) {
 	config.ResetGlobal()
 
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, []string{"list"})
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Args:   []string{"list"},
+	})
 
-	if code != 0 {
-		t.Errorf("RunHooksCommand list returned %d, want 0: %s", code, stderr.String())
-	}
+	assert.Equalf(t, 0, code, "STDOUT WAS:\n%s\n\nSTDERR WAS:\n%s\n\n", stdout.String(), stderr.String())
 	if !strings.Contains(stdout.String(), "No hooks configured") {
 		t.Error("List output should indicate no hooks configured")
 	}
 }
 
 func TestRunHooksCommand_List_WithConfig(t *testing.T) {
+	t.Parallel()
+
 	config.ResetGlobal()
 
 	// Create temp directory with config
@@ -172,14 +190,16 @@ hooks:
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	t.Chdir(tmpDir)
-
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, []string{"list"})
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Dir:    tmpDir,
+		Args:   []string{"list"},
+	})
 
-	if code != 0 {
-		t.Errorf("RunHooksCommand list returned %d, want 0: %s", code, stderr.String())
-	}
+	assert.Equalf(t, 0, code, "STDOUT WAS:\n%s\n\nSTDERR WAS:\n%s\n\n", stdout.String(), stderr.String())
 
 	out := stdout.String()
 	if !strings.Contains(out, "pre-commit") {
@@ -194,6 +214,8 @@ hooks:
 }
 
 func TestRunHooksCommand_Install_NotGitRepo(t *testing.T) {
+	t.Parallel()
+
 	config.ResetGlobal()
 
 	// Create temp directory (not a git repo)
@@ -203,10 +225,14 @@ func TestRunHooksCommand_Install_NotGitRepo(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	t.Chdir(tmpDir)
-
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, []string{"install"})
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Dir:    tmpDir,
+		Args:   []string{"install"},
+	})
 
 	if code != 1 {
 		t.Errorf("RunHooksCommand install in non-git repo returned %d, want 1", code)
@@ -217,15 +243,17 @@ func TestRunHooksCommand_Install_NotGitRepo(t *testing.T) {
 }
 
 func TestRunHooksCommand_Install_NoHooksConfig(t *testing.T) {
+	t.Parallel()
+
 	config.ResetGlobal()
 
 	// Create temp directory with git repo but no hooks config
 	tmpDir := t.TempDir()
 
 	// Resolve symlinks (macOS /var -> /private/var)
-	tmpDir, err := filepath.EvalSymlinks(tmpDir)
+	tmpDir, err := fsutils.TruePath(tmpDir)
 	if err != nil {
-		t.Fatalf("EvalSymlinks failed: %v", err)
+		t.Fatalf("fsutils.TruePath failed: %v", err)
 	}
 
 	testGitInit(t, tmpDir)
@@ -236,10 +264,14 @@ func TestRunHooksCommand_Install_NoHooksConfig(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	t.Chdir(tmpDir)
-
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, []string{"install"})
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Dir:    tmpDir,
+		Args:   []string{"install"},
+	})
 
 	if code != 1 {
 		t.Errorf("RunHooksCommand install with no hooks returned %d, want 1", code)
@@ -250,15 +282,17 @@ func TestRunHooksCommand_Install_NoHooksConfig(t *testing.T) {
 }
 
 func TestRunHooksCommand_Install_CreatesScripts(t *testing.T) {
+	t.Parallel()
+
 	config.ResetGlobal()
 
 	// Create temp directory with git repo and hooks config
 	tmpDir := t.TempDir()
 
 	// Resolve symlinks (macOS /var -> /private/var)
-	tmpDir, err := filepath.EvalSymlinks(tmpDir)
+	tmpDir, err := fsutils.TruePath(tmpDir)
 	if err != nil {
-		t.Fatalf("EvalSymlinks failed: %v", err)
+		t.Fatalf("fsutils.TruePath failed: %v", err)
 	}
 
 	testGitInit(t, tmpDir)
@@ -275,14 +309,16 @@ hooks:
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	t.Chdir(tmpDir)
-
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, []string{"install"})
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Dir:    tmpDir,
+		Args:   []string{"install"},
+	})
 
-	if code != 0 {
-		t.Errorf("RunHooksCommand install returned %d, want 0: %s", code, stderr.String())
-	}
+	assert.Equalf(t, 0, code, "STDOUT WAS:\n%s\n\nSTDERR WAS:\n%s\n\n", stdout.String(), stderr.String())
 
 	// Verify hooks were created
 	hooksDir := filepath.Join(tmpDir, ".git", "hooks")
@@ -307,15 +343,17 @@ hooks:
 }
 
 func TestRunHooksCommand_Install_ExistingNonStaveHook_Fails(t *testing.T) {
+	t.Parallel()
+
 	config.ResetGlobal()
 
 	// Create temp directory with git repo
 	tmpDir := t.TempDir()
 
 	// Resolve symlinks (macOS /var -> /private/var)
-	tmpDir, err := filepath.EvalSymlinks(tmpDir)
+	tmpDir, err := fsutils.TruePath(tmpDir)
 	if err != nil {
-		t.Fatalf("EvalSymlinks failed: %v", err)
+		t.Fatalf("fsutils.TruePath failed: %v", err)
 	}
 
 	testGitInit(t, tmpDir)
@@ -332,10 +370,14 @@ func TestRunHooksCommand_Install_ExistingNonStaveHook_Fails(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	t.Chdir(tmpDir)
-
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, []string{"install"})
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Dir:    tmpDir,
+		Args:   []string{"install"},
+	})
 
 	if code != 1 {
 		t.Errorf("RunHooksCommand install with existing hook returned %d, want 1", code)
@@ -346,15 +388,17 @@ func TestRunHooksCommand_Install_ExistingNonStaveHook_Fails(t *testing.T) {
 }
 
 func TestRunHooksCommand_Install_Force(t *testing.T) {
+	t.Parallel()
+
 	config.ResetGlobal()
 
 	// Create temp directory with git repo
 	tmpDir := t.TempDir()
 
 	// Resolve symlinks (macOS /var -> /private/var)
-	tmpDir, err := filepath.EvalSymlinks(tmpDir)
+	tmpDir, err := fsutils.TruePath(tmpDir)
 	if err != nil {
-		t.Fatalf("EvalSymlinks failed: %v", err)
+		t.Fatalf("fsutils.TruePath failed: %v", err)
 	}
 
 	testGitInit(t, tmpDir)
@@ -371,14 +415,16 @@ func TestRunHooksCommand_Install_Force(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	t.Chdir(tmpDir)
-
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, []string{"install", "--force"})
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Dir:    tmpDir,
+		Args:   []string{"install", "--force"},
+	})
 
-	if code != 0 {
-		t.Errorf("RunHooksCommand install --force returned %d, want 0: %s", code, stderr.String())
-	}
+	assert.Equalf(t, 0, code, "STDOUT WAS:\n%s\n\nSTDERR WAS:\n%s\n\n", stdout.String(), stderr.String())
 
 	// Verify hook was overwritten
 	managed, err := hooks.IsStaveManaged(preCommitPath)
@@ -391,15 +437,17 @@ func TestRunHooksCommand_Install_Force(t *testing.T) {
 }
 
 func TestRunHooksCommand_Install_UpdatesStaveHook(t *testing.T) {
+	t.Parallel()
+
 	config.ResetGlobal()
 
 	// Create temp directory with git repo
 	tmpDir := t.TempDir()
 
 	// Resolve symlinks (macOS /var -> /private/var)
-	tmpDir, err := filepath.EvalSymlinks(tmpDir)
+	tmpDir, err := fsutils.TruePath(tmpDir)
 	if err != nil {
-		t.Fatalf("EvalSymlinks failed: %v", err)
+		t.Fatalf("fsutils.TruePath failed: %v", err)
 	}
 
 	testGitInit(t, tmpDir)
@@ -416,26 +464,30 @@ func TestRunHooksCommand_Install_UpdatesStaveHook(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	t.Chdir(tmpDir)
-
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, []string{"install"})
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Dir:    tmpDir,
+		Args:   []string{"install"},
+	})
 
-	if code != 0 {
-		t.Errorf("RunHooksCommand install with existing Stave hook returned %d, want 0: %s", code, stderr.String())
-	}
+	assert.Equalf(t, 0, code, "STDOUT WAS:\n%s\n\nSTDERR WAS:\n%s\n\n", stdout.String(), stderr.String())
 }
 
 func TestRunHooksCommand_Uninstall(t *testing.T) {
+	t.Parallel()
+
 	config.ResetGlobal()
 
 	// Create temp directory with git repo
 	tmpDir := t.TempDir()
 
 	// Resolve symlinks (macOS /var -> /private/var)
-	tmpDir, err := filepath.EvalSymlinks(tmpDir)
+	tmpDir, err := fsutils.TruePath(tmpDir)
 	if err != nil {
-		t.Fatalf("EvalSymlinks failed: %v", err)
+		t.Fatalf("fsutils.TruePath failed: %v", err)
 	}
 
 	testGitInit(t, tmpDir)
@@ -452,14 +504,16 @@ func TestRunHooksCommand_Uninstall(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	t.Chdir(tmpDir)
-
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, []string{"uninstall"})
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Dir:    tmpDir,
+		Args:   []string{"uninstall"},
+	})
 
-	if code != 0 {
-		t.Errorf("RunHooksCommand uninstall returned %d, want 0: %s", code, stderr.String())
-	}
+	assert.Equalf(t, 0, code, "STDOUT WAS:\n%s\n\nSTDERR WAS:\n%s\n\n", stdout.String(), stderr.String())
 
 	// Verify hook was removed
 	if _, err := os.Stat(preCommitPath); !os.IsNotExist(err) {
@@ -471,7 +525,12 @@ func TestRunHooksCommand_Run_NoHookName(t *testing.T) {
 	t.Parallel()
 
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, []string{"run"})
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Args:   []string{"run"},
+	})
 
 	if code != 2 {
 		t.Errorf("RunHooksCommand run without hook name returned %d, want 2", code)
@@ -482,15 +541,17 @@ func TestRunHooksCommand_Run_NoHookName(t *testing.T) {
 }
 
 func TestRunHooksCommand_Run_Success(t *testing.T) {
+	t.Parallel()
+
 	config.ResetGlobal()
 
 	// Create temp directory with config and stavefile
 	tmpDir := t.TempDir()
 
 	// Resolve symlinks (macOS /var -> /private/var)
-	tmpDir, err := filepath.EvalSymlinks(tmpDir)
+	tmpDir, err := fsutils.TruePath(tmpDir)
 	if err != nil {
-		t.Fatalf("EvalSymlinks failed: %v", err)
+		t.Fatalf("fsutils.TruePath failed: %v", err)
 	}
 
 	// Copy go.mod and go.sum for compilation
@@ -517,18 +578,21 @@ hooks:
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	t.Chdir(tmpDir)
-
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, []string{"run", "pre-commit"})
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Dir:    tmpDir,
+		Args:   []string{"run", "pre-commit"},
+	})
 
-	if code != 0 {
-		t.Errorf("RunHooksCommand run pre-commit returned %d, want 0\nstdout: %s\nstderr: %s",
-			code, stdout.String(), stderr.String())
-	}
+	assert.Equalf(t, 0, code, "STDOUT WAS:\n%s\n\nSTDERR WAS:\n%s\n\n", stdout.String(), stderr.String())
 }
 
 func TestRunHooksCommand_Run_UnconfiguredHook(t *testing.T) {
+	t.Parallel()
+
 	config.ResetGlobal()
 
 	// Create temp directory with config (but no pre-push)
@@ -538,27 +602,34 @@ func TestRunHooksCommand_Run_UnconfiguredHook(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	t.Chdir(tmpDir)
-
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, []string{"run", "pre-push"})
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Dir:    tmpDir,
+		Args:   []string{"run", "pre-push"},
+	})
 
 	// Unconfigured hooks should pass
-	if code != 0 {
-		t.Errorf("RunHooksCommand run unconfigured hook returned %d, want 0", code)
-	}
+	assert.Equalf(t, 0, code, "STDOUT WAS:\n%s\n\nSTDERR WAS:\n%s\n\n", stdout.String(), stderr.String())
 }
 
 func TestRunHooksCommand_Default_ShowsList(t *testing.T) {
+	t.Parallel()
+
 	config.ResetGlobal()
 
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, nil)
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Args:   nil,
+	})
 
 	// Default behavior is to show list
-	if code != 0 {
-		t.Errorf("RunHooksCommand with no args returned %d, want 0", code)
-	}
+	assert.Equalf(t, 0, code, "STDOUT WAS:\n%s\n\nSTDERR WAS:\n%s\n\n", stdout.String(), stderr.String())
 }
 
 func TestRunHooksCommand_Run_ExecutesRealTarget(t *testing.T) {
@@ -568,9 +639,9 @@ func TestRunHooksCommand_Run_ExecutesRealTarget(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Resolve symlinks (macOS /var -> /private/var)
-	tmpDir, err := filepath.EvalSymlinks(tmpDir)
+	tmpDir, err := fsutils.TruePath(tmpDir)
 	if err != nil {
-		t.Fatalf("EvalSymlinks failed: %v", err)
+		t.Fatalf("fsutils.TruePath failed: %v", err)
 	}
 
 	// Copy go.mod and go.sum for compilation
@@ -601,18 +672,19 @@ hooks:
 		t.Fatalf("WriteFile config failed: %v", err)
 	}
 
-	t.Chdir(tmpDir)
-
 	// Set marker env var
 	t.Setenv("HOOK_TEST_MARKER", markerPath)
 
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, []string{"run", "pre-commit"})
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Dir:    tmpDir,
+		Args:   []string{"run", "pre-commit"},
+	})
 
-	if code != 0 {
-		t.Errorf("RunHooksCommand run returned %d, want 0\nstdout: %s\nstderr: %s",
-			code, stdout.String(), stderr.String())
-	}
+	assert.Equalf(t, 0, code, "STDOUT WAS:\n%s\n\nSTDERR WAS:\n%s\n\n", stdout.String(), stderr.String())
 
 	// Verify the marker file was created (proving the target actually ran)
 	markerContent, err := os.ReadFile(markerPath)
@@ -626,15 +698,17 @@ hooks:
 }
 
 func TestRunHooksCommand_Run_TargetFailure(t *testing.T) {
+	t.Parallel()
+
 	config.ResetGlobal()
 
 	// Create temp directory
 	tmpDir := t.TempDir()
 
 	// Resolve symlinks (macOS /var -> /private/var)
-	tmpDir, err := filepath.EvalSymlinks(tmpDir)
+	tmpDir, err := fsutils.TruePath(tmpDir)
 	if err != nil {
-		t.Fatalf("EvalSymlinks failed: %v", err)
+		t.Fatalf("fsutils.TruePath failed: %v", err)
 	}
 
 	// Copy go.mod and go.sum for compilation
@@ -662,10 +736,14 @@ hooks:
 		t.Fatalf("WriteFile config failed: %v", err)
 	}
 
-	t.Chdir(tmpDir)
-
 	var stdout, stderr bytes.Buffer
-	code := RunHooksCommand(&stdout, &stderr, []string{"run", "pre-commit"})
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Dir:    tmpDir,
+		Args:   []string{"run", "pre-commit"},
+	})
 
 	// The target returns an error, so the hook should fail
 	if code == 0 {
