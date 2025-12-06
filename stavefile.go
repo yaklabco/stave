@@ -78,11 +78,11 @@ func Init() error { // stave:help=Install dev tools (Brewfile), setup hooks (res
 	return sh.Run("go", "mod", "tidy")
 }
 
-// Hooks configures git hooks to use either "husky" or "stave" (native).
-// Usage: stave Hooks husky   - Use Husky (.husky/)
+// SwitchHooks configures git hooks to use either "husky" or "stave" (native).
+// Usage: stave SwitchHooks husky   - Use Husky (.husky/)
 //
-//	stave Hooks stave   - Use native stave hooks (.git/hooks/)
-func Hooks(system string) error { // stave:help=Switch git hooks system: "husky" or "stave"
+//	stave SwitchHooks stave   - Use native stave hooks (.git/hooks/)
+func SwitchHooks(system string) error { // stave:help=Switch git hooks system: "husky" or "stave"
 	switch strings.ToLower(system) {
 	case "husky":
 		return setupHooksHusky()
