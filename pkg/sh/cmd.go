@@ -11,13 +11,15 @@ import (
 	"os/exec"
 	"strings"
 
+	"charm.land/lipgloss/v2"
 	"github.com/yaklabco/stave/internal/dryrun"
 	"github.com/yaklabco/stave/pkg/st"
+	"github.com/yaklabco/stave/pkg/ui"
 )
 
 // simpleConsoleLogger is an unstructured logger designed for emitting simple
 // messages to the console in `-v`/`--verbose` mode.
-var simpleConsoleLogger = log.New(os.Stderr, "[STAVE] ", 0) //nolint:gochecknoglobals // This is unchanged in the course of the process lifecycle.
+var simpleConsoleLogger = log.New(os.Stderr, lipgloss.NewStyle().Foreground(ui.GetFangScheme().Flag).Render("[STAVE] "), 0) //nolint:gochecknoglobals,lll // This is unchanged in the course of the process lifecycle.
 
 // RunCmd returns a function that will call Run with the given command. This is
 // useful for creating command aliases to make your scripts easier to read, like

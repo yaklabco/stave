@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Pretty-printed debug logs, both in "outer" Stave execution _and_ in execution of compiled stavefile.
 
+- `--exec` flag to execute arbitrary command-lines under Stave.
+
 - `CHANGELOG.md`! (And first formally-versioned release of Stave.)
 
 ### Changed

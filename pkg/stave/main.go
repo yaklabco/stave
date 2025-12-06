@@ -53,15 +53,16 @@ type RunParams struct {
 
 	WriterForLogger io.Writer // writer for logger to write to
 
+	List  bool // tells the stavefile to print out a list of targets
 	Init  bool // create an initial stavefile from template
 	Clean bool // clean out old generated binaries from cache dir
+	Exec  bool // tells the stavefile to treat the rest of the command-line as a command to execute
 
 	Debug      bool          // turn on debug messages
 	Dir        string        // directory to read stavefiles from
 	WorkDir    string        // directory where stavefiles will run
 	Force      bool          // forces recreation of the compiled binary
 	Verbose    bool          // tells the stavefile to print out log statements
-	List       bool          // tells the stavefile to print out a list of targets
 	Info       bool          // tells the stavefile to print out docstring for a specific target
 	Keep       bool          // tells stave to keep the generated main file after compiling
 	DryRun     bool          // tells stave that all sh.Run* commands should print, but not execute
@@ -125,7 +126,36 @@ func Run(params RunParams) error {
 		return nil
 	}
 
+	if params.Exec {
+		return execInStave(ctx, params)
+	}
+
 	return stave(ctx, params)
+}
+
+func execInStave(ctx context.Context, params RunParams) error {
+	if len(params.Args) < 1 {
+		return errors.New("--exec requires a command (and optionally, arguments) to run")
+	}
+
+	dryrun.SetPossible(true)
+
+	theCmd := dryrun.Wrap(ctx, params.Args[0], params.Args[1:]...)
+	theCmd.Stderr = params.Stderr
+	theCmd.Stdout = params.Stdout
+	theCmd.Stdin = params.Stdin
+	theCmd.Dir = params.Dir
+	if params.WorkDir != params.Dir {
+		theCmd.Dir = params.WorkDir
+	}
+
+	envMap, err := setupEnv(params)
+	if err != nil {
+		return fmt.Errorf("setting up environment for stavefile: %w", err)
+	}
+	theCmd.Env = env.ToAssignments(envMap)
+
+	return theCmd.Run()
 }
 
 func stave(ctx context.Context, params RunParams) error {
@@ -249,11 +279,13 @@ func stave(ctx context.Context, params RunParams) error {
 func howManyThingsToDo(params RunParams) int {
 	nThingsToDo := 0
 	switch {
+	case params.List:
+		nThingsToDo++
 	case params.Init:
 		nThingsToDo++
 	case params.Clean:
 		nThingsToDo++
-	case params.List:
+	case params.Exec:
 		nThingsToDo++
 	case len(params.Args) > 0:
 		nThingsToDo++
@@ -594,18 +626,18 @@ func generateInit(dir string) error {
 }
 
 // RunCompiled runs an already-compiled stave command with the given args,.
-func RunCompiled(ctx context.Context, runParams RunParams, exePath string) error {
+func RunCompiled(ctx context.Context, params RunParams, exePath string) error {
 	slog.Debug("running binary", slog.String(log.Path, exePath))
-	theCmd := dryrun.Wrap(ctx, exePath, runParams.Args...)
-	theCmd.Stderr = runParams.Stderr
-	theCmd.Stdout = runParams.Stdout
-	theCmd.Stdin = runParams.Stdin
-	theCmd.Dir = runParams.Dir
-	if runParams.WorkDir != runParams.Dir {
-		theCmd.Dir = runParams.WorkDir
+	theCmd := dryrun.Wrap(ctx, exePath, params.Args...)
+	theCmd.Stderr = params.Stderr
+	theCmd.Stdout = params.Stdout
+	theCmd.Stdin = params.Stdin
+	theCmd.Dir = params.Dir
+	if params.WorkDir != params.Dir {
+		theCmd.Dir = params.WorkDir
 	}
 
-	envMap, err := setupEnv(runParams)
+	envMap, err := setupEnv(params)
 	if err != nil {
 		return fmt.Errorf("setting up environment for stavefile: %w", err)
 	}
@@ -628,7 +660,7 @@ func RunCompiled(ctx context.Context, runParams RunParams, exePath string) error
 	return err
 }
 
-func setupEnv(runParams RunParams) (map[string]string, error) {
+func setupEnv(params RunParams) (map[string]string, error) {
 	envMap := env.GetMap()
 
 	// We don't want to actually allow dryrun in the outermost invocation of
@@ -639,25 +671,25 @@ func setupEnv(runParams RunParams) (map[string]string, error) {
 	// over throughout all such situations.
 	envMap["STAVEFILE_DRYRUN_POSSIBLE"] = "1"
 
-	if runParams.Verbose {
+	if params.Verbose {
 		envMap["STAVEFILE_VERBOSE"] = "1"
 	}
-	if runParams.List {
+	if params.List {
 		envMap["STAVEFILE_LIST"] = "1"
 	}
-	if runParams.Info {
+	if params.Info {
 		envMap["STAVEFILE_INFO"] = "1"
 	}
-	if runParams.Debug {
+	if params.Debug {
 		envMap["STAVEFILE_DEBUG"] = "1"
 	}
-	if runParams.GoCmd != "" {
-		envMap["STAVEFILE_GOCMD"] = runParams.GoCmd
+	if params.GoCmd != "" {
+		envMap["STAVEFILE_GOCMD"] = params.GoCmd
 	}
-	if runParams.Timeout > 0 {
-		envMap["STAVEFILE_TIMEOUT"] = runParams.Timeout.String()
+	if params.Timeout > 0 {
+		envMap["STAVEFILE_TIMEOUT"] = params.Timeout.String()
 	}
-	if runParams.DryRun {
+	if params.DryRun {
 		envMap["STAVEFILE_DRYRUN"] = "1"
 	}
 

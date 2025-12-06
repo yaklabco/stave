@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/preminger/goctx/pkg/util/fsutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,8 +31,7 @@ import (
 )
 
 const (
-	charmbraceletLogMod = "github.com/charmbracelet/log"
-	staveMod            = "github.com/yaklabco/stave"
+	staveMod = "github.com/yaklabco/stave"
 
 	testExeEnv = "STAVE_TEST_STRING"
 
@@ -603,10 +603,10 @@ func TestVerbose(t *testing.T) {
 	err = Run(runParams)
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 
-	expectedOutRegexp := `\bhi!\n`
-	assert.Regexp(t, expectedOutRegexp, stdout.String())
-	expectedErrRegexp := `\bRunning target: TestVerbose\b`
-	assert.Regexp(t, expectedErrRegexp, stderr.String())
+	expectedHiRegexp := `\bhi!\n`
+	assert.Regexp(t, expectedHiRegexp, stderr.String())
+	expectedRunningTargetRegexp := `\b.*Running target: .*TestVerbose.*\b`
+	assert.Regexp(t, expectedRunningTargetRegexp, stderr.String())
 }
 
 func TestList(t *testing.T) {
@@ -1020,10 +1020,10 @@ func TestMultipleTargets(t *testing.T) {
 
 	err := Run(runParams)
 	require.NoError(t, err, "stderr was: %s", stderr.String())
-	expectedOutRegexp := `\bhi!`
-	assert.Regexp(t, expectedOutRegexp, stdout.String())
-	expectedErrRegexp := `Running target: TestVerbose\n(.*\n)*Running target: ReturnsNilError\n`
-	assert.Regexp(t, expectedErrRegexp, stderr.String())
+	expectedHiRegexp := `\bhi!`
+	assert.Regexp(t, expectedHiRegexp, stderr.String())
+	expectedRunningTargetRegexp := `.*Running target: .*TestVerbose.*\n(.*\n)*.*Running target: .*ReturnsNilError.*\n`
+	assert.Regexp(t, expectedRunningTargetRegexp, stderr.String())
 
 	expectedOutStr := "stuff\n"
 	assert.Contains(t, stdout.String(), expectedOutStr)
@@ -1051,8 +1051,8 @@ func TestFirstTargetFails(t *testing.T) {
 	err := Run(runParams)
 	require.Error(t, err)
 
-	expectedErrStr := "Running target: ReturnsNonNilError\nError: bang!\n"
-	assert.Equal(t, expectedErrStr, stderr.String())
+	expectedErrRegexp := `.*Running target: .*ReturnsNonNilError.*\nError: bang!\n`
+	assert.Regexp(t, expectedErrRegexp, stderr.String())
 	assert.Empty(t, stdout.String())
 }
 
@@ -1365,7 +1365,7 @@ func TestCompiledFlags(t *testing.T) {
 	err = run(stdout, stderr, name, "-v", "testverbose")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want = hiExclam
-	assert.Contains(t, stdout.String(), want)
+	assert.Contains(t, stderr.String(), want)
 
 	// pass list flag -l
 	err = run(stdout, stderr, name, "-l")
@@ -1442,7 +1442,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 	err = run(stdout, stderr, name, st.VerboseEnv+"=1", "testverbose")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want = hiExclam
-	assert.Contains(t, stdout.String(), want)
+	assert.Contains(t, stderr.String(), want)
 
 	err = run(stdout, stderr, name, "STAVEFILE_LIST=1")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
@@ -1683,7 +1683,7 @@ func TestCompiledDeterministic(t *testing.T) {
 func TestGoCmd(t *testing.T) {
 	ctx := t.Context()
 
-	textOutput := "TestGoCmd"
+	textOutput := uuid.New().String()
 	t.Setenv(testExeEnv, textOutput)
 
 	// fake out the compiled file, since the code checks for it.
@@ -1698,7 +1698,7 @@ func TestGoCmd(t *testing.T) {
 
 	buf := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	if err := Compile(ctx, CompileParams{
+	err = Compile(ctx, CompileParams{
 		Goos:      "",
 		Goarch:    "",
 		Ldflags:   "",
@@ -1709,13 +1709,9 @@ func TestGoCmd(t *testing.T) {
 		Debug:     false,
 		Stderr:    stderr,
 		Stdout:    buf,
-	}); err != nil {
-		t.Log("stderr: ", stderr.String())
-		t.Fatal(err)
-	}
-	if buf.String() != textOutput {
-		t.Fatalf("We didn't run the custom go cmd. Expected output %q, but got %q", textOutput, buf)
-	}
+	})
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+	assert.Contains(t, buf.String(), textOutput)
 }
 
 func TestGoModules(t *testing.T) {
@@ -1760,14 +1756,6 @@ func Test() {
 	cmd.Stderr = stderr
 	cmd.Stdout = stdout
 	require.NoError(t, cmd.Run(), "failed to run 'go mod tidy', stderr was: %s", stderr.String())
-
-	// we need to run go mod tidy, since go build will no longer auto-add dependencies.
-	cmd = exec.Command("go", "get", charmbraceletLogMod)
-	cmd.Dir = dir
-	cmd.Env = os.Environ()
-	cmd.Stderr = stderr
-	cmd.Stdout = stdout
-	require.NoError(t, cmd.Run(), "failed to run 'go get %s', stderr was: %s", charmbraceletLogMod, stderr.String())
 
 	stderr.Reset()
 	stdout.Reset()

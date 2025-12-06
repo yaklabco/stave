@@ -33,6 +33,11 @@ func SetRequested(value bool) {
 	dryRunRequestedValue = value
 }
 
+// SetPossible sets the dryrun possible value to the specified boolean value.
+func SetPossible(value bool) {
+	dryRunPossible = value
+}
+
 // IsRequested checks if dry-run mode was requested, either explicitly or via an environment variable.
 func IsRequested() bool {
 	dryRunRequestedEnvOnce.Do(func() {
@@ -47,7 +52,7 @@ func IsRequested() bool {
 // IsPossible checks if dry-run mode is supported in the current context.
 func IsPossible() bool {
 	dryRunPossibleOnce.Do(func() {
-		dryRunPossible = os.Getenv(PossibleEnv) != ""
+		dryRunPossible = dryRunPossible || os.Getenv(PossibleEnv) != ""
 	})
 
 	return dryRunPossible
@@ -67,5 +72,8 @@ func Wrap(ctx context.Context, cmd string, args ...string) *exec.Cmd {
 
 // IsDryRun determines if dry-run mode is both possible and requested.
 func IsDryRun() bool {
-	return IsPossible() && IsRequested()
+	possible := IsPossible()
+	requested := IsRequested()
+
+	return possible && requested
 }
