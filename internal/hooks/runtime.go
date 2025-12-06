@@ -23,6 +23,20 @@ const (
 // ErrHooksDisabled is returned when hooks are disabled via STAVE_HOOKS=0.
 var ErrHooksDisabled = errors.New("hooks disabled via STAVE_HOOKS=0")
 
+// isQuietMode returns true if output should be suppressed (CI environments).
+func isQuietMode() bool {
+	if os.Getenv("STAVE_QUIET") == "1" {
+		return true
+	}
+	ciVars := []string{"CI", "GITHUB_ACTIONS", "GITLAB_CI", "JENKINS_URL", "CIRCLECI", "BUILDKITE"}
+	for _, v := range ciVars {
+		if os.Getenv(v) != "" {
+			return true
+		}
+	}
+	return false
+}
+
 // Runtime executes hook targets.
 type Runtime struct {
 	// Config is the Stave configuration containing hook definitions.
@@ -117,6 +131,16 @@ func (r *Runtime) Run(ctx context.Context, hookName string, args []string) (*Run
 	if targets == nil {
 		result.TotalTime = time.Since(startTime)
 		return result, nil
+	}
+
+	// Print hook run message (unless in quiet/CI mode)
+	if !isQuietMode() && r.Stdout != nil {
+		targetNames := make([]string, len(targets))
+		for i, t := range targets {
+			targetNames[i] = t.Target
+		}
+		_, _ = fmt.Fprintf(r.Stdout, "🪝 Running Git hooks: Stave (%s: %s)\n",
+			hookName, strings.Join(targetNames, ", "))
 	}
 
 	slog.Debug("hook execution starting",

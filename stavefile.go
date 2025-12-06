@@ -38,6 +38,22 @@ func outputln(s string) {
 	_, _ = fmt.Fprintln(os.Stdout, s)
 }
 
+// isQuietMode returns true if output should be suppressed (CI environments).
+// Checks STAVE_QUIET=1 first, then common CI environment variables.
+func isQuietMode() bool {
+	if os.Getenv("STAVE_QUIET") == "1" {
+		return true
+	}
+	// Common CI environment variables
+	ciVars := []string{"CI", "GITHUB_ACTIONS", "GITLAB_CI", "JENKINS_URL", "CIRCLECI", "BUILDKITE"}
+	for _, v := range ciVars {
+		if os.Getenv(v) != "" {
+			return true
+		}
+	}
+	return false
+}
+
 // Aliases maps target aliases to their implementations.
 // This is a stave convention - stavefiles define this global to create target aliases.
 //
@@ -143,8 +159,8 @@ func setupHooksHusky() error {
 	}
 
 	outputf("%s %s %s%s\n",
-		successStyle.Render("✓"),
-		labelStyle.Render("Git hooks:"),
+		successStyle.Render("⚙️"),
+		labelStyle.Render("Git hooks configured:"),
 		valueStyle.Render("Husky"),
 		hooksSuffix,
 	)
@@ -247,8 +263,8 @@ func setupHooksStave() error {
 	}
 
 	outputf("%s %s %s%s\n",
-		successStyle.Render("✓"),
-		labelStyle.Render("Git hooks:"),
+		successStyle.Render("⚙️"),
+		labelStyle.Render("Git hooks configured:"),
 		valueStyle.Render("Stave"),
 		hooksSuffix,
 	)
@@ -340,11 +356,28 @@ func Lint() { // stave:help=Run linters and auto-fix issues
 }
 
 // Test aggregate target runs Lint and TestGo.
-func Test() { // stave:help=Run lint and Go tests with coverage
-	st.Deps(Init, Lint, TestGo)
+func Test() error { // stave:help=Run lint and Go tests with coverage
+	// Run Init first (handles setup messages like hooks configured)
+	st.Deps(Init)
+
+	// Print test header (unless in quiet/CI mode)
+	if !isQuietMode() {
+		outputln("🧪 Running tests (Test: Lint, TestGo)")
+	}
+
+	startTime := time.Now()
+
+	st.Deps(Lint, TestGo)
+
+	// Print success message with timing (unless in quiet/CI mode)
+	if !isQuietMode() {
+		outputf("👌 All tests ran successfully (%s)\n", time.Since(startTime).Round(time.Millisecond))
+	}
+
+	return nil
 }
 
-// ValidateChangelog validates CHANGELOG.md format against Keep a Changelog conventions.
+// ValidateChangelog validates CHANGELOG.md format against 'Keep a Changelog' conventions.
 func ValidateChangelog() error { // stave:help=Validate CHANGELOG.md format
 	if err := changelog.ValidateFile("CHANGELOG.md"); err != nil {
 		return fmt.Errorf("CHANGELOG.md validation failed: %w", err)
