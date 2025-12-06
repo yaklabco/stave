@@ -37,9 +37,8 @@ func Parse(content string) (*Changelog, error) {
 	}
 
 	cl := &Changelog{
-		Raw:      content,
-		Headings: make([]Heading, 0),
-		Links:    make([]Link, 0),
+		Headings: []Heading{},
+		Links:    []Link{},
 	}
 
 	lines := strings.Split(content, "\n")
