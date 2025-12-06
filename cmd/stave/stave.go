@@ -77,7 +77,11 @@ func NewRootCmd(ctx context.Context, opts ...Option) *cobra.Command {
 			if len(args) > 0 {
 				switch args[0] {
 				case "hooks":
-					exitCode := stave.RunHooksCommandContext(cmd.Context(), os.Stdout, os.Stderr, args[1:])
+					hooksParams := stave.HooksParams{
+						Debug:   runParams.Debug,
+						Verbose: runParams.Verbose,
+					}
+					exitCode := stave.RunHooksCommandWithParams(cmd.Context(), os.Stdout, os.Stderr, hooksParams, args[1:])
 					if exitCode != 0 {
 						return &exitError{code: exitCode, cmd: "hooks"}
 					}
