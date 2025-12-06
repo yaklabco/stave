@@ -39,48 +39,35 @@ func NextVersion() (string, error) {
 	return version, nil
 }
 
-// findSVUBinary locates svu in PATH or GOBIN.
+// findSVUBinary locates svu in PATH or common Go binary locations.
 func findSVUBinary() (string, error) {
 	// Try PATH first
 	if path, err := exec.LookPath("svu"); err == nil {
 		return path, nil
 	}
 
-	// Try GOBIN
-	if gobin := os.Getenv("GOBIN"); gobin != "" {
-		svuPath := filepath.Join(gobin, "svu")
-		if _, err := os.Stat(svuPath); err == nil {
-			return svuPath, nil
-		}
+	// Build candidate directories from environment and go env
+	candidates := []string{
+		os.Getenv("GOBIN"),
+		filepath.Join(os.Getenv("GOPATH"), "bin"),
 	}
 
-	// Try GOPATH/bin
-	if gopath := os.Getenv("GOPATH"); gopath != "" {
-		svuPath := filepath.Join(gopath, "bin", "svu")
-		if _, err := os.Stat(svuPath); err == nil {
-			return svuPath, nil
-		}
-	}
-
-	// Try go env GOBIN
+	// Add go env values (these may differ from environment variables)
 	if goBin, err := sh.Output("go", "env", "GOBIN"); err == nil {
-		goBin = strings.TrimSpace(goBin)
-		if goBin != "" {
-			svuPath := filepath.Join(goBin, "svu")
-			if _, err := os.Stat(svuPath); err == nil {
-				return svuPath, nil
-			}
-		}
+		candidates = append(candidates, strings.TrimSpace(goBin))
+	}
+	if goPath, err := sh.Output("go", "env", "GOPATH"); err == nil {
+		candidates = append(candidates, filepath.Join(strings.TrimSpace(goPath), "bin"))
 	}
 
-	// Try go env GOPATH
-	if gopath, err := sh.Output("go", "env", "GOPATH"); err == nil {
-		gopath = strings.TrimSpace(gopath)
-		if gopath != "" {
-			svuPath := filepath.Join(gopath, "bin", "svu")
-			if _, err := os.Stat(svuPath); err == nil {
-				return svuPath, nil
-			}
+	// Check each candidate directory for svu binary
+	for _, dir := range candidates {
+		if dir == "" {
+			continue
+		}
+		svuPath := filepath.Join(dir, "svu")
+		if _, err := os.Stat(svuPath); err == nil {
+			return svuPath, nil
 		}
 	}
 
