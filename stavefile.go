@@ -22,6 +22,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/yaklabco/stave/cmd/stave/version"
 	"github.com/yaklabco/stave/config"
+	"github.com/yaklabco/stave/internal/changelog"
 	"github.com/yaklabco/stave/internal/dryrun"
 	"github.com/yaklabco/stave/pkg/sh"
 	"github.com/yaklabco/stave/pkg/st"
@@ -321,6 +322,40 @@ func Lint() { // stave:help=Run linters and auto-fix issues
 // Test aggregate target runs Lint and TestGo.
 func Test() { // stave:help=Run lint and Go tests with coverage
 	st.Deps(Init, Lint, TestGo)
+}
+
+// ValidateChangelog validates CHANGELOG.md format against Keep a Changelog conventions.
+func ValidateChangelog() error { // stave:help=Validate CHANGELOG.md format
+	if err := changelog.ValidateFile("CHANGELOG.md"); err != nil {
+		return fmt.Errorf("CHANGELOG.md validation failed: %w", err)
+	}
+	slog.Info("CHANGELOG.md validation passed")
+	return nil
+}
+
+// PrePushCheck runs all pre-push validations for branch pushes.
+// This is the Go equivalent of the .githooks/pre-push bash script.
+func PrePushCheck() error { // stave:help=Run pre-push changelog validations
+	// First validate the changelog format
+	if err := ValidateChangelog(); err != nil {
+		return err
+	}
+
+	// Check if we should skip svu verification
+	if os.Getenv("SKIP_SVU_CHANGELOG_CHECK") == "1" ||
+		os.Getenv("GORELEASER_CURRENT_TAG") != "" ||
+		os.Getenv("GORELEASER") != "" {
+		slog.Info("skipping svu next-version check (release/opt-out)")
+		return nil
+	}
+
+	// Verify next version exists in changelog
+	if err := changelog.VerifyNextVersion("CHANGELOG.md"); err != nil {
+		return fmt.Errorf("changelog version check failed: %w", err)
+	}
+
+	slog.Info("CHANGELOG.md next-version verification passed")
+	return nil
 }
 
 // TestGo runs Go tests with coverage and produces coverage.out and coverage.html.

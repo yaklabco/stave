@@ -7,4 +7,5 @@ hash_fast: true
 # Git hooks configuration
 hooks:
   pre-push:
+    - target: PrePushCheck
     - target: Test
