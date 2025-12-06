@@ -39,6 +39,9 @@ type Config struct {
 	// TargetColor is the ANSI color name for target names.
 	TargetColor string `mapstructure:"target_color"`
 
+	// Hooks defines Git hooks and the Stave targets they should run.
+	Hooks HooksConfig `mapstructure:"hooks"`
+
 	// configFile is the path to the config file that was loaded (if any).
 	configFile string
 }
@@ -230,54 +233,36 @@ func Load(opts *LoadOptions) (*Config, error) {
 }
 
 // applyEnvironmentOverrides applies environment variable overrides to the config.
-// It supports both STAVEFILE_* (preferred) and STAVEFILE_* (legacy) prefixes.
 // Environment variables take precedence over config file values.
 func applyEnvironmentOverrides(cfg *Config) {
-	// Helper to get env with fallback
-	getEnv := func(primary, legacy string) (string, bool) {
-		if v := os.Getenv(primary); v != "" {
-			return v, true
-		}
-		if v := os.Getenv(legacy); v != "" {
-			return v, true
-		}
-		return "", false
-	}
-
-	// Helper to get bool env with fallback
-	getBoolEnv := func(primary, legacy string) (bool, bool) {
-		if v := os.Getenv(primary); v != "" {
-			return v == "1" || v == "true" || v == "TRUE" || v == "True", true
-		}
-		if v := os.Getenv(legacy); v != "" {
-			return v == "1" || v == "true" || v == "TRUE" || v == "True", true
-		}
-		return false, false
+	// parseBool interprets a string as a boolean value.
+	parseBool := func(v string) bool {
+		return v == "1" || v == "true" || v == "TRUE" || v == "True"
 	}
 
 	// Apply overrides
-	if v, ok := getEnv("STAVEFILE_CACHE", "STAVEFILE_CACHE"); ok {
+	if v := os.Getenv("STAVEFILE_CACHE"); v != "" {
 		cfg.CacheDir = v
 	}
-	if v, ok := getEnv("STAVEFILE_GOCMD", "STAVEFILE_GOCMD"); ok {
+	if v := os.Getenv("STAVEFILE_GOCMD"); v != "" {
 		cfg.GoCmd = v
 	}
-	if v, ok := getBoolEnv("STAVEFILE_VERBOSE", "STAVEFILE_VERBOSE"); ok {
-		cfg.Verbose = v
+	if v := os.Getenv("STAVEFILE_VERBOSE"); v != "" {
+		cfg.Verbose = parseBool(v)
 	}
-	if v, ok := getBoolEnv("STAVEFILE_DEBUG", "STAVEFILE_DEBUG"); ok {
-		cfg.Debug = v
+	if v := os.Getenv("STAVEFILE_DEBUG"); v != "" {
+		cfg.Debug = parseBool(v)
 	}
-	if v, ok := getBoolEnv("STAVEFILE_HASHFAST", "STAVEFILE_HASHFAST"); ok {
-		cfg.HashFast = v
+	if v := os.Getenv("STAVEFILE_HASHFAST"); v != "" {
+		cfg.HashFast = parseBool(v)
 	}
-	if v, ok := getBoolEnv("STAVEFILE_IGNOREDEFAULT", "STAVEFILE_IGNOREDEFAULT"); ok {
-		cfg.IgnoreDefault = v
+	if v := os.Getenv("STAVEFILE_IGNOREDEFAULT"); v != "" {
+		cfg.IgnoreDefault = parseBool(v)
 	}
-	if v, ok := getBoolEnv("STAVEFILE_ENABLE_COLOR", "STAVEFILE_ENABLE_COLOR"); ok {
-		cfg.EnableColor = v
+	if v := os.Getenv("STAVEFILE_ENABLE_COLOR"); v != "" {
+		cfg.EnableColor = parseBool(v)
 	}
-	if v, ok := getEnv("STAVEFILE_TARGET_COLOR", "STAVEFILE_TARGET_COLOR"); ok {
+	if v := os.Getenv("STAVEFILE_TARGET_COLOR"); v != "" {
 		cfg.TargetColor = v
 	}
 }
