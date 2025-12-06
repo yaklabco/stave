@@ -331,8 +331,6 @@ func preprocessRunParams(params *RunParams) {
 			}
 		}
 	}
-
-	params.CacheDir = st.CacheDir()
 }
 
 func applyBasicRunParams(params RunParams) error {
@@ -599,7 +597,7 @@ func ExeName(ctx context.Context, goCmd, cacheDir string, files []string) (strin
 func hashFile(fn string) (string, error) {
 	fd, err := os.Open(fn)
 	if err != nil {
-		return "", fmt.Errorf("can't open input file for hashing: %#w", err)
+		return "", fmt.Errorf("can't open input file for hashing: %w", err)
 	}
 	defer func() { _ = fd.Close() }()
 
