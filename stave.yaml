@@ -1,0 +1,10 @@
+# Stave configuration
+# See: https://github.com/yaklabco/stave
+
+# Use hash_fast for faster hook execution (skips GOCACHE check)
+hash_fast: true
+
+# Git hooks configuration
+hooks:
+  pre-push:
+    - target: Test

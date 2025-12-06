@@ -136,8 +136,9 @@ func setupHooksStave() error {
 		return err
 	}
 
-	// Remove husky hooks path config
-	_ = sh.Run("git", "config", "--unset", "core.hooksPath")
+	// Remove husky hooks path config (ignore error - may not be set)
+	//nolint:errcheck // Intentionally ignoring - config key may not exist
+	sh.Run("git", "config", "--unset", "core.hooksPath")
 
 	// Install stave hooks
 	if err := sh.Run("stave", "hooks", "install"); err != nil {
@@ -175,7 +176,7 @@ hooks:
   pre-push:
     - target: Test
 `
-	if err := os.WriteFile(staveYAML, []byte(defaultConfig), 0o644); err != nil {
+	if err := os.WriteFile(staveYAML, []byte(defaultConfig), 0o600); err != nil {
 		return fmt.Errorf("failed to create stave.yaml: %w", err)
 	}
 
