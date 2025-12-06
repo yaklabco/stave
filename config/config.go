@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/spf13/viper"
+	"github.com/yaklabco/stave/internal/env"
 )
 
 // Config holds all Stave configuration values.
@@ -302,15 +303,12 @@ func applyStringEnv(envVar string, target *string) {
 }
 
 // applyBoolEnv applies an environment variable value to a bool pointer if set.
+// Invalid values fall back to false; unset env vars leave the config value unchanged.
 func applyBoolEnv(envVar string, target *bool) {
 	if v := os.Getenv(envVar); v != "" {
-		*target = parseBoolValue(v)
+		b, _ := env.ParseBool(v) //nolint:errcheck // invalid values intentionally fall back to false per RFC
+		*target = b
 	}
-}
-
-// parseBoolValue interprets a string as a boolean value.
-func parseBoolValue(v string) bool {
-	return v == "1" || v == "true" || v == "TRUE" || v == "True"
 }
 
 // DefaultConfig returns a Config with all default values.
