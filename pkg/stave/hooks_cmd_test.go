@@ -25,21 +25,22 @@ hooks:
     - target: fmt
 `
 
-// testChdir changes to the given directory and returns a cleanup function.
-func testChdir(t *testing.T, dir string) {
+// testGitInit initializes a git repository in the given directory.
+// It uses --template= to avoid inheriting hooks from user git templates,
+// ensuring test isolation regardless of the user's git configuration.
+// It also creates the hooks directory since --template= skips creating it.
+func testGitInit(t *testing.T, dir string) {
 	t.Helper()
-	oldWd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("Getwd failed: %v", err)
+	cmd := exec.Command("git", "init", "--template=")
+	cmd.Dir = dir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("git init failed: %v", err)
 	}
-	if err := os.Chdir(dir); err != nil {
-		t.Fatalf("Chdir failed: %v", err)
+	// Create hooks directory since --template= skips it
+	hooksDir := filepath.Join(dir, ".git", "hooks")
+	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
+		t.Fatalf("mkdir hooks failed: %v", err)
 	}
-	t.Cleanup(func() {
-		if err := os.Chdir(oldWd); err != nil {
-			t.Errorf("Cleanup Chdir failed: %v", err)
-		}
-	})
 }
 
 // copyModFiles copies go.mod and go.sum from the repo root to the destination directory.
@@ -171,7 +172,7 @@ hooks:
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	testChdir(t, tmpDir)
+	t.Chdir(tmpDir)
 
 	var stdout, stderr bytes.Buffer
 	code := RunHooksCommand(&stdout, &stderr, []string{"list"})
@@ -202,7 +203,7 @@ func TestRunHooksCommand_Install_NotGitRepo(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	testChdir(t, tmpDir)
+	t.Chdir(tmpDir)
 
 	var stdout, stderr bytes.Buffer
 	code := RunHooksCommand(&stdout, &stderr, []string{"install"})
@@ -227,11 +228,7 @@ func TestRunHooksCommand_Install_NoHooksConfig(t *testing.T) {
 		t.Fatalf("EvalSymlinks failed: %v", err)
 	}
 
-	cmd := exec.Command("git", "init")
-	cmd.Dir = tmpDir
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git init failed: %v", err)
-	}
+	testGitInit(t, tmpDir)
 
 	// Create empty config (no hooks)
 	configPath := filepath.Join(tmpDir, "stave.yaml")
@@ -239,7 +236,7 @@ func TestRunHooksCommand_Install_NoHooksConfig(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	testChdir(t, tmpDir)
+	t.Chdir(tmpDir)
 
 	var stdout, stderr bytes.Buffer
 	code := RunHooksCommand(&stdout, &stderr, []string{"install"})
@@ -264,11 +261,7 @@ func TestRunHooksCommand_Install_CreatesScripts(t *testing.T) {
 		t.Fatalf("EvalSymlinks failed: %v", err)
 	}
 
-	cmd := exec.Command("git", "init")
-	cmd.Dir = tmpDir
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git init failed: %v", err)
-	}
+	testGitInit(t, tmpDir)
 
 	configContent := `
 hooks:
@@ -282,7 +275,7 @@ hooks:
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	testChdir(t, tmpDir)
+	t.Chdir(tmpDir)
 
 	var stdout, stderr bytes.Buffer
 	code := RunHooksCommand(&stdout, &stderr, []string{"install"})
@@ -325,11 +318,7 @@ func TestRunHooksCommand_Install_ExistingNonStaveHook_Fails(t *testing.T) {
 		t.Fatalf("EvalSymlinks failed: %v", err)
 	}
 
-	cmd := exec.Command("git", "init")
-	cmd.Dir = tmpDir
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git init failed: %v", err)
-	}
+	testGitInit(t, tmpDir)
 
 	// Create existing non-Stave hook
 	hooksDir := filepath.Join(tmpDir, ".git", "hooks")
@@ -343,7 +332,7 @@ func TestRunHooksCommand_Install_ExistingNonStaveHook_Fails(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	testChdir(t, tmpDir)
+	t.Chdir(tmpDir)
 
 	var stdout, stderr bytes.Buffer
 	code := RunHooksCommand(&stdout, &stderr, []string{"install"})
@@ -368,11 +357,7 @@ func TestRunHooksCommand_Install_Force(t *testing.T) {
 		t.Fatalf("EvalSymlinks failed: %v", err)
 	}
 
-	cmd := exec.Command("git", "init")
-	cmd.Dir = tmpDir
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git init failed: %v", err)
-	}
+	testGitInit(t, tmpDir)
 
 	// Create existing non-Stave hook
 	hooksDir := filepath.Join(tmpDir, ".git", "hooks")
@@ -386,7 +371,7 @@ func TestRunHooksCommand_Install_Force(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	testChdir(t, tmpDir)
+	t.Chdir(tmpDir)
 
 	var stdout, stderr bytes.Buffer
 	code := RunHooksCommand(&stdout, &stderr, []string{"install", "--force"})
@@ -417,11 +402,7 @@ func TestRunHooksCommand_Install_UpdatesStaveHook(t *testing.T) {
 		t.Fatalf("EvalSymlinks failed: %v", err)
 	}
 
-	cmd := exec.Command("git", "init")
-	cmd.Dir = tmpDir
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git init failed: %v", err)
-	}
+	testGitInit(t, tmpDir)
 
 	// Create existing Stave hook
 	hooksDir := filepath.Join(tmpDir, ".git", "hooks")
@@ -435,7 +416,7 @@ func TestRunHooksCommand_Install_UpdatesStaveHook(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	testChdir(t, tmpDir)
+	t.Chdir(tmpDir)
 
 	var stdout, stderr bytes.Buffer
 	code := RunHooksCommand(&stdout, &stderr, []string{"install"})
@@ -457,11 +438,7 @@ func TestRunHooksCommand_Uninstall(t *testing.T) {
 		t.Fatalf("EvalSymlinks failed: %v", err)
 	}
 
-	cmd := exec.Command("git", "init")
-	cmd.Dir = tmpDir
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git init failed: %v", err)
-	}
+	testGitInit(t, tmpDir)
 
 	// Install a hook first
 	hooksDir := filepath.Join(tmpDir, ".git", "hooks")
@@ -475,7 +452,7 @@ func TestRunHooksCommand_Uninstall(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	testChdir(t, tmpDir)
+	t.Chdir(tmpDir)
 
 	var stdout, stderr bytes.Buffer
 	code := RunHooksCommand(&stdout, &stderr, []string{"uninstall"})
@@ -540,7 +517,7 @@ hooks:
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	testChdir(t, tmpDir)
+	t.Chdir(tmpDir)
 
 	var stdout, stderr bytes.Buffer
 	code := RunHooksCommand(&stdout, &stderr, []string{"run", "pre-commit"})
@@ -561,7 +538,7 @@ func TestRunHooksCommand_Run_UnconfiguredHook(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	testChdir(t, tmpDir)
+	t.Chdir(tmpDir)
 
 	var stdout, stderr bytes.Buffer
 	code := RunHooksCommand(&stdout, &stderr, []string{"run", "pre-push"})
@@ -624,7 +601,7 @@ hooks:
 		t.Fatalf("WriteFile config failed: %v", err)
 	}
 
-	testChdir(t, tmpDir)
+	t.Chdir(tmpDir)
 
 	// Set marker env var
 	t.Setenv("HOOK_TEST_MARKER", markerPath)
@@ -685,7 +662,7 @@ hooks:
 		t.Fatalf("WriteFile config failed: %v", err)
 	}
 
-	testChdir(t, tmpDir)
+	t.Chdir(tmpDir)
 
 	var stdout, stderr bytes.Buffer
 	code := RunHooksCommand(&stdout, &stderr, []string{"run", "pre-commit"})

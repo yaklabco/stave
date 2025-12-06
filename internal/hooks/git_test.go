@@ -8,6 +8,24 @@ import (
 	"testing"
 )
 
+// testGitInit initializes a git repository in the given directory.
+// It uses --template= to avoid inheriting hooks from user git templates,
+// ensuring test isolation regardless of the user's git configuration.
+// It also creates the hooks directory since --template= skips creating it.
+func testGitInit(t *testing.T, dir string) {
+	t.Helper()
+	cmd := exec.Command("git", "init", "--template=")
+	cmd.Dir = dir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("git init failed: %v", err)
+	}
+	// Create hooks directory since --template= skips it
+	hooksDir := filepath.Join(dir, ".git", "hooks")
+	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
+		t.Fatalf("mkdir hooks failed: %v", err)
+	}
+}
+
 func TestFindGitRepo_Valid(t *testing.T) {
 	t.Parallel()
 
@@ -20,12 +38,7 @@ func TestFindGitRepo_Valid(t *testing.T) {
 		t.Fatalf("EvalSymlinks failed: %v", err)
 	}
 
-	// Initialize a git repo
-	cmd := exec.Command("git", "init")
-	cmd.Dir = tmpDir
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git init failed: %v", err)
-	}
+	testGitInit(t, tmpDir)
 
 	repo, err := FindGitRepo(tmpDir)
 	if err != nil {
@@ -70,12 +83,7 @@ func TestFindGitRepo_Subdirectory(t *testing.T) {
 		t.Fatalf("EvalSymlinks failed: %v", err)
 	}
 
-	// Initialize a git repo
-	cmd := exec.Command("git", "init")
-	cmd.Dir = tmpDir
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git init failed: %v", err)
-	}
+	testGitInit(t, tmpDir)
 
 	// Create a subdirectory
 	subDir := filepath.Join(tmpDir, "subdir", "nested")
@@ -106,12 +114,7 @@ func TestGitRepo_HooksPath_Default(t *testing.T) {
 		t.Fatalf("EvalSymlinks failed: %v", err)
 	}
 
-	// Initialize a git repo
-	cmd := exec.Command("git", "init")
-	cmd.Dir = tmpDir
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git init failed: %v", err)
-	}
+	testGitInit(t, tmpDir)
 
 	repo, err := FindGitRepo(tmpDir)
 	if err != nil {
@@ -140,16 +143,11 @@ func TestGitRepo_HooksPath_CustomPath(t *testing.T) {
 		t.Fatalf("EvalSymlinks failed: %v", err)
 	}
 
-	// Initialize a git repo
-	cmd := exec.Command("git", "init")
-	cmd.Dir = tmpDir
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git init failed: %v", err)
-	}
+	testGitInit(t, tmpDir)
 
 	// Set custom hooks path
 	customPath := ".githooks"
-	cmd = exec.Command("git", "config", "core.hooksPath", customPath)
+	cmd := exec.Command("git", "config", "core.hooksPath", customPath)
 	cmd.Dir = tmpDir
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("git config failed: %v", err)
@@ -182,16 +180,11 @@ func TestGitRepo_HooksPath_AbsoluteCustomPath(t *testing.T) {
 		t.Fatalf("EvalSymlinks failed: %v", err)
 	}
 
-	// Initialize a git repo
-	cmd := exec.Command("git", "init")
-	cmd.Dir = tmpDir
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git init failed: %v", err)
-	}
+	testGitInit(t, tmpDir)
 
 	// Set absolute custom hooks path
 	customPath := filepath.Join(tmpDir, "custom-hooks")
-	cmd = exec.Command("git", "config", "core.hooksPath", customPath)
+	cmd := exec.Command("git", "config", "core.hooksPath", customPath)
 	cmd.Dir = tmpDir
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("git config failed: %v", err)
@@ -219,12 +212,7 @@ func TestGitRepo_EnsureHooksDir(t *testing.T) {
 		t.Fatalf("EvalSymlinks failed: %v", err)
 	}
 
-	// Initialize a git repo
-	cmd := exec.Command("git", "init")
-	cmd.Dir = tmpDir
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git init failed: %v", err)
-	}
+	testGitInit(t, tmpDir)
 
 	// Remove the hooks directory if it exists
 	hooksDir := filepath.Join(tmpDir, ".git", "hooks")
@@ -262,12 +250,7 @@ func TestGitRepo_HookPath(t *testing.T) {
 		t.Fatalf("EvalSymlinks failed: %v", err)
 	}
 
-	// Initialize a git repo
-	cmd := exec.Command("git", "init")
-	cmd.Dir = tmpDir
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git init failed: %v", err)
-	}
+	testGitInit(t, tmpDir)
 
 	repo, err := FindGitRepo(tmpDir)
 	if err != nil {
