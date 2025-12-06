@@ -3,18 +3,20 @@ package st
 import (
 	"bytes"
 	"fmt"
-	"log"
+	stdlog "log"
 	"strings"
 	"testing"
+
+	"github.com/yaklabco/stave/internal/log"
 )
 
 func TestDepsLogging(t *testing.T) {
 	t.Setenv("STAVEFILE_VERBOSE", "1")
 	buf := &bytes.Buffer{}
 
-	defaultLogger := simpleConsoleLogger
-	simpleConsoleLogger = log.New(buf, "", 0)
-	defer func() { simpleConsoleLogger = defaultLogger }()
+	defaultLogger := log.SimpleConsoleLogger
+	log.SimpleConsoleLogger = stdlog.New(buf, "", 0)
+	defer func() { log.SimpleConsoleLogger = defaultLogger }()
 
 	foo()
 

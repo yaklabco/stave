@@ -3,20 +3,13 @@ package st
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
 	"reflect"
 	"runtime"
 	"strings"
 	"sync"
 
-	"charm.land/lipgloss/v2"
-	"github.com/yaklabco/stave/pkg/ui"
+	"github.com/yaklabco/stave/internal/log"
 )
-
-// simpleConsoleLogger is an unstructured logger designed for emitting simple
-// messages to the console in `-v`/`--verbose` mode.
-var simpleConsoleLogger = log.New(os.Stderr, lipgloss.NewStyle().Foreground(ui.GetFangScheme().Flag).Render("[STAVE] "), 0) //nolint:gochecknoglobals,lll // This is unchanged in the course of the process lifecycle.
 
 type onceMap struct {
 	mu *sync.Mutex
@@ -216,7 +209,7 @@ type onceFun struct {
 func (o *onceFun) run(ctx context.Context) error {
 	o.once.Do(func() {
 		if Verbose() {
-			simpleConsoleLogger.Println("Running dependency:", displayName(o.fn.Name()))
+			log.SimpleConsoleLogger.Println("Running dependency:", displayName(o.fn.Name()))
 		}
 		o.err = o.fn.Run(ctx)
 	})

@@ -6,20 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
 
-	"charm.land/lipgloss/v2"
 	"github.com/yaklabco/stave/internal/dryrun"
+	"github.com/yaklabco/stave/internal/log"
 	"github.com/yaklabco/stave/pkg/st"
-	"github.com/yaklabco/stave/pkg/ui"
 )
-
-// simpleConsoleLogger is an unstructured logger designed for emitting simple
-// messages to the console in `-v`/`--verbose` mode.
-var simpleConsoleLogger = log.New(os.Stderr, lipgloss.NewStyle().Foreground(ui.GetFangScheme().Flag).Render("[STAVE] "), 0) //nolint:gochecknoglobals,lll // This is unchanged in the course of the process lifecycle.
 
 // RunCmd returns a function that will call Run with the given command. This is
 // useful for creating command aliases to make your scripts easier to read, like
@@ -150,7 +144,7 @@ func run(env map[string]string, stdout, stderr io.Writer, cmd string, args ...st
 	}
 	// To protect against logging from doing exec in global variables
 	if st.Verbose() {
-		simpleConsoleLogger.Println("exec:", cmd, strings.Join(quoted, " "))
+		log.SimpleConsoleLogger.Println("exec:", cmd, strings.Join(quoted, " "))
 	}
 	err := theCmd.Run()
 
@@ -175,10 +169,6 @@ func CmdRan(err error) bool {
 	return false
 }
 
-type exitStatus interface {
-	ExitStatus() int
-}
-
 // ExitStatus returns the exit status of the error if it is an exec.ExitError
 // or if it implements ExitStatus() int.
 // 0 if it is nil or 1 if it is a different error.
@@ -186,12 +176,13 @@ func ExitStatus(err error) int {
 	if err == nil {
 		return 0
 	}
-	if e, ok := err.(exitStatus); ok {
-		return e.ExitStatus()
+	var exit st.ExitStatuser
+	if errors.As(err, &exit) {
+		return exit.ExitStatus()
 	}
 	var e *exec.ExitError
 	if errors.As(err, &e) {
-		if ex, ok := e.Sys().(exitStatus); ok {
+		if ex, ok := e.Sys().(st.ExitStatuser); ok {
 			return ex.ExitStatus()
 		}
 	}
