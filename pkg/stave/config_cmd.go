@@ -1,6 +1,7 @@
 package stave
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -23,6 +24,12 @@ const (
 // RunConfigCommand handles the `stave config` subcommand.
 // It returns the exit code.
 func RunConfigCommand(stdout, stderr io.Writer, args []string) int {
+	return RunConfigCommandContext(context.Background(), stdout, stderr, args)
+}
+
+// RunConfigCommandContext handles the `stave config` subcommand with context.
+// It returns the exit code.
+func RunConfigCommandContext(_ context.Context, stdout, stderr io.Writer, args []string) int {
 	fs := flag.NewFlagSet("config", flag.ContinueOnError)
 	fs.SetOutput(stdout)
 	fs.Usage = func() {

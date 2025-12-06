@@ -12,6 +12,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// exitError is returned when a subcommand fails with a non-zero exit code.
+type exitError struct {
+	code int
+	cmd  string
+}
+
+func (e *exitError) Error() string {
+	return e.cmd + " command failed"
+}
+
+// ExitCode returns the exit code from the failed command.
+func (e *exitError) ExitCode() int {
+	return e.code
+}
+
 const (
 	shortDescription = "Stave is a Go-native, make-like command runner. It is a fork of Mage. See https://github.com/yaklabco/stave"
 )
@@ -47,11 +62,38 @@ func NewRootCmd(ctx context.Context, opts ...Option) *cobra.Command {
 
 	# Run specific targets
 	stave test
-	stave build`,
+	stave build
+
+	# Manage Git hooks
+	stave hooks install
+	stave hooks list
+
+	# Manage configuration
+	stave config show`,
 		Version: version.OverallVersionStringColorized(ctx),
-		RunE: func(_ *cobra.Command, args []string) error {
+		//nolint:contextcheck // context is passed via cmd.Context() to subcommands and via runParams.BaseCtx to main run
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// Handle built-in subcommands before delegating to target execution
+			if len(args) > 0 {
+				switch args[0] {
+				case "hooks":
+					exitCode := stave.RunHooksCommandContext(cmd.Context(), os.Stdout, os.Stderr, args[1:])
+					if exitCode != 0 {
+						return &exitError{code: exitCode, cmd: "hooks"}
+					}
+					return nil
+				case "config":
+					exitCode := stave.RunConfigCommandContext(cmd.Context(), os.Stdout, os.Stderr, args[1:])
+					if exitCode != 0 {
+						return &exitError{code: exitCode, cmd: "config"}
+					}
+					return nil
+				}
+			}
+
 			runParams.Args = args
 			runParams.WriterForLogger = os.Stdout
+			runParams.BaseCtx = cmd.Context() //nolint:fatcontext // intentionally setting context from cmd
 
 			return rootCmdOpts.runFunc(runParams)
 		},
