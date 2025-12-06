@@ -29,22 +29,22 @@ func TestDepsRunOnce(t *testing.T) {
 }
 
 func TestDepsOfDeps(t *testing.T) {
-	ch := make(chan string, 3)
+	resultChan := make(chan string, 3)
 	// this->f->g->h
-	h := func() {
-		ch <- "h"
+	funcH := func() {
+		resultChan <- "h"
 	}
-	g := func() {
-		Deps(h)
-		ch <- "g"
+	funcG := func() {
+		Deps(funcH)
+		resultChan <- "g"
 	}
-	f := func() {
-		Deps(g)
-		ch <- "f"
+	funcF := func() {
+		Deps(funcG)
+		resultChan <- "f"
 	}
-	Deps(f)
+	Deps(funcF)
 
-	res := <-ch + <-ch + <-ch
+	res := <-resultChan + <-resultChan + <-resultChan
 
 	if res != "hgf" {
 		t.Fatal("expected h then g then f to run, but got " + res)
@@ -52,21 +52,21 @@ func TestDepsOfDeps(t *testing.T) {
 }
 
 func TestSerialDeps(t *testing.T) {
-	ch := make(chan string, 3)
+	resultChan := make(chan string, 3)
 	// this->funcF->funcG->funcH
 	funcH := func() {
-		ch <- "h"
+		resultChan <- "h"
 	}
 	funcG := func() {
-		ch <- "g"
+		resultChan <- "g"
 	}
 	funcF := func() {
 		SerialDeps(funcG, funcH)
-		ch <- "f"
+		resultChan <- "f"
 	}
 	Deps(funcF)
 
-	res := <-ch + <-ch + <-ch
+	res := <-resultChan + <-resultChan + <-resultChan
 
 	if res != "ghf" {
 		t.Fatal("expected funcG then funcH then funcF to run, but got " + res)
@@ -157,10 +157,11 @@ func TestDepWithUnhandledFunc(t *testing.T) {
 			t.Fatalf("Expected type error from panic")
 		}
 	}()
-	var NotValid = func(a string) string { //nolint:gocritic,revive // Let's keep this as it is for the sake of the test.
+	// notValidFunc has wrong signature (returns string, not error) to test panic handling
+	notValidFunc := func(a string) string {
 		return a
 	}
-	Deps(NotValid)
+	Deps(notValidFunc)
 }
 
 func TestDepsErrors(t *testing.T) {

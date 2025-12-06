@@ -2,7 +2,8 @@
 //
 // For IsDryRun() to be true, two things have to be true:
 // 1. IsPossible() must be true
-//   - This can only happen if the env var `STAVEFILE_DRYRUN_POSSIBLE` was set at the point of the first call to IsPossible()
+//   - This can only happen if the env var `STAVEFILE_DRYRUN_POSSIBLE` was set at the
+//     point of the first call to IsPossible()
 //
 // 2. IsRequested() must be true
 //   - This can happen under one of two conditions:

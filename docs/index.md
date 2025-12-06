@@ -2,7 +2,7 @@
 
 <!-- markdownlint-disable MD033 -->
 <p align="center">
-  <img src="../pics/logo.png" alt="Stave logo" width="200">
+  <img src="../pics/stave-logo-251205.png" alt="Stave logo" width="200">
 </p>
 <!-- markdownlint-enable MD033 -->
 
@@ -62,6 +62,7 @@ stave -l       # List available targets
 - [Configuration](user-guide/configuration.md) - Config files and environment variables
 - [Shell Commands](user-guide/shell-commands.md) - Running external commands with `pkg/sh`
 - [File Targets](user-guide/file-targets.md) - Incremental builds with `pkg/target`
+- [Git Hooks](user-guide/hooks.md) - Native Git hook management
 - [Advanced Topics](user-guide/advanced.md) - Cross-compilation, dry-run, CI, debugging
 
 ### API Reference

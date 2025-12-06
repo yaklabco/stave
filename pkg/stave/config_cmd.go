@@ -1,6 +1,7 @@
 package stave
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -20,24 +21,36 @@ const (
 	ConfigPath ConfigSubcommand = "path"
 )
 
-// RunConfigCommand handles the `stave config` subcommand.
+// Exit codes.
+const (
+	exitCodeOK         = 0
+	exitCodeUsageError = 2
+)
+
+// RunConfigCommand handles the `stave --config` subcommand.
 // It returns the exit code.
 func RunConfigCommand(stdout, stderr io.Writer, args []string) int {
-	fs := flag.NewFlagSet("config", flag.ContinueOnError)
-	fs.SetOutput(stdout)
-	fs.Usage = func() {
+	return RunConfigCommandContext(context.Background(), stdout, stderr, args)
+}
+
+// RunConfigCommandContext handles the `stave --config` subcommand with context.
+// It returns the exit code.
+func RunConfigCommandContext(_ context.Context, stdout, stderr io.Writer, args []string) int {
+	flagSet := flag.NewFlagSet("config", flag.ContinueOnError)
+	flagSet.SetOutput(stdout)
+	flagSet.Usage = func() {
 		configUsage(stdout)
 	}
 
-	if err := fs.Parse(args); err != nil {
+	if err := flagSet.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			return 0
+			return exitCodeOK
 		}
 		_, _ = fmt.Fprintf(stderr, "Error: %v\n", err)
-		return 2
+		return exitCodeUsageError
 	}
 
-	subArgs := fs.Args()
+	subArgs := flagSet.Args()
 	if len(subArgs) == 0 {
 		// No subcommand, show effective config
 		return runConfigShow(stdout, stderr)
@@ -54,7 +67,7 @@ func RunConfigCommand(stdout, stderr io.Writer, args []string) int {
 	default:
 		_, _ = fmt.Fprintf(stderr, "Error: unknown config subcommand %q\n", subArgs[0])
 		configUsage(stderr)
-		return 2
+		return exitCodeUsageError
 	}
 }
 
@@ -120,7 +133,7 @@ func runConfigPath(stdout, _ io.Writer) int {
 // configUsage prints the config command usage.
 func configUsage(w io.Writer) {
 	_, _ = fmt.Fprint(w, `
-stave config [subcommand]
+stave --config [subcommand]
 
 Manage Stave configuration.
 
@@ -130,9 +143,9 @@ Subcommands:
   path    Show configuration file paths
 
 Examples:
-  stave config           # Show effective configuration
-  stave config init      # Create ~/.config/stave/config.yaml
-  stave config show      # Same as 'stave config'
-  stave config path      # Show config file locations
+  stave --config           # Show effective configuration
+  stave --config init      # Create ~/.config/stave/config.yaml
+  stave --config show      # Same as 'stave --config'
+  stave --config path      # Show config file locations
 `[1:])
 }

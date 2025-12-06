@@ -3,18 +3,20 @@ package st
 import (
 	"bytes"
 	"fmt"
-	"log"
+	stdlog "log"
 	"strings"
 	"testing"
+
+	"github.com/yaklabco/stave/internal/log"
 )
 
 func TestDepsLogging(t *testing.T) {
 	t.Setenv("STAVEFILE_VERBOSE", "1")
 	buf := &bytes.Buffer{}
 
-	defaultLogger := simpleConsoleLogger
-	simpleConsoleLogger = log.New(buf, "", 0)
-	defer func() { simpleConsoleLogger = defaultLogger }()
+	defaultLogger := log.SimpleConsoleLogger
+	log.SimpleConsoleLogger = stdlog.New(buf, "", 0)
+	defer func() { log.SimpleConsoleLogger = defaultLogger }()
 
 	foo()
 
@@ -43,7 +45,9 @@ func TestDepWasNotInvoked(t *testing.T) {
 			t.Fatal("expected panic, but didn't get one")
 		}
 		gotErr := fmt.Sprint(err)
-		wantErr := "non-function used as a target dependency: <nil>. The st.Deps, st.SerialDeps and st.CtxDeps functions accept function names, such as st.Deps(TargetA, TargetB)"
+		wantErr := "non-function used as a target dependency: <nil>. " +
+			"The st.Deps, st.SerialDeps and st.CtxDeps functions accept function names, " +
+			"such as st.Deps(TargetA, TargetB)"
 		if !strings.Contains(gotErr, wantErr) {
 			t.Fatalf(`expected to get "%s" but got "%s"`, wantErr, gotErr)
 		}

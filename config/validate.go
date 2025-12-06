@@ -100,6 +100,13 @@ func (c *Config) Validate() ValidationResults {
 		}
 	}
 
+	// Validate hooks configuration
+	if c.Hooks != nil {
+		hooksResult := ValidateHooks(c.Hooks)
+		result.Errors = append(result.Errors, hooksResult.Errors...)
+		result.Warnings = append(result.Warnings, hooksResult.Warnings...)
+	}
+
 	return result
 }
 

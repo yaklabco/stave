@@ -34,6 +34,8 @@ var BuildDate = "" //nolint:gochecknoglobals // Populated by goreleaser ldflags.
 //  2. If built via `go install module@version`, use Go build info `Main.Version`.
 //  3. Fallback to Go build info `vcs.revision` (+ "-dirty" if `vcs.modified=true`).
 //  4. Finally, return "dev".
+//
+
 func EffectiveVersion(_ context.Context) string {
 	v := strings.TrimSpace(Version)
 	if v != "" && v != "dev" {
@@ -44,13 +46,13 @@ func EffectiveVersion(_ context.Context) string {
 	// Prefer the module version embedded by the Go toolchain when installed via
 	// `go install module@version` (e.g., v0.2.0). When built from source it is usually
 	// "(devel)" and thus ignored.
-	if bi, ok := debug.ReadBuildInfo(); ok && bi != nil {
-		if mv := strings.TrimSpace(bi.Main.Version); mv != "" && mv != "(devel)" {
+	if buildInfo, hasBuildInfo := debug.ReadBuildInfo(); hasBuildInfo && buildInfo != nil {
+		if mv := strings.TrimSpace(buildInfo.Main.Version); mv != "" && mv != "(devel)" {
 			return mv
 		}
 		var rev string
 		var dirty string
-		for _, s := range bi.Settings {
+		for _, s := range buildInfo.Settings {
 			switch s.Key {
 			case "vcs.revision":
 				rev = s.Value
@@ -157,13 +159,13 @@ func OverallVersionString(ctx context.Context) string {
 
 // OverallVersionStringColorized renders a version line with fang-consistent colors.
 func OverallVersionStringColorized(ctx context.Context) string {
-	cs := ui.GetFangScheme()
+	colorScheme := ui.GetFangScheme()
 
 	// Pick styles that align with fang’s help palette
-	versionStyle := lipgloss.NewStyle().Foreground(cs.QuotedString) // program name color
-	commitStyle := lipgloss.NewStyle().Foreground(cs.Program)       // subcommand color
-	timeStyle := lipgloss.NewStyle().Foreground(cs.Flag)            // dimmed args
-	sepStyle := lipgloss.NewStyle().Foreground(cs.Base)             // neutral separator
+	versionStyle := lipgloss.NewStyle().Foreground(colorScheme.QuotedString)
+	commitStyle := lipgloss.NewStyle().Foreground(colorScheme.Program)
+	timeStyle := lipgloss.NewStyle().Foreground(colorScheme.Flag)
+	sepStyle := lipgloss.NewStyle().Foreground(colorScheme.Base)
 
 	var parts []string
 

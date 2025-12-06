@@ -11,26 +11,61 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"time"
 
+	"charm.land/lipgloss/v2"
 	"github.com/samber/lo"
 	"github.com/yaklabco/stave/cmd/stave/version"
+	"github.com/yaklabco/stave/config"
+	"github.com/yaklabco/stave/internal/changelog"
 	"github.com/yaklabco/stave/internal/dryrun"
 	"github.com/yaklabco/stave/pkg/sh"
 	"github.com/yaklabco/stave/pkg/st"
 	"github.com/yaklabco/stave/pkg/ui"
 )
 
+// outputf writes a formatted string to stdout.
+// Uses fmt.Fprintf for output (avoids forbidigo which bans fmt.Print* patterns).
+func outputf(format string, args ...interface{}) {
+	_, _ = fmt.Fprintf(os.Stdout, format, args...)
+}
+
+// outputln writes a string to stdout with a trailing newline.
+func outputln(s string) {
+	_, _ = fmt.Fprintln(os.Stdout, s)
+}
+
+// isQuietMode returns true if output should be suppressed (CI environments).
+// Checks STAVE_QUIET=1 first, then common CI environment variables.
+func isQuietMode() bool {
+	if os.Getenv("STAVE_QUIET") == "1" {
+		return true
+	}
+	// Common CI environment variables
+	ciVars := []string{"CI", "GITHUB_ACTIONS", "GITLAB_CI", "JENKINS_URL", "CIRCLECI", "BUILDKITE"}
+	for _, v := range ciVars {
+		if os.Getenv(v) != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// Aliases maps target aliases to their implementations.
+// This is a stave convention - stavefiles define this global to create target aliases.
+//
+
 var Aliases = map[string]interface{}{
 	"Speak": Say,
 }
 
 // Default target to run when none is specified.
+// This is a stave convention - stavefiles define this global to set the default target.
+//
+
 var Default = All
 
 func All() error {
@@ -41,13 +76,13 @@ func All() error {
 }
 
 // Init installs required tools and sets up git hooks and modules.
-func Init() error { // stave:help=Install dev tools (Brewfile), setup husky hooks, and tidy modules
+func Init() error { // stave:help=Install dev tools (Brewfile), setup hooks (respects current choice), and tidy modules
 	// Install tools from Brewfile.
 	if err := sh.Run("brew", "bundle", "--file=Brewfile"); err != nil {
 		return err
 	}
 
-	// Install npm.
+	// Install npm (required for Husky).
 	if os.Getenv("CI") == "" {
 		if err := sh.Run("npm", "ci"); err != nil {
 			if err := sh.Run("npm", "install"); err != nil {
@@ -58,11 +93,9 @@ func Init() error { // stave:help=Install dev tools (Brewfile), setup husky hook
 		slog.Debug("in CI; skipping explicit npm installation")
 	}
 
-	// Set up husky git hooks.
-	if err := sh.Run("git", "config", "core.hooksPath", ".husky"); err != nil {
-		return err
-	}
-	if err := sh.Run("chmod", "+x", ".husky/pre-push"); err != nil {
+	// Set up git hooks, respecting the user's current choice.
+	// Only defaults to Husky if no hook system is configured.
+	if err := setupHooksRespectingChoice(); err != nil {
 		return err
 	}
 
@@ -75,6 +108,209 @@ func Init() error { // stave:help=Install dev tools (Brewfile), setup husky hook
 	}
 
 	return sh.Run("go", "mod", "tidy")
+}
+
+// SwitchHooks configures git hooks to use either "husky" or "stave" (native).
+// Usage: stave SwitchHooks husky   - Use Husky (.husky/)
+//
+//	stave SwitchHooks stave   - Use native stave hooks (.git/hooks/)
+func SwitchHooks(system string) error { // stave:help=Switch git hooks system: "husky" or "stave"
+	switch strings.ToLower(system) {
+	case "husky":
+		return setupHooksHusky()
+	case "stave", "native":
+		return setupHooksStave()
+	default:
+		return fmt.Errorf("unknown hooks system %q: use 'husky' or 'stave'", system)
+	}
+}
+
+func setupHooksHusky() error {
+	cs := ui.GetFangScheme()
+	successStyle := lipgloss.NewStyle().Foreground(cs.Flag)
+	labelStyle := lipgloss.NewStyle().Foreground(cs.Base)
+	valueStyle := lipgloss.NewStyle().Bold(true).Foreground(cs.Program)
+
+	// Remove any stave-managed hooks from .git/hooks
+	hooksDir := filepath.Join(".git", "hooks")
+	for _, hook := range []string{"pre-commit", "pre-push", "commit-msg", "prepare-commit-msg"} {
+		hookPath := filepath.Join(hooksDir, hook)
+		if content, err := os.ReadFile(hookPath); err == nil {
+			if strings.Contains(string(content), "Installed by Stave") {
+				_ = os.Remove(hookPath)
+			}
+		}
+	}
+
+	// Set git to use .husky directory
+	if err := sh.Run("git", "config", "core.hooksPath", ".husky"); err != nil {
+		return err
+	}
+
+	if err := sh.Run("chmod", "+x", ".husky/pre-push"); err != nil {
+		return err
+	}
+
+	// Find configured husky hooks
+	configuredHooks := findHuskyHooks()
+	hooksSuffix := ""
+	if len(configuredHooks) > 0 {
+		hooksSuffix = " (" + strings.Join(configuredHooks, ", ") + ")"
+	}
+
+	outputf("%s %s %s%s\n",
+		successStyle.Render("⚙️"),
+		labelStyle.Render("Git hooks configured:"),
+		valueStyle.Render("Husky"),
+		hooksSuffix,
+	)
+	if st.Verbose() {
+		outputf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(".husky/"))
+	}
+	return nil
+}
+
+// findHuskyHooks returns a list of hook names configured in .husky directory.
+func findHuskyHooks() []string {
+	knownHooks := []string{
+		"pre-commit", "prepare-commit-msg", "commit-msg", "post-commit",
+		"pre-push", "pre-rebase", "post-checkout", "post-merge",
+	}
+	var found []string
+	for _, hook := range knownHooks {
+		hookPath := filepath.Join(".husky", hook)
+		if info, err := os.Stat(hookPath); err == nil && !info.IsDir() {
+			found = append(found, hook)
+		}
+	}
+	return found
+}
+
+// hookSystem represents the active git hook system.
+type hookSystem string
+
+const (
+	hookSystemNone  hookSystem = "none"
+	hookSystemHusky hookSystem = "husky"
+	hookSystemStave hookSystem = "stave"
+)
+
+// detectActiveHookSystem determines which hook system is currently configured.
+func detectActiveHookSystem() hookSystem {
+	// Check if core.hooksPath is set to .husky
+	hooksPath, err := sh.Output("git", "config", "--get", "core.hooksPath")
+	if err == nil && strings.TrimSpace(hooksPath) == ".husky" {
+		return hookSystemHusky
+	}
+
+	// Check if there are Stave-managed hooks in .git/hooks
+	hooksDir := filepath.Join(".git", "hooks")
+	for _, hook := range []string{"pre-commit", "pre-push", "commit-msg", "prepare-commit-msg"} {
+		hookPath := filepath.Join(hooksDir, hook)
+		if content, err := os.ReadFile(hookPath); err == nil {
+			if strings.Contains(string(content), "Installed by Stave") {
+				return hookSystemStave
+			}
+		}
+	}
+
+	return hookSystemNone
+}
+
+// setupHooksRespectingChoice sets up hooks based on the current active system.
+// If no system is configured, defaults to Husky.
+func setupHooksRespectingChoice() error {
+	active := detectActiveHookSystem()
+
+	switch active {
+	case hookSystemStave:
+		slog.Debug("stave hooks already configured; preserving choice")
+		return setupHooksStave()
+	case hookSystemHusky:
+		slog.Debug("husky hooks already configured; preserving choice")
+		return setupHooksHusky()
+	default:
+		slog.Debug("no hooks configured; defaulting to husky")
+		return setupHooksHusky()
+	}
+}
+
+func setupHooksStave() error {
+	cs := ui.GetFangScheme()
+	successStyle := lipgloss.NewStyle().Foreground(cs.Flag)
+	labelStyle := lipgloss.NewStyle().Foreground(cs.Base)
+	valueStyle := lipgloss.NewStyle().Bold(true).Foreground(cs.Program)
+
+	// Ensure stave.yaml exists with hooks config
+	if err := ensureStaveYAML(); err != nil {
+		return err
+	}
+
+	// Remove husky hooks path config (ignore error - may not be set)
+	//nolint:errcheck // Intentionally ignoring - config key may not exist
+	sh.Run("git", "config", "--unset", "core.hooksPath")
+
+	// Install stave hooks
+	if err := sh.Run("stave", "--hooks", "install"); err != nil {
+		return fmt.Errorf("failed to install stave hooks: %w", err)
+	}
+
+	// Get configured hooks from config
+	configuredHooks := findStaveHooks()
+	hooksSuffix := ""
+	if len(configuredHooks) > 0 {
+		hooksSuffix = " (" + strings.Join(configuredHooks, ", ") + ")"
+	}
+
+	outputf("%s %s %s%s\n",
+		successStyle.Render("⚙️"),
+		labelStyle.Render("Git hooks configured:"),
+		valueStyle.Render("Stave"),
+		hooksSuffix,
+	)
+	if st.Verbose() {
+		outputf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(".git/hooks/"))
+		outputf("  %s %s\n", labelStyle.Render("Config:"), valueStyle.Render("stave.yaml"))
+	}
+	return nil
+}
+
+// findStaveHooks returns a list of hook names configured in stave.yaml.
+func findStaveHooks() []string {
+	cfg, err := config.Load(nil)
+	if err != nil || cfg.Hooks == nil {
+		return nil
+	}
+	return cfg.Hooks.HookNames()
+}
+
+// ensureStaveYAML creates stave.yaml with default hooks config if it doesn't exist.
+func ensureStaveYAML() error {
+	const staveYAML = "stave.yaml"
+
+	// Check if file exists
+	if _, err := os.Stat(staveYAML); err == nil {
+		return nil
+	}
+
+	// Create default config
+	const defaultConfig = `# Stave configuration
+# See: https://github.com/yaklabco/stave
+
+# Use hash_fast for faster hook execution (skips GOCACHE check)
+hash_fast: true
+
+# Git hooks configuration
+hooks:
+  pre-push:
+    - target: Test
+`
+	const configFilePerm = 0o600
+	if err := os.WriteFile(staveYAML, []byte(defaultConfig), configFilePerm); err != nil {
+		return fmt.Errorf("failed to create stave.yaml: %w", err)
+	}
+
+	return nil
 }
 
 // Markdownlint runs markdownlint-cli2 on all tracked Markdown files.
@@ -105,9 +341,9 @@ func LintGo() error {
 	out, err := sh.Output("golangci-lint", "run", "--fix", "--allow-parallel-runners", "--build-tags='!ignore'")
 	if err != nil {
 		titleStyle, blockStyle := ui.GetBlockStyles()
-		_, _ = fmt.Println(titleStyle.Render("golangci-lint output"))
-		_, _ = fmt.Println(blockStyle.Render(out))
-		_, _ = fmt.Println()
+		outputln(titleStyle.Render("golangci-lint output"))
+		outputln(blockStyle.Render(out))
+		outputln("")
 		return err
 	}
 
@@ -120,8 +356,59 @@ func Lint() { // stave:help=Run linters and auto-fix issues
 }
 
 // Test aggregate target runs Lint and TestGo.
-func Test() { // stave:help=Run lint and Go tests with coverage
-	st.Deps(Init, Lint, TestGo)
+func Test() error { // stave:help=Run lint and Go tests with coverage
+	// Run Init first (handles setup messages like hooks configured)
+	st.Deps(Init)
+
+	// Print test header (unless in quiet/CI mode)
+	if !isQuietMode() {
+		outputln("🧪 Running tests (Test: Lint, TestGo)")
+	}
+
+	startTime := time.Now()
+
+	st.Deps(Lint, TestGo)
+
+	// Print success message with timing (unless in quiet/CI mode)
+	if !isQuietMode() {
+		outputf("👌 All tests ran successfully (%s)\n", time.Since(startTime).Round(time.Millisecond))
+	}
+
+	return nil
+}
+
+// ValidateChangelog validates CHANGELOG.md format against 'Keep a Changelog' conventions.
+func ValidateChangelog() error { // stave:help=Validate CHANGELOG.md format
+	if err := changelog.ValidateFile("CHANGELOG.md"); err != nil {
+		return fmt.Errorf("CHANGELOG.md validation failed: %w", err)
+	}
+	slog.Info("CHANGELOG.md validation passed")
+	return nil
+}
+
+// PrePushCheck runs all pre-push validations for branch pushes.
+// This is the Go equivalent of the .githooks/pre-push bash script.
+func PrePushCheck() error { // stave:help=Run pre-push changelog validations
+	// First validate the changelog format
+	if err := ValidateChangelog(); err != nil {
+		return err
+	}
+
+	// Check if we should skip svu verification
+	if os.Getenv("SKIP_SVU_CHANGELOG_CHECK") == "1" ||
+		os.Getenv("GORELEASER_CURRENT_TAG") != "" ||
+		os.Getenv("GORELEASER") != "" {
+		slog.Info("skipping svu next-version check (release/opt-out)")
+		return nil
+	}
+
+	// Verify next version exists in changelog
+	if err := changelog.VerifyNextVersion("CHANGELOG.md"); err != nil {
+		return fmt.Errorf("changelog version check failed: %w", err)
+	}
+
+	slog.Info("CHANGELOG.md next-version verification passed")
+	return nil
 }
 
 // TestGo runs Go tests with coverage and produces coverage.out and coverage.html.
@@ -213,8 +500,8 @@ func Release() error { // stave:help=Create and push a new tag with svu, then go
 }
 
 func ParallelismCheck() {
-	fmt.Printf("STAVE_NUM_PROCESSORS=%q\n", os.Getenv("STAVE_NUM_PROCESSORS"))
-	fmt.Printf("GOMAXPROCS=%q\n", os.Getenv("GOMAXPROCS"))
+	outputf("STAVE_NUM_PROCESSORS=%q\n", os.Getenv("STAVE_NUM_PROCESSORS"))
+	outputf("GOMAXPROCS=%q\n", os.Getenv("GOMAXPROCS"))
 }
 
 // setSkipSVUChangelogCheck sets the SKIP_SVU_CHANGELOG_CHECK environment variable.
@@ -223,28 +510,10 @@ func setSkipSVUChangelogCheck() error {
 	return os.Setenv("SKIP_SVU_CHANGELOG_CHECK", "1")
 }
 
-// getRepoRoot returns the absolute path to the repository root (git top-level).
-func getRepoRoot() (string, error) {
-	out, err := sh.Output("git", "rev-parse", "--show-toplevel")
-	if err != nil {
-		slog.Warn("error running `git rev-parse --show-toplevel`", slog.Any("error", err))
-
-		// Fallback to current working dir on failure
-		cwd, err := os.Getwd()
-		if err != nil {
-			return "", err
-		}
-
-		return cwd, nil
-	}
-
-	return strings.TrimSpace(out), nil
-}
-
 // Say says something.
 func Say(msg string, i int, b bool, d time.Duration) error {
-	_, err := fmt.Printf("%v(%T) %v(%T) %v(%T) %v(%T)\n", msg, msg, i, i, b, b, d, d)
-	return err
+	outputf("%v(%T) %v(%T) %v(%T) %v(%T)\n", msg, msg, i, i, b, b, d, d)
+	return nil
 }
 
 // Install runs "go install" for stave. This also generates version info for the binary.
@@ -271,7 +540,8 @@ func Install() error {
 	}
 	// specifically don't mkdirall, if you have an invalid gopath in the first
 	// place, that's not on us to fix.
-	if err := os.Mkdir(bin, 0o700); err != nil && !os.IsExist(err) {
+	const binDirPerm = 0o700
+	if err := os.Mkdir(bin, binDirPerm); err != nil && !os.IsExist(err) {
 		return fmt.Errorf("failed to create %q: %w", bin, err)
 	}
 	path := filepath.Join(bin, name)
@@ -281,36 +551,6 @@ func Install() error {
 	// machines that have go installed in a non-writeable directory (such as
 	// normal OS installs in /usr/bin)
 	return sh.RunV(gocmd, "build", "-o", path, "-ldflags="+flags(), "github.com/yaklabco/stave")
-}
-
-var releaseTag = regexp.MustCompile(`^v1\.[0-9]+\.[0-9]+$`)
-
-// origRelease generates a new release. Expects a version tag in v1.x.x format.
-// It is the original `Release` target for Mage.
-func origRelease(tag string) error {
-	if _, err := exec.LookPath("goreleaser"); err != nil {
-		return fmt.Errorf("can't find goreleaser: %w", err)
-	}
-	if !releaseTag.MatchString(tag) {
-		return errors.New("TAG environment variable must be in semver v1.x.x format, but was " + tag)
-	}
-
-	if err := sh.RunV("git", "tag", "-a", tag, "-m", tag); err != nil {
-		return err
-	}
-	if err := sh.RunV("git", "push", "origin", tag); err != nil {
-		return err
-	}
-	var releaseErr error
-	defer func() {
-		if releaseErr != nil {
-			_ = sh.RunV("git", "tag", "--delete", tag)            //nolint:errcheck // This is last-ditch cleanup.
-			_ = sh.RunV("git", "push", "--delete", "origin", tag) //nolint:errcheck // This is last-ditch cleanup.
-		}
-	}()
-	releaseErr = sh.RunV("goreleaser")
-
-	return releaseErr
 }
 
 // Clean removes the temporarily generated files from Release.

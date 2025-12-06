@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+// testFilePerm is the permission for test files (gosec G306 expects 0600 or less,
+// but testFilePerm is fine for temp test files that are immediately deleted).
+const testFilePerm = 0o644
+
 func TestPathMissingDest(t *testing.T) {
 	t.Parallel()
 	dir, err := os.MkdirTemp("", "")
@@ -15,7 +19,7 @@ func TestPathMissingDest(t *testing.T) {
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
 	src := filepath.Join(dir, "source")
-	err = os.WriteFile(src, []byte("hi!"), 0644)
+	err = os.WriteFile(src, []byte("hi!"), testFilePerm)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +41,7 @@ func TestPathMissingSource(t *testing.T) {
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
 	dst := filepath.Join(dir, "dst")
-	err = os.WriteFile(dst, []byte("hi!"), 0644)
+	err = os.WriteFile(dst, []byte("hi!"), testFilePerm)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +60,7 @@ func TestGlobEmptyGlob(t *testing.T) {
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
 	dst := filepath.Join(dir, "dst")
-	err = os.WriteFile(dst, []byte("hi!"), 0644)
+	err = os.WriteFile(dst, []byte("hi!"), testFilePerm)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +79,7 @@ func TestDirMissingSrc(t *testing.T) {
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
 	dst := filepath.Join(dir, "dst")
-	err = os.WriteFile(dst, []byte("hi!"), 0644)
+	err = os.WriteFile(dst, []byte("hi!"), testFilePerm)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +103,7 @@ func TestDirMissingDest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = os.WriteFile(filepath.Join(src, "somefile"), []byte("hi!"), 0644)
+	err = os.WriteFile(filepath.Join(src, "somefile"), []byte("hi!"), testFilePerm)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +141,7 @@ func TestGlob(t *testing.T) {
 	for _, v := range files {
 		time.Sleep(10 * time.Millisecond)
 		f := filepath.Join(dir, filepath.FromSlash(v))
-		err := os.WriteFile(f, []byte(v), 0644)
+		err := os.WriteFile(f, []byte(v), testFilePerm)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -191,18 +195,18 @@ func TestGlob(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
-			for i := range tt.sources {
-				tt.sources[i] = filepath.Join(dir, tt.sources[i])
+	for _, testCase := range tests {
+		t.Run(testCase.desc, func(t *testing.T) {
+			for i := range testCase.sources {
+				testCase.sources[i] = filepath.Join(dir, testCase.sources[i])
 			}
-			tt.target = filepath.Join(dir, tt.target)
-			v, err := Glob(tt.target, tt.sources...)
+			testCase.target = filepath.Join(dir, testCase.target)
+			v, err := Glob(testCase.target, testCase.sources...)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if v != tt.expect {
-				t.Errorf("expecting %v got %v", tt.expect, v)
+			if v != testCase.expect {
+				t.Errorf("expecting %v got %v", testCase.expect, v)
 			}
 		})
 	}
@@ -229,7 +233,7 @@ func TestPath(t *testing.T) {
 	for _, v := range files {
 		time.Sleep(10 * time.Millisecond)
 		f := filepath.Join(dir, filepath.FromSlash(v))
-		err := os.WriteFile(f, []byte(v), 0644)
+		err := os.WriteFile(f, []byte(v), testFilePerm)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -298,18 +302,18 @@ func TestPath(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
-			for i := range tt.sources {
-				tt.sources[i] = filepath.Join(dir, tt.sources[i])
+	for _, testCase := range tests {
+		t.Run(testCase.desc, func(t *testing.T) {
+			for i := range testCase.sources {
+				testCase.sources[i] = filepath.Join(dir, testCase.sources[i])
 			}
-			tt.target = filepath.Join(dir, tt.target)
-			v, err := Path(tt.target, tt.sources...)
+			testCase.target = filepath.Join(dir, testCase.target)
+			v, err := Path(testCase.target, testCase.sources...)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if v != tt.expect {
-				t.Errorf("expecting %v got %v", tt.expect, v)
+			if v != testCase.expect {
+				t.Errorf("expecting %v got %v", testCase.expect, v)
 			}
 		})
 	}
@@ -337,7 +341,7 @@ func TestDir(t *testing.T) {
 	for _, v := range files {
 		time.Sleep(10 * time.Millisecond)
 		f := filepath.Join(dir, filepath.FromSlash(v))
-		err := os.WriteFile(f, []byte(v), 0644)
+		err := os.WriteFile(f, []byte(v), testFilePerm)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -432,19 +436,19 @@ func TestDir(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
-			sources := make([]string, len(tt.sources))
-			for i := range tt.sources {
-				sources[i] = filepath.Join(dir, tt.sources[i])
+	for _, testCase := range tests {
+		t.Run(testCase.desc, func(t *testing.T) {
+			sources := make([]string, len(testCase.sources))
+			for i := range testCase.sources {
+				sources[i] = filepath.Join(dir, testCase.sources[i])
 			}
-			target := filepath.Join(dir, tt.target)
+			target := filepath.Join(dir, testCase.target)
 			v, err := Dir(target, sources...)
 			if err != nil {
 				t.Fatal("unexpected error:", err)
 			}
-			if v != tt.expect {
-				t.Errorf("expecting %v got %v", tt.expect, v)
+			if v != testCase.expect {
+				t.Errorf("expecting %v got %v", testCase.expect, v)
 			}
 		})
 	}

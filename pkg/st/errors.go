@@ -14,9 +14,13 @@ func (f fatalError) ExitStatus() int {
 	return f.code
 }
 
-type exitStatus interface {
+// ExitStatuser is an interface for errors that carry an exit status code.
+type ExitStatuser interface {
 	ExitStatus() int
 }
+
+// exitStatus is kept as an alias for internal use.
+type exitStatus = ExitStatuser
 
 // Fatal returns an error that will cause stave to print out the
 // given args and exit with the given exit code.
@@ -38,14 +42,14 @@ func Fatalf(code int, format string, args ...interface{}) error {
 
 // ExitStatus queries the error for an exit status.  If the error is nil, it
 // returns 0.  If the error does not implement ExitStatus() int, it returns 1.
-// Otherwise it retiurns the value from ExitStatus().
+// Otherwise it returns the value from ExitStatus().
 func ExitStatus(err error) int {
 	if err == nil {
 		return 0
 	}
-	exit, ok := err.(exitStatus)
-	if !ok {
-		return 1
+	var exit exitStatus
+	if errors.As(err, &exit) {
+		return exit.ExitStatus()
 	}
-	return exit.ExitStatus()
+	return 1
 }

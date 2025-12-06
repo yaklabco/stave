@@ -26,7 +26,7 @@ The user config file location follows XDG conventions:
 Create a default config file:
 
 ```bash
-stave config init
+stave --config init
 ```
 
 Example `config.yaml`:
@@ -91,30 +91,81 @@ STAVE_NUM_PROCESSORS=4 stave build
 
 This sets `runtime.GOMAXPROCS` and is passed to the compiled stavefile. Use it to limit CPU usage in CI or constrained environments.
 
-## stave config Subcommands
+## Quiet Mode
 
-### stave config
+Decorative CLI output (hook run messages, test headers, success messages) is automatically suppressed in CI environments. Stave detects CI via:
+
+- `CI`
+- `GITHUB_ACTIONS`
+- `GITLAB_CI`
+- `JENKINS_URL`
+- `CIRCLECI`
+- `BUILDKITE`
+
+To force quiet mode outside CI:
+
+```bash
+STAVE_QUIET=1 stave test
+```
+
+## Git Hooks Configuration
+
+Configure Git hooks to run Stave targets automatically:
+
+```yaml
+hooks:
+  pre-commit:
+    - target: fmt
+    - target: lint
+      args: ["--fast"]
+  pre-push:
+    - target: test
+      args: ["./..."]
+  commit-msg:
+    - target: validate-commit-message
+      passStdin: true
+```
+
+Each hook entry supports:
+
+| Option      | Type     | Description                                |
+| ----------- | -------- | ------------------------------------------ |
+| `target`    | string   | Stave target name to run (required)        |
+| `args`      | []string | Additional arguments for the target        |
+| `passStdin` | bool     | Forward stdin from Git to the target       |
+
+After configuring hooks, install them with:
+
+```bash
+stave --hooks install
+```
+
+See [Git Hooks](hooks.md) for complete documentation.
+
+## stave --config Subcommands
+
+### stave --config
 
 Display effective configuration:
 
 ```bash
-stave config
+stave --config
 ```
 
-### stave config init
+### stave --config init
 
 Create a default user config file:
 
 ```bash
-stave config init
+stave --config init
 ```
 
-### stave config path
+### stave --config path
 
 Show configuration paths:
 
 ```bash
-stave config path
+stave --config path
 ```
 
 Output:
@@ -152,5 +203,6 @@ stave --clean
 ## See Also
 
 - [CLI Reference](../api-reference/cli.md) - Command-line flags
+- [Git Hooks](hooks.md) - Git hook management
 - [Advanced Topics](advanced.md) - CI integration, debugging
 - [Home](../index.md)

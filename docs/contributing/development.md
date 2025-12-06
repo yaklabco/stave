@@ -7,7 +7,6 @@ This guide covers setting up a development environment for contributing to Stave
 ## Prerequisites
 
 - Go 1.25.4 or later
-- Node.js (for git hooks via husky)
 - macOS: Homebrew (for tool installation)
 
 ## Clone Repository
@@ -45,20 +44,21 @@ This installs:
 
 ## Setup Git Hooks
 
-Install npm packages and configure git hooks:
+Stave uses its own native hook system. Install hooks after cloning:
 
 ```bash
-npm ci
+stave --hooks install
 ```
 
-This configures husky to run pre-push checks. The hook is located at `.husky/pre-push`.
+This installs Git hooks defined in `stave.yaml`. The `pre-push` hook runs `Test` to ensure code quality before pushing.
 
-Alternatively, manually configure the hooks path:
+To view configured hooks:
 
 ```bash
-git config core.hooksPath .husky
-chmod +x .husky/pre-push
+stave --hooks list
 ```
+
+See [Git Hooks](../user-guide/hooks.md) for more details on hook configuration.
 
 ## Common Tasks
 
@@ -133,6 +133,7 @@ stave/
 │   ├── parse/              # Stavefile AST parsing
 │   ├── dryrun/             # Dry-run mode
 │   ├── env/                # Environment utilities
+│   ├── hooks/              # Git hook runtime and script generation
 │   ├── parallelism/        # GOMAXPROCS handling
 │   └── log/                # Logging constants
 └── docs/                   # Documentation

@@ -89,6 +89,12 @@ func All() {
 
 Each dependency runs exactly once, even if referenced multiple times in the dependency graph.
 
+## Next Steps
+
+- Configure [Git Hooks](../user-guide/hooks.md) to run targets automatically on commit and push
+- Learn about [Namespaces](../user-guide/namespaces.md) for organizing related targets
+- Add [Arguments](../user-guide/arguments.md) to make targets configurable
+
 ---
 
 ## See Also
@@ -96,4 +102,5 @@ Each dependency runs exactly once, even if referenced multiple times in the depe
 - [Installation](installation.md) - Installing Stave
 - [Stavefiles](../user-guide/stavefiles.md) - File conventions
 - [Dependencies](../user-guide/dependencies.md) - Dependency execution
+- [Git Hooks](../user-guide/hooks.md) - Automatic Git hook management
 - [Home](../index.md)

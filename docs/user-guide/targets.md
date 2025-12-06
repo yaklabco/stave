@@ -123,4 +123,5 @@ func Deploy() error {
 - [Dependencies](dependencies.md) - Target dependencies
 - [Namespaces](namespaces.md) - Grouping targets
 - [Arguments](arguments.md) - Typed arguments
+- [Git Hooks](hooks.md) - Run targets automatically on Git events
 - [Home](../index.md)

@@ -141,6 +141,19 @@ Limit parallelism in resource-constrained environments:
   run: stave build
 ```
 
+### Disabling Hooks in CI
+
+Git hooks are typically not needed in CI (tests run explicitly). Disable them:
+
+```yaml
+- name: Build
+  env:
+    STAVE_HOOKS: "0"
+  run: |
+    stave build
+    stave test
+```
+
 ### GitLab CI
 
 ```yaml
@@ -207,11 +220,51 @@ stave -f build
 
 This section will be expanded as issues are reported.
 
+## Git Hooks
+
+### Hook Debugging
+
+Run hooks manually to debug issues:
+
+```bash
+stave --hooks run pre-commit
+```
+
+Enable debug output in hook scripts:
+
+```bash
+STAVE_HOOKS=debug git commit -m "test"
+```
+
+### Skipping Hooks Temporarily
+
+Set `STAVE_HOOKS=0` to disable all hooks:
+
+```bash
+STAVE_HOOKS=0 git commit -m "WIP"
+```
+
+This is preferable to `git commit --no-verify` as it still allows the hook script to run (and log that hooks are disabled).
+
+### User Init Script
+
+If hooks fail in GUI clients (SourceTree, VS Code, etc.) due to missing `stave` on PATH, create a user init script:
+
+```bash
+mkdir -p ~/.config/stave/hooks
+cat > ~/.config/stave/hooks/init.sh << 'EOF'
+export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"
+EOF
+```
+
+This script is sourced by all hook scripts before running Stave.
+
 ---
 
 ## See Also
 
 - [Configuration](configuration.md) - Config files and environment variables
+- [Git Hooks](hooks.md) - Complete hooks documentation
 - [CLI Reference](../api-reference/cli.md) - All command-line flags
 - [Shell Commands](shell-commands.md) - Command execution details
 - [Home](../index.md)

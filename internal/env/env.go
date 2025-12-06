@@ -11,10 +11,12 @@ func GetMap() map[string]string {
 	return ToMap(os.Environ())
 }
 
+const keyValueParts = 2 // Number of parts in a key=value pair.
+
 func ToMap(assignments []string) map[string]string {
 	return lo.FromPairs(lo.FilterMap(assignments, func(item string, _ int) (lo.Entry[string, string], bool) {
-		parts := strings.SplitN(item, "=", 2)
-		if len(parts) != 2 {
+		parts := strings.SplitN(item, "=", keyValueParts)
+		if len(parts) != keyValueParts {
 			return lo.Entry[string, string]{}, false
 		}
 

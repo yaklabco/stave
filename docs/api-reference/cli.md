@@ -41,12 +41,12 @@ Used with `--compile`:
 
 ## Subcommands
 
-### stave config
+### stave --config
 
 Manage configuration.
 
 ```bash
-stave config [subcommand]
+stave --config [subcommand]
 ```
 
 | Subcommand | Description                                          |
@@ -55,6 +55,60 @@ stave config [subcommand]
 | `init`     | Create default user config file                      |
 | `show`     | Show effective configuration (same as no subcommand) |
 | `path`     | Show configuration file paths                        |
+
+### stave --hooks
+
+Manage Git hooks.
+
+```bash
+stave --hooks [subcommand]
+```
+
+| Subcommand  | Description                                        |
+| ----------- | -------------------------------------------------- |
+| (none)      | List configured hooks (same as `list`)             |
+| `init`      | Show setup instructions                            |
+| `install`   | Install hook scripts to `.git/hooks`               |
+| `uninstall` | Remove Stave-managed hook scripts                  |
+| `list`      | List configured hooks and installation status      |
+| `run`       | Execute targets for a specific hook                |
+
+#### stave --hooks install
+
+```bash
+stave --hooks install [--force]
+```
+
+| Flag      | Description                        |
+| --------- | ---------------------------------- |
+| `--force` | Overwrite existing non-Stave hooks |
+
+#### stave --hooks uninstall
+
+```bash
+stave --hooks uninstall [--all]
+```
+
+| Flag    | Description                                          |
+| ------- | ---------------------------------------------------- |
+| `--all` | Remove all Stave-managed hooks (not just configured) |
+
+#### stave --hooks run
+
+```bash
+stave --hooks run <hook-name> [-- args...]
+```
+
+Executes all configured targets for the named hook. Called by generated hook scripts.
+
+#### Hooks Environment Variables
+
+| Variable            | Effect                                      |
+| ------------------- | ------------------------------------------- |
+| `STAVE_HOOKS=0`     | Disable all hooks (exit silently)           |
+| `STAVE_HOOKS=debug` | Enable shell tracing in hook scripts        |
+
+See [Git Hooks](../user-guide/hooks.md) for complete documentation.
 
 ## Usage Examples
 
@@ -160,5 +214,6 @@ See [Configuration](../user-guide/configuration.md) for the full list.
 ## See Also
 
 - [Configuration](../user-guide/configuration.md) - Config files and environment variables
+- [Git Hooks](../user-guide/hooks.md) - Git hook management
 - [Advanced Topics](../user-guide/advanced.md) - Cross-compilation, dry-run, CI
 - [Home](../index.md)

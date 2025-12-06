@@ -39,6 +39,9 @@ type Config struct {
 	// TargetColor is the ANSI color name for target names.
 	TargetColor string `mapstructure:"target_color"`
 
+	// Hooks defines Git hooks and the Stave targets they should run.
+	Hooks HooksConfig `mapstructure:"hooks"`
+
 	// configFile is the path to the config file that was loaded (if any).
 	configFile string
 }
@@ -139,85 +142,133 @@ type LoadOptions struct {
 //
 // If opts is nil, default options are used.
 func Load(opts *LoadOptions) (*Config, error) {
-	if opts == nil {
-		opts = &LoadOptions{}
-	}
-
-	if opts.Stderr == nil {
-		opts.Stderr = os.Stderr
-	}
+	opts = normalizeLoadOptions(opts)
 
 	viperInstance := viper.New()
-
-	// Set defaults
 	setDefaults(viperInstance)
 	viperInstance.SetConfigType("yaml")
 
+	configFileUsed, err := loadConfigFiles(viperInstance, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := unmarshalConfig(viperInstance, opts, configFileUsed)
+	if err != nil {
+		return nil, err
+	}
+
+	return validateAndFinalize(cfg, opts)
+}
+
+// normalizeLoadOptions ensures opts is non-nil and has defaults applied.
+func normalizeLoadOptions(opts *LoadOptions) *LoadOptions {
+	if opts == nil {
+		opts = &LoadOptions{}
+	}
+	if opts.Stderr == nil {
+		opts.Stderr = os.Stderr
+	}
+	return opts
+}
+
+// loadConfigFiles loads user and project config files into viper.
+// Returns the path to the most recently loaded config file.
+func loadConfigFiles(viperInstance *viper.Viper, opts *LoadOptions) (string, error) {
 	var configFileUsed string
 
-	// Load user config from XDG path (~/.config/stave/config.yaml)
 	if !opts.SkipUserConfig {
-		paths := ResolveXDGPaths()
-		viperInstance.SetConfigName(ConfigFileName)
-		viperInstance.AddConfigPath(paths.ConfigDir())
-
-		if err := viperInstance.ReadInConfig(); err != nil {
-			var configFileNotFoundError viper.ConfigFileNotFoundError
-			if !errors.As(err, &configFileNotFoundError) {
-				return nil, fmt.Errorf("failed to read user config file: %w", err)
-			}
-		} else {
-			configFileUsed = viperInstance.ConfigFileUsed()
+		usedFile, err := loadUserConfig(viperInstance)
+		if err != nil {
+			return "", err
+		}
+		if usedFile != "" {
+			configFileUsed = usedFile
 		}
 	}
 
-	// Load project config (./stave.yaml) - merges with/overrides user config
 	if !opts.SkipProjectConfig {
-		projectDir := opts.ProjectDir
-		if projectDir == "" {
-			var err error
-			projectDir, err = os.Getwd()
-			if err != nil {
-				return nil, fmt.Errorf("failed to get working directory: %w", err)
-			}
+		usedFile, err := loadProjectConfig(viperInstance, opts.ProjectDir)
+		if err != nil {
+			return "", err
 		}
-
-		projectConfigPath := filepath.Join(projectDir, ProjectConfigFileName+".yaml")
-		if _, err := os.Stat(projectConfigPath); err == nil {
-			viperInstance.SetConfigFile(projectConfigPath)
-			if err := viperInstance.MergeInConfig(); err != nil {
-				return nil, fmt.Errorf("failed to read project config file: %w", err)
-			}
-			configFileUsed = projectConfigPath
+		if usedFile != "" {
+			configFileUsed = usedFile
 		}
 	}
 
-	// Unmarshal into struct
+	return configFileUsed, nil
+}
+
+// loadUserConfig loads user config from XDG path (~/.config/stave/config.yaml).
+func loadUserConfig(viperInstance *viper.Viper) (string, error) {
+	paths := ResolveXDGPaths()
+	viperInstance.SetConfigName(ConfigFileName)
+	viperInstance.AddConfigPath(paths.ConfigDir())
+
+	if err := viperInstance.ReadInConfig(); err != nil {
+		var configFileNotFoundError viper.ConfigFileNotFoundError
+		if !errors.As(err, &configFileNotFoundError) {
+			return "", fmt.Errorf("failed to read user config file: %w", err)
+		}
+		return "", nil
+	}
+	return viperInstance.ConfigFileUsed(), nil
+}
+
+// loadProjectConfig loads project config (./stave.yaml) and merges with existing config.
+func loadProjectConfig(viperInstance *viper.Viper, projectDir string) (string, error) {
+	if projectDir == "" {
+		var err error
+		projectDir, err = os.Getwd()
+		if err != nil {
+			return "", fmt.Errorf("failed to get working directory: %w", err)
+		}
+	}
+
+	projectConfigPath := filepath.Join(projectDir, ProjectConfigFileName+".yaml")
+	if _, statErr := os.Stat(projectConfigPath); statErr != nil {
+		// File doesn't exist, which is fine - return empty path with no error
+		return "", nil //nolint:nilerr // stat error means file missing, not a failure
+	}
+
+	viperInstance.SetConfigFile(projectConfigPath)
+	if err := viperInstance.MergeInConfig(); err != nil {
+		return "", fmt.Errorf("failed to read project config file: %w", err)
+	}
+	return projectConfigPath, nil
+}
+
+// unmarshalConfig unmarshals viper config into a Config struct and applies env overrides.
+func unmarshalConfig(
+	viperInstance *viper.Viper,
+	opts *LoadOptions,
+	configFileUsed string,
+) (*Config, error) {
 	var cfg Config
 	if err := viperInstance.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
-	// Apply environment variable overrides (env vars take precedence over config files)
 	if !opts.SkipEnv {
 		applyEnvironmentOverrides(&cfg)
 	}
 
-	// Record which config file was used (project config takes precedence for display)
 	cfg.configFile = configFileUsed
+	return &cfg, nil
+}
 
-	// Apply cache directory default if not set
+// validateAndFinalize applies defaults, expands paths, and validates the config.
+func validateAndFinalize(cfg *Config, opts *LoadOptions) (*Config, error) {
 	if cfg.CacheDir == "" {
 		cfg.CacheDir = ResolveXDGPaths().CacheDir()
 	}
 
-	// Expand ~ in cache_dir
 	if strings.HasPrefix(cfg.CacheDir, "~/") {
 		home := userHomeDir()
 		cfg.CacheDir = filepath.Join(home, cfg.CacheDir[2:])
 	}
 
-	// Validate configuration
 	result := cfg.Validate()
 	if result.HasWarnings() {
 		result.WriteWarnings(opts.Stderr)
@@ -226,60 +277,40 @@ func Load(opts *LoadOptions) (*Config, error) {
 		return nil, errors.New(result.ErrorMessage())
 	}
 
-	return &cfg, nil
+	return cfg, nil
 }
 
 // applyEnvironmentOverrides applies environment variable overrides to the config.
-// It supports both STAVEFILE_* (preferred) and STAVEFILE_* (legacy) prefixes.
 // Environment variables take precedence over config file values.
 func applyEnvironmentOverrides(cfg *Config) {
-	// Helper to get env with fallback
-	getEnv := func(primary, legacy string) (string, bool) {
-		if v := os.Getenv(primary); v != "" {
-			return v, true
-		}
-		if v := os.Getenv(legacy); v != "" {
-			return v, true
-		}
-		return "", false
-	}
+	applyStringEnv("STAVEFILE_CACHE", &cfg.CacheDir)
+	applyStringEnv("STAVEFILE_GOCMD", &cfg.GoCmd)
+	applyStringEnv("STAVEFILE_TARGET_COLOR", &cfg.TargetColor)
 
-	// Helper to get bool env with fallback
-	getBoolEnv := func(primary, legacy string) (bool, bool) {
-		if v := os.Getenv(primary); v != "" {
-			return v == "1" || v == "true" || v == "TRUE" || v == "True", true
-		}
-		if v := os.Getenv(legacy); v != "" {
-			return v == "1" || v == "true" || v == "TRUE" || v == "True", true
-		}
-		return false, false
-	}
+	applyBoolEnv("STAVEFILE_VERBOSE", &cfg.Verbose)
+	applyBoolEnv("STAVEFILE_DEBUG", &cfg.Debug)
+	applyBoolEnv("STAVEFILE_HASHFAST", &cfg.HashFast)
+	applyBoolEnv("STAVEFILE_IGNOREDEFAULT", &cfg.IgnoreDefault)
+	applyBoolEnv("STAVEFILE_ENABLE_COLOR", &cfg.EnableColor)
+}
 
-	// Apply overrides
-	if v, ok := getEnv("STAVEFILE_CACHE", "STAVEFILE_CACHE"); ok {
-		cfg.CacheDir = v
+// applyStringEnv applies an environment variable value to a string pointer if set.
+func applyStringEnv(envVar string, target *string) {
+	if v := os.Getenv(envVar); v != "" {
+		*target = v
 	}
-	if v, ok := getEnv("STAVEFILE_GOCMD", "STAVEFILE_GOCMD"); ok {
-		cfg.GoCmd = v
+}
+
+// applyBoolEnv applies an environment variable value to a bool pointer if set.
+func applyBoolEnv(envVar string, target *bool) {
+	if v := os.Getenv(envVar); v != "" {
+		*target = parseBoolValue(v)
 	}
-	if v, ok := getBoolEnv("STAVEFILE_VERBOSE", "STAVEFILE_VERBOSE"); ok {
-		cfg.Verbose = v
-	}
-	if v, ok := getBoolEnv("STAVEFILE_DEBUG", "STAVEFILE_DEBUG"); ok {
-		cfg.Debug = v
-	}
-	if v, ok := getBoolEnv("STAVEFILE_HASHFAST", "STAVEFILE_HASHFAST"); ok {
-		cfg.HashFast = v
-	}
-	if v, ok := getBoolEnv("STAVEFILE_IGNOREDEFAULT", "STAVEFILE_IGNOREDEFAULT"); ok {
-		cfg.IgnoreDefault = v
-	}
-	if v, ok := getBoolEnv("STAVEFILE_ENABLE_COLOR", "STAVEFILE_ENABLE_COLOR"); ok {
-		cfg.EnableColor = v
-	}
-	if v, ok := getEnv("STAVEFILE_TARGET_COLOR", "STAVEFILE_TARGET_COLOR"); ok {
-		cfg.TargetColor = v
-	}
+}
+
+// parseBoolValue interprets a string as a boolean value.
+func parseBoolValue(v string) bool {
+	return v == "1" || v == "true" || v == "TRUE" || v == "True"
 }
 
 // DefaultConfig returns a Config with all default values.
@@ -296,13 +327,19 @@ func DefaultConfig() *Config {
 	}
 }
 
+// File permission constants.
+const (
+	dirPermission  = 0o755
+	filePermission = 0o600
+)
+
 // WriteDefaultConfig writes a default configuration file to the user's config directory.
 func WriteDefaultConfig() (string, error) {
 	paths := ResolveXDGPaths()
 	configDir := paths.ConfigDir()
 
 	// Create config directory if it doesn't exist
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
+	if err := os.MkdirAll(configDir, dirPermission); err != nil {
 		return "", fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -313,9 +350,9 @@ func WriteDefaultConfig() (string, error) {
 		return "", fmt.Errorf("config file already exists: %s", configPath)
 	}
 
-	// Write default config with 0600 permissions for security
+	// Write default config with restricted permissions for security
 	content := defaultConfigYAML()
-	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), filePermission); err != nil {
 		return "", fmt.Errorf("failed to write config file: %w", err)
 	}
 

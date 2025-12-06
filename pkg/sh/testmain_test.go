@@ -31,11 +31,11 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 
 	if printArgs {
-		_, _ = fmt.Println(flag.Args())
+		_, _ = fmt.Fprintln(os.Stdout, flag.Args())
 		return
 	}
 	if printVar != "" {
-		_, _ = fmt.Println(os.Getenv(printVar))
+		_, _ = fmt.Fprintln(os.Stdout, os.Getenv(printVar))
 		return
 	}
 
@@ -46,10 +46,10 @@ func TestMain(m *testing.M) {
 		_ = os.Setenv("STAVEFILE_DRYRUN", "1")
 		s, err := Output("somecmd", "arg1", "arg two")
 		if err != nil {
-			_, _ = fmt.Println("ERR:", err)
+			_, _ = fmt.Fprintln(os.Stdout, "ERR:", err)
 			return
 		}
-		_, _ = fmt.Println(s)
+		_, _ = fmt.Fprintln(os.Stdout, s)
 		return
 	}
 

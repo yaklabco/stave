@@ -51,18 +51,18 @@ Update function calls:
 
 Stave maintains compatibility with Mage features and adds:
 
-| Feature                | Mage | Stave |
-| ---------------------- | ---- | ----- |
-| Target functions       | Yes  | Yes   |
-| Dependencies (`Deps`)  | Yes  | Yes   |
-| Namespaces             | Yes  | Yes   |
-| Target arguments       | Yes  | Yes   |
-| Aliases                | Yes  | Yes   |
-| `stave:import`         | Yes  | Yes   |
-| Dry-run mode           | No   | Yes   |
-| XDG configuration      | No   | Yes   |
-| `stave config` command | No   | Yes   |
-| `STAVE_NUM_PROCESSORS` | No   | Yes   |
+| Feature                  | Mage | Stave |
+| ------------------------ | ---- | ----- |
+| Target functions         | Yes  | Yes   |
+| Dependencies (`Deps`)    | Yes  | Yes   |
+| Namespaces               | Yes  | Yes   |
+| Target arguments         | Yes  | Yes   |
+| Aliases                  | Yes  | Yes   |
+| `stave:import`           | Yes  | Yes   |
+| Dry-run mode             | No   | Yes   |
+| XDG configuration        | No   | Yes   |
+| `stave --config` command | No   | Yes   |
+| `STAVE_NUM_PROCESSORS`   | No   | Yes   |
 
 ## Stave-Only Features
 

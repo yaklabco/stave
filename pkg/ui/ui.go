@@ -15,22 +15,28 @@ func GetFangScheme() fang.ColorScheme {
 	return fang.DefaultColorScheme(lipgloss.LightDark(isDark))
 }
 
+// UI layout constants.
+const (
+	defaultMargin  = 2
+	defaultPadding = 2
+)
+
 // GetBlockStyles generates reusable styles for titles and code block elements.
 // Returns two lipgloss.Style objects: one for titles and one for blocks.
 func GetBlockStyles() (lipgloss.Style, lipgloss.Style) {
-	cs := GetFangScheme()
+	colorScheme := GetFangScheme()
 
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
-		Foreground(cs.QuotedString).
+		Foreground(colorScheme.QuotedString).
 		Transform(strings.ToUpper).
 		Padding(1, 0).
-		Margin(0, 2)
+		Margin(0, defaultMargin)
 
 	blockStyle := lipgloss.NewStyle().
-		Background(cs.Codeblock).
-		Foreground(cs.Base).
-		MarginLeft(2).
-		Padding(1, 2)
+		Background(colorScheme.Codeblock).
+		Foreground(colorScheme.Base).
+		MarginLeft(defaultMargin).
+		Padding(1, defaultPadding)
 	return titleStyle, blockStyle
 }

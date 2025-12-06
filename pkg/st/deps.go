@@ -3,20 +3,13 @@ package st
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
 	"reflect"
 	"runtime"
 	"strings"
 	"sync"
 
-	"charm.land/lipgloss/v2"
-	"github.com/yaklabco/stave/pkg/ui"
+	"github.com/yaklabco/stave/internal/log"
 )
-
-// simpleConsoleLogger is an unstructured logger designed for emitting simple
-// messages to the console in `-v`/`--verbose` mode.
-var simpleConsoleLogger = log.New(os.Stderr, lipgloss.NewStyle().Foreground(ui.GetFangScheme().Flag).Render("[STAVE] "), 0) //nolint:gochecknoglobals,lll // This is unchanged in the course of the process lifecycle.
 
 type onceMap struct {
 	mu *sync.Mutex
@@ -93,37 +86,37 @@ func CtxDeps(ctx context.Context, fns ...interface{}) {
 
 // runDeps assumes you've already called checkFns.
 func runDeps(ctx context.Context, fns []Fn) {
-	mu := &sync.Mutex{}
+	errMutex := &sync.Mutex{}
 	var errs []string
 	var exit int
-	wg := &sync.WaitGroup{}
-	for _, f := range fns {
-		fn := onces.LoadOrStore(f)
-		wg.Add(1)
+	waitGroup := &sync.WaitGroup{}
+	for _, depFn := range fns {
+		depFunc := onces.LoadOrStore(depFn)
+		waitGroup.Add(1)
 		go func() {
 			defer func() {
 				if panicValue := recover(); panicValue != nil {
-					mu.Lock()
+					errMutex.Lock()
 					if err, ok := panicValue.(error); ok {
 						exit = changeExit(exit, ExitStatus(err))
 					} else {
 						exit = changeExit(exit, 1)
 					}
 					errs = append(errs, fmt.Sprint(panicValue))
-					mu.Unlock()
+					errMutex.Unlock()
 				}
-				wg.Done()
+				waitGroup.Done()
 			}()
-			if err := fn.run(ctx); err != nil {
-				mu.Lock()
+			if err := depFunc.run(ctx); err != nil {
+				errMutex.Lock()
 				errs = append(errs, fmt.Sprint(err))
 				exit = changeExit(exit, ExitStatus(err))
-				mu.Unlock()
+				errMutex.Unlock()
 			}
 		}()
 	}
 
-	wg.Wait()
+	waitGroup.Wait()
 	if len(errs) > 0 {
 		panic(Fatal(exit, strings.Join(errs, "\n")))
 	}
@@ -216,7 +209,7 @@ type onceFun struct {
 func (o *onceFun) run(ctx context.Context) error {
 	o.once.Do(func() {
 		if Verbose() {
-			simpleConsoleLogger.Println("Running dependency:", displayName(o.fn.Name()))
+			log.SimpleConsoleLogger.Println("Running dependency:", displayName(o.fn.Name()))
 		}
 		o.err = o.fn.Run(ctx)
 	})

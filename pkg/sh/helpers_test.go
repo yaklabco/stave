@@ -14,19 +14,22 @@ import (
 // the same contents, and the same permissions. It does NOT mean they have the same timestamp, as that is expected
 // to change in normal Stave sh.Copy operation.
 func compareFiles(file1 string, file2 string) error {
-	s1, err := os.Stat(file1)
+	stat1, err := os.Stat(file1)
 	if err != nil {
 		return fmt.Errorf("can't stat %s: %w", file1, err)
 	}
-	s2, err := os.Stat(file2)
+	stat2, err := os.Stat(file2)
 	if err != nil {
 		return fmt.Errorf("can't stat %s: %w", file2, err)
 	}
-	if s1.Size() != s2.Size() {
-		return fmt.Errorf("files %s and %s have different sizes: %d vs %d", file1, file2, s1.Size(), s2.Size())
+	if stat1.Size() != stat2.Size() {
+		return fmt.Errorf("files %s and %s have different sizes: %d vs %d", file1, file2, stat1.Size(), stat2.Size())
 	}
-	if s1.Mode() != s2.Mode() {
-		return fmt.Errorf("files %s and %s have different permissions: %#4o vs %#4o", file1, file2, s1.Mode(), s2.Mode())
+	if stat1.Mode() != stat2.Mode() {
+		return fmt.Errorf(
+			"files %s and %s have different permissions: %#4o vs %#4o",
+			file1, file2, stat1.Mode(), stat2.Mode(),
+		)
 	}
 	f1bytes, err := os.ReadFile(file1)
 	if err != nil {
@@ -54,7 +57,8 @@ func TestHelpers(t *testing.T) {
 		}
 	}()
 	srcname := filepath.Join(mytmpdir, "test1.txt")
-	err = os.WriteFile(srcname, []byte("All work and no play makes Jack a dull boy."), 0644)
+	//#nosec G306 -- test file does not require restricted permissions.
+	err = os.WriteFile(srcname, []byte("All work and no play makes Jack a dull boy."), 0o644)
 	if err != nil {
 		t.Fatalf("can't create test file %s: %v", srcname, err)
 	}

@@ -17,6 +17,7 @@ func init() {
 
 func TestParse(t *testing.T) {
 	ctx := t.Context()
+
 	info, err := PrimaryPackage(ctx, "go", "./testdata", []string{"func.go", "command.go", "alias.go", "repeating_synopsis.go", "subcommands.go"})
 	if err != nil {
 		t.Fatal(err)
@@ -90,17 +91,17 @@ func TestParse(t *testing.T) {
 		t.Fatalf("expected to only have two aliases, but have %#v", info.Aliases)
 	}
 
-	for _, fn := range expected {
+	for _, expectedFunc := range expected {
 		found := false
 		for _, infoFn := range info.Funcs {
-			if reflect.DeepEqual(fn, *infoFn) {
+			if reflect.DeepEqual(expectedFunc, *infoFn) {
 				found = true
 				break
 			}
 			t.Logf("%#v", infoFn)
 		}
 		if !found {
-			t.Fatalf("expected:\n%#v\n\nto be in:\n%#v", fn, info.Funcs)
+			t.Fatalf("expected:\n%#v\n\nto be in:\n%#v", expectedFunc, info.Funcs)
 		}
 	}
 }

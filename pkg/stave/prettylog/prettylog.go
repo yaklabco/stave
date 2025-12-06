@@ -11,7 +11,8 @@ func SetupPrettyLogger(writerForLogger io.Writer) *log.Logger {
 	logHandler := log.NewWithOptions(
 		writerForLogger,
 		log.Options{
-			Level:           log.InfoLevel, // This is the default; called can grab the returned logHandler and call the SetLevel method on it to set it to something else.
+			// Default level. Callers can use SetLevel on the returned handler to change.
+			Level:           log.InfoLevel,
 			ReportTimestamp: true,
 			ReportCaller:    true,
 		},
