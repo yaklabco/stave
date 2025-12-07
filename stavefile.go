@@ -93,6 +93,7 @@ func Init() error { // stave:help=Install dev tools (Brewfile), setup hooks (res
 		return err
 	}
 
+	// Setup hooks.
 	if err := setupHooksStave(); err != nil {
 		return err
 	}
@@ -336,7 +337,11 @@ func PrePushCheck(remoteName, _remoteURL string) error { // stave:help=Run pre-p
 		return fmt.Errorf("failed to read push refs: %w", err)
 	}
 
-	// Check that changelog has changed on current branch
+	if len(pushRefs) == 0 {
+		slog.Warn("no refs pushed, skipping changelog pre-push check")
+		return nil
+	}
+
 	slog.Info("about to run changelog pre-push check", slog.String("remote_name", remoteName), slog.Any("push_refs", pushRefs))
 	result, err := changelog.PrePushCheck(changelog.PrePushCheckOptions{
 		RemoteName:    remoteName,
