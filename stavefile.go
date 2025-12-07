@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/log"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/samber/lo"
 	"github.com/yaklabco/stave/cmd/stave/version"
@@ -26,8 +27,16 @@ import (
 	"github.com/yaklabco/stave/pkg/changelog"
 	"github.com/yaklabco/stave/pkg/sh"
 	"github.com/yaklabco/stave/pkg/st"
+	"github.com/yaklabco/stave/pkg/stave/prettylog"
 	"github.com/yaklabco/stave/pkg/ui"
 )
+
+func init() { //nolint:gochecknoinits // This is a stavefile, we can have an init().
+	logHandler := prettylog.SetupPrettyLogger(os.Stdout)
+	if st.Debug() {
+		logHandler.SetLevel(log.DebugLevel)
+	}
+}
 
 // outputf writes a formatted string to stdout.
 // Uses fmt.Fprintf for output (avoids forbidigo which bans fmt.Print* patterns).
@@ -328,7 +337,7 @@ func PrePushCheck(remoteName, _remoteURL string) error { // stave:help=Run pre-p
 	}
 
 	// Check that changelog has changed on current branch
-
+	slog.Info("about to run changelog pre-push check", slog.String("remote_name", remoteName), slog.Any("push_refs", pushRefs))
 	result, err := changelog.PrePushCheck(changelog.PrePushCheckOptions{
 		RemoteName:    remoteName,
 		ChangelogPath: "CHANGELOG.md",
