@@ -528,6 +528,10 @@ func main() {
 
 		// If hooks are running, the remainder of the command-line might just be unused hook arguments; instead of treating them as targets, we ignore them.
 		if hooksAreRunning {
+			if args.Verbose && iArg < len(args.Args) {
+				logger.Println(_fmt.Sprintf("Skipping unused arguments in target %s: %v", printName(target), args.Args[iArg:]))
+			}
+
 			break
 		}
 	}
