@@ -88,16 +88,12 @@ func All() error {
 }
 
 // Init installs required tools and sets up git hooks and modules.
-func Init() error { // stave:help=Install dev tools (Brewfile), setup hooks (respects current choice), and tidy modules
-	// Install tools from Brewfile.
-	if err := sh.Run("brew", "bundle", "--file=Brewfile"); err != nil {
-		return err
-	}
+func Init() { // stave:help=Install dev tools (Brewfile), setup hooks (respects current choice), and tidy modules
+	st.Deps(Brew, SetupHooks, InitGo)
+}
 
-	// Setup hooks.
-	if err := setupHooksStave(); err != nil {
-		return err
-	}
+func InitGo() error {
+	st.Deps(Brew)
 
 	if err := sh.Run("go", "mod", "tidy"); err != nil {
 		return err
@@ -110,58 +106,14 @@ func Init() error { // stave:help=Install dev tools (Brewfile), setup hooks (res
 	return sh.Run("go", "mod", "tidy")
 }
 
-func SwitchHooks() error { // stave:help=Switch git hooks system to stave
-	return setupHooksStave()
+func Brew() error {
+	// Install tools from Brewfile.
+	return sh.Run("brew", "bundle", "--file=Brewfile")
 }
 
-// findHuskyHooks returns a list of hook names configured in .husky directory.
-func findHuskyHooks() []string {
-	knownHooks := []string{
-		"pre-commit", "prepare-commit-msg", "commit-msg", "post-commit",
-		"pre-push", "pre-rebase", "post-checkout", "post-merge",
-	}
-	var found []string
-	for _, hook := range knownHooks {
-		hookPath := filepath.Join(".husky", hook)
-		if info, err := os.Stat(hookPath); err == nil && !info.IsDir() {
-			found = append(found, hook)
-		}
-	}
-	return found
-}
+func SetupHooks() error { // stave:help=Switch git hooks system to stave
+	st.Deps(Brew)
 
-// hookSystem represents the active git hook system.
-type hookSystem string
-
-const (
-	hookSystemNone  hookSystem = "none"
-	hookSystemHusky hookSystem = "husky"
-	hookSystemStave hookSystem = "stave"
-)
-
-// detectActiveHookSystem determines which hook system is currently configured.
-func detectActiveHookSystem() hookSystem {
-	// Check if core.hooksPath is set to .husky
-	hooksPath, err := sh.Output("git", "config", "--get", "core.hooksPath")
-	if err == nil && strings.TrimSpace(hooksPath) == ".husky" {
-		return hookSystemHusky
-	}
-
-	// Check if there are Stave-managed hooks in .git/hooks
-	hooksDir := filepath.Join(".git", "hooks")
-	for _, hook := range []string{"pre-commit", "pre-push", "commit-msg", "prepare-commit-msg"} {
-		hookPath := filepath.Join(hooksDir, hook)
-		if content, err := os.ReadFile(hookPath); err == nil {
-			if strings.Contains(string(content), "Installed by Stave") {
-				return hookSystemStave
-			}
-		}
-	}
-
-	return hookSystemNone
-}
-
-func setupHooksStave() error {
 	cs := ui.GetFangScheme()
 	successStyle := lipgloss.NewStyle().Foreground(cs.Flag)
 	labelStyle := lipgloss.NewStyle().Foreground(cs.Base)
@@ -171,10 +123,6 @@ func setupHooksStave() error {
 	if err := ensureStaveYAML(); err != nil {
 		return err
 	}
-
-	// Remove husky hooks path config (ignore error - may not be set)
-	//nolint:errcheck // Intentionally ignoring - config key may not exist
-	sh.Run("git", "config", "--unset", "core.hooksPath")
 
 	// Install stave hooks
 	if err := sh.Run("stave", "--hooks", "install"); err != nil {
@@ -201,6 +149,7 @@ func setupHooksStave() error {
 	return nil
 }
 
+// hookSystem represents the active git hook system.
 // findStaveHooks returns a list of hook names configured in stave.yaml.
 func findStaveHooks() []string {
 	cfg, err := config.Load(nil)
