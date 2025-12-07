@@ -78,17 +78,17 @@ const TargetColorEnv = "STAVEFILE_TARGET_COLOR"
 
 // Verbose reports whether a stavefile was run with the verbose flag.
 func Verbose() bool {
-	return env.ParseBoolEnvDefaultFalse(VerboseEnv)
+	return env.FailsafeParseBoolEnv(VerboseEnv, false)
 }
 
 // Debug reports whether a stavefile was run with the debug flag.
 func Debug() bool {
-	return env.ParseBoolEnvDefaultFalse(DebugEnv)
+	return env.FailsafeParseBoolEnv(DebugEnv, false)
 }
 
 // Info reports whether a stavefile was run with the info flag.
 func Info() bool {
-	return env.ParseBoolEnvDefaultFalse(InfoEnv)
+	return env.FailsafeParseBoolEnv(InfoEnv, false)
 }
 
 // GoCmd reports the command that Stave will use to build go code.  By default stave runs
@@ -103,13 +103,13 @@ func GoCmd() string {
 // HashFast reports whether the user has requested to use the fast hashing
 // mechanism rather than rely on go's rebuilding mechanism.
 func HashFast() bool {
-	return env.ParseBoolEnvDefaultFalse(HashFastEnv)
+	return env.FailsafeParseBoolEnv(HashFastEnv, false)
 }
 
 // IgnoreDefault reports whether the user has requested to ignore the default target
 // in the stavefile.
 func IgnoreDefault() bool {
-	return env.ParseBoolEnvDefaultFalse(IgnoreDefaultEnv)
+	return env.FailsafeParseBoolEnv(IgnoreDefaultEnv, false)
 }
 
 // CacheDir returns the directory where stave caches compiled binaries.  It
@@ -130,7 +130,7 @@ func CacheDir() string {
 
 // EnableColor reports whether the user has requested to enable a color output.
 func EnableColor() bool {
-	return env.ParseBoolEnvDefaultFalse(EnableColorEnv)
+	return env.FailsafeParseBoolEnv(EnableColorEnv, false)
 }
 
 // TargetColor returns the configured ANSI color name a color output.

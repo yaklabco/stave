@@ -67,32 +67,21 @@ func ParseBoolEnv(envVar string) (bool, error) {
 	return ParseBool(v)
 }
 
-// ParseBoolEnvDefaultFalse reads an environment variable and parses it as a boolean.
-// It returns false if the variable is unset, empty, or contains an invalid value.
-// This provides a fail-safe default where invalid configuration does not
-// accidentally enable features.
-func ParseBoolEnvDefaultFalse(envVar string) bool {
-	b, err := ParseBoolEnv(envVar)
-	if err != nil {
-		return false
-	}
-	return b
-}
-
-// ParseBoolEnvDefaultTrue reads an environment variable and parses it as a boolean.
-// It returns true if the variable is unset, empty, or contains an invalid value.
-// Use this when a feature should be enabled by default and only disabled
-// by explicit configuration.
-func ParseBoolEnvDefaultTrue(envVar string) bool {
+// FailsafeParseBoolEnv reads an environment variable and parses it as a boolean.
+// It returns defaultValue if the variable is unset, empty, or contains an invalid
+// value. This provides a fail-safe default where invalid configuration does not
+// accidentally enable or disable features, depending on the chosen default.
+func FailsafeParseBoolEnv(envVar string, defaultValue bool) bool {
 	v, ok := os.LookupEnv(envVar)
 	if !ok || v == "" {
-		return true
+		return defaultValue
 	}
 
 	b, err := ParseBool(v)
 	if err != nil {
-		return true
+		return defaultValue
 	}
 
 	return b
 }
+

@@ -113,8 +113,8 @@ func TestParseBoolEnv(t *testing.T) {
 	}
 }
 
-func TestParseBoolEnvDefaultFalse(t *testing.T) {
-	const envVar = "TEST_PARSE_BOOL_ENV_DEFAULT_FALSE"
+func TestFailsafeParseBoolEnvDefaultFalse(t *testing.T) {
+	const envVar = "TEST_FAILSAFE_PARSE_BOOL_ENV_DEFAULT_FALSE"
 
 	tests := []struct {
 		name   string
@@ -142,15 +142,15 @@ func TestParseBoolEnvDefaultFalse(t *testing.T) {
 				t.Setenv(envVar, tt.value)
 			}
 
-			if got := ParseBoolEnvDefaultFalse(envVar); got != tt.want {
-				t.Errorf("ParseBoolEnvDefaultFalse(%q) = %v, want %v", envVar, got, tt.want)
+			if got := FailsafeParseBoolEnv(envVar, false); got != tt.want {
+				t.Errorf("FailsafeParseBoolEnv(%q, false) = %v, want %v", envVar, got, tt.want)
 			}
 		})
 	}
 }
 
-func TestParseBoolEnvDefaultTrue(t *testing.T) {
-	const envVar = "TEST_PARSE_BOOL_ENV_DEFAULT_TRUE"
+func TestFailsafeParseBoolEnvDefaultTrue(t *testing.T) {
+	const envVar = "TEST_FAILSAFE_PARSE_BOOL_ENV_DEFAULT_TRUE"
 
 	tests := []struct {
 		name   string
@@ -176,8 +176,8 @@ func TestParseBoolEnvDefaultTrue(t *testing.T) {
 				t.Setenv(envVar, tt.value)
 			}
 
-			if got := ParseBoolEnvDefaultTrue(envVar); got != tt.want {
-				t.Errorf("ParseBoolEnvDefaultTrue(%q) = %v, want %v", envVar, got, tt.want)
+			if got := FailsafeParseBoolEnv(envVar, true); got != tt.want {
+				t.Errorf("FailsafeParseBoolEnv(%q, true) = %v, want %v", envVar, got, tt.want)
 			}
 		})
 	}
