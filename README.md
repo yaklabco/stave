@@ -2,7 +2,7 @@
 
 <!-- markdownlint-disable MD033 -->
 <p align="center">
-  <img src="pics/stave-logo-251205.png" alt="Stave logo" width="200">
+  <img src="img/stave-logo-251205B.png" alt="Stave logo" width="200">
 </p>
 <!-- markdownlint-enable MD033 -->
 
