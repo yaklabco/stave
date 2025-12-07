@@ -303,13 +303,16 @@ func applyStringEnv(envVar string, target *string) {
 }
 
 // applyBoolEnv applies an environment variable value to a bool pointer if set.
-// Invalid values fall back to false; unset env vars leave the config value unchanged.
+// Unset, empty, or invalid values leave the config value unchanged.
 func applyBoolEnv(envVar string, target *bool) {
 	v, ok := os.LookupEnv(envVar)
 	if !ok || v == "" {
 		return
 	}
-	b, _ := env.ParseBool(v)
+	b, err := env.ParseBool(v)
+	if err != nil {
+		return
+	}
 	*target = b
 }
 
