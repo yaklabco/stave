@@ -249,7 +249,7 @@ func installHooks(repo *hooks.GitRepo, cfg *config.Config, force bool, params Ru
 		installed++
 	}
 
-	slog.Info("hooks installed",
+	slog.Debug("hooks installed",
 		slog.Int("count", installed),
 		slog.String("directory", repo.HooksPath()))
 
