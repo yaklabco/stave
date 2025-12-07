@@ -189,9 +189,9 @@ go tool cover -html=coverage.out -o coverage.html
 
 ### Boolean configuration and environment parsing
 
-- Use the helpers in `internal/env` (`ParseBool`, `ParseBoolEnv`, `ParseBoolEnvDefaultFalse`, `ParseBoolEnvDefaultTrue`) instead of implementing custom boolean parsing.
+- Use the helpers in `internal/env` (`ParseBool`, `ParseBoolEnv`, `FailsafeParseBoolEnv`) instead of implementing custom boolean parsing.
 - Boolean values should accept `true`, `yes`, and `1` as true, and `false`, `no`, and `0` as false (case-insensitive, whitespace-insensitive).
-- Prefer `ParseBoolEnvDefaultFalse` for opt-in features (invalid or unset values resolve to `false`) and `ParseBoolEnvDefaultTrue` for opt-out defaults (invalid or unset values resolve to `true`).
+- Use `FailsafeParseBoolEnv(envVar, false)` for opt-in features (invalid or unset values resolve to `false`) and `FailsafeParseBoolEnv(envVar, true)` for opt-out defaults (invalid or unset values resolve to `true`).
 
 ## Commit Messages
 

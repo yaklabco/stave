@@ -95,7 +95,7 @@ Boolean environment variables use the same value semantics as configuration opti
 - **True values**: `true`, `yes`, `1`
 - **False values**: `false`, `no`, `0`
 
-Unset or empty variables behave like `false` unless otherwise documented.
+Unset or empty variables do not override configuration and therefore behave like the existing config value (which is `false` by default, unless otherwise documented).
 
 ## Parallelism Control
 

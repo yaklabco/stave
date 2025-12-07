@@ -33,6 +33,9 @@ func main() {
 		Args    []string      // args contain the non-flag command-line arguments
 	}
 
+	// parseBool implements the same semantics as internal/env.ParseBool:
+	// true: "true", "yes", "1"; false: "false", "no", "0" (case- and
+	// whitespace-insensitive). Any other non-empty value falls back to false.
 	parseBool := func(envVar string) bool {
 		val := _strings.TrimSpace(os.Getenv(envVar))
 		if val == "" {

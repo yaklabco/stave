@@ -109,8 +109,8 @@ graph TD
         F -->|yes| G[Return parsed bool]
         F -->|no| H[Return error]
 
-        I[ParseBoolEnvDefaultFalse] --> B
-        J[ParseBoolEnvDefaultTrue] --> B
+        I[FailsafeParseBoolEnv(_, false)] --> B
+        J[FailsafeParseBoolEnv(_, true)] --> B
         I -->|error| K[Returns false]
         J -->|error| L[Returns true]
     end
@@ -126,7 +126,7 @@ sequenceDiagram
     participant Env as internal/env
     participant OS as os.Getenv
 
-    Caller->>Env: ParseBoolEnvDefaultFalse("STAVEFILE_VERBOSE")
+    Caller->>Env: FailsafeParseBoolEnv("STAVEFILE_VERBOSE", false)
     Env->>OS: Getenv("STAVEFILE_VERBOSE")
     OS-->>Env: "  YES  "
     Env->>Env: strings.TrimSpace -> "YES"
@@ -135,7 +135,7 @@ sequenceDiagram
     Env-->>Caller: true, nil
 
     Note over Caller,Env: Error case with default false
-    Caller->>Env: ParseBoolEnvDefaultFalse("STAVEFILE_DEBUG")
+    Caller->>Env: FailsafeParseBoolEnv("STAVEFILE_DEBUG", false)
     Env->>OS: Getenv("STAVEFILE_DEBUG")
     OS-->>Env: "enabled"
     Env->>Env: strings.TrimSpace -> "enabled"
@@ -144,7 +144,7 @@ sequenceDiagram
     Env-->>Caller: false (default)
 
     Note over Caller,Env: Error case with default true
-    Caller->>Env: ParseBoolEnvDefaultTrue("STAVEFILE_FEATURE")
+    Caller->>Env: FailsafeParseBoolEnv("STAVEFILE_FEATURE", true)
     Env->>OS: Getenv("STAVEFILE_FEATURE")
     OS-->>Env: "enabled"
     Env->>Env: no match -> error
@@ -190,30 +190,28 @@ func ParseBool(value string) (bool, error) {
     }
 }
 
-// ParseBoolEnv reads an environment variable and parses it as a boolean.
-// Returns the parsed boolean and any error from ParseBool.
+// ParseBoolEnv reads an environment variable and parses it as a boolean
+// using ParseBool. Unset variables are treated the same as empty strings.
 func ParseBoolEnv(envVar string) (bool, error) {
-    return ParseBool(os.Getenv(envVar))
+    v := os.Getenv(envVar)
+    return ParseBool(v)
 }
 
-// ParseBoolEnvDefaultFalse reads an environment variable and parses it as a boolean.
-// Returns false if the variable is unset, empty, or contains an invalid value.
-// This provides a fail-safe default where invalid configuration
-// does not accidentally enable features.
-func ParseBoolEnvDefaultFalse(envVar string) bool {
-    b, _ := ParseBool(os.Getenv(envVar))
-    return b
-}
-
-// ParseBoolEnvDefaultTrue reads an environment variable and parses it as a boolean.
-// Returns true if the variable is unset, empty, or contains an invalid value.
-// Use this when a feature should be enabled by default and only disabled
-// by explicit configuration.
-func ParseBoolEnvDefaultTrue(envVar string) bool {
-    b, err := ParseBool(os.Getenv(envVar))
-    if err != nil || os.Getenv(envVar) == "" {
-        return true
+// FailsafeParseBoolEnv reads an environment variable and parses it as a boolean.
+// It returns defaultValue if the variable is unset, empty, or contains an invalid
+// value. This provides a fail-safe default where invalid configuration does not
+// accidentally enable or disable features, depending on the chosen default.
+func FailsafeParseBoolEnv(envVar string, defaultValue bool) bool {
+    v, ok := os.LookupEnv(envVar)
+    if !ok || v == "" {
+        return defaultValue
     }
+
+    b, err := ParseBool(v)
+    if err != nil {
+        return defaultValue
+    }
+
     return b
 }
 ```
@@ -228,10 +226,10 @@ func ParseBoolEnvDefaultTrue(envVar string) bool {
 
 4. **Error on invalid values**: Rather than silently returning a default, `ParseBool` returns an error for invalid values. This allows callers to handle configuration errors appropriately (log, fail fast, etc.).
 
-5. **Two default wrappers**: Different use cases require different default behaviors:
+5. **Single failsafe helper**: Different use cases require different default behaviors, but they are expressed via a single helper:
 
-   - `ParseBoolEnvDefaultFalse`: Fail-safe for features that should be opt-in. Invalid config does not accidentally enable features.
-   - `ParseBoolEnvDefaultTrue`: For features that should be enabled by default and only disabled by explicit configuration.
+   - `FailsafeParseBoolEnv(envVar, false)`: Fail-safe for features that should be opt-in. Invalid config does not accidentally enable features.
+   - `FailsafeParseBoolEnv(envVar, true)`: For features that should be enabled by default and only disabled by explicit configuration.
 
 6. **Explicit accepted values**: Only `"true"`, `"yes"`, `"1"`, `"false"`, `"no"`, `"0"` are accepted. This is a strict, well-defined set that matches common conventions.
 
@@ -297,7 +295,7 @@ import "github.com/yaklabco/stave/internal/env"
 // Update all call sites:
 
 func Verbose() bool {
-    return env.ParseBoolEnvDefaultFalse(VerboseEnv)
+    return env.FailsafeParseBoolEnv(VerboseEnv, false)
 }
 ```
 
@@ -471,21 +469,23 @@ Make the environment utilities public so generated code can import them.
 - Increases binary size.
 - Generated code should remain self-contained for portability.
 
-### 5. Single Default Wrapper (Original RFC Proposal)
+### 5. Single Failsafe Helper (Final Decision)
 
-Only provide `ParseBoolEnvDefaultFalse`, not `ParseBoolEnvDefaultTrue`.
+Provide a single helper, `FailsafeParseBoolEnv(envVar, defaultValue bool)`, and express
+opt-in vs opt-out behavior via the `defaultValue` parameter.
 
 **Pros:**
 
-- Simpler API.
-- Encourages fail-safe defaults.
+- Simple API with a single entry point.
+- Encourages explicit choice of default behavior at call sites.
+- Avoids duplicating near-identical wrappers.
 
 **Cons:**
 
-- Some use cases require features to be enabled by default.
-- Forces awkward workarounds for opt-out configuration.
+- Callers must be explicit about the default value in each call.
 
-**Decision:** Provide both wrappers to support both opt-in and opt-out configuration patterns.
+**Decision:** Use `FailsafeParseBoolEnv` for all boolean environment defaults, passing
+`false` for opt-in features and `true` for opt-out configuration.
 
 ### 6. Log a Warning on Invalid Values
 
@@ -582,7 +582,7 @@ func TestParseBool(t *testing.T) {
     }
 }
 
-func TestParseBoolEnvDefaultFalse(t *testing.T) {
+func TestFailsafeParseBoolEnvDefaultFalse(t *testing.T) {
     tests := []struct {
         name   string
         envVal string
@@ -605,18 +605,18 @@ func TestParseBoolEnvDefaultFalse(t *testing.T) {
 
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
-            const envVar = "TEST_PARSE_BOOL_ENV_DEFAULT_FALSE"
+            const envVar = "TEST_FAILSAFE_PARSE_BOOL_ENV_DEFAULT_FALSE"
             if tt.setEnv {
                 t.Setenv(envVar, tt.envVal)
             }
-            if got := ParseBoolEnvDefaultFalse(envVar); got != tt.want {
-                t.Errorf("ParseBoolEnvDefaultFalse() = %v, want %v", got, tt.want)
+            if got := FailsafeParseBoolEnv(envVar, false); got != tt.want {
+                t.Errorf("FailsafeParseBoolEnv(%q, false) = %v, want %v", envVar, got, tt.want)
             }
         })
     }
 }
 
-func TestParseBoolEnvDefaultTrue(t *testing.T) {
+func TestFailsafeParseBoolEnvDefaultTrue(t *testing.T) {
     tests := []struct {
         name   string
         envVal string
@@ -637,12 +637,12 @@ func TestParseBoolEnvDefaultTrue(t *testing.T) {
 
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
-            const envVar = "TEST_PARSE_BOOL_ENV_DEFAULT_TRUE"
+            const envVar = "TEST_FAILSAFE_PARSE_BOOL_ENV_DEFAULT_TRUE"
             if tt.setEnv {
                 t.Setenv(envVar, tt.envVal)
             }
-            if got := ParseBoolEnvDefaultTrue(envVar); got != tt.want {
-                t.Errorf("ParseBoolEnvDefaultTrue() = %v, want %v", got, tt.want)
+            if got := FailsafeParseBoolEnv(envVar, true); got != tt.want {
+                t.Errorf("FailsafeParseBoolEnv(%q, true) = %v, want %v", envVar, got, tt.want)
             }
         })
     }
@@ -659,7 +659,7 @@ Existing tests in `config/config_test.go` and `pkg/st/` will be updated to use v
 
 ### Phase 1: Add Canonical Implementation
 
-1. Add `ParseBool`, `ParseBoolEnv`, `ParseBoolEnvDefaultFalse`, and `ParseBoolEnvDefaultTrue` to `internal/env/env.go`.
+1. Add `ParseBool`, `ParseBoolEnv`, and `FailsafeParseBoolEnv` to `internal/env/env.go`.
 2. Add `ErrInvalidBool` error type.
 3. Add comprehensive unit tests for all functions.
 4. Ensure all tests pass and linting is clean.
@@ -672,7 +672,7 @@ Existing tests in `config/config_test.go` and `pkg/st/` will be updated to use v
 
 ### Phase 3: Migrate `pkg/st/runtime.go`
 
-1. Replace `parseEnvBool` with `env.ParseBoolEnvDefaultFalse`.
+1. Replace `parseEnvBool` with `env.FailsafeParseBoolEnv(envVar, false)`.
 2. This is a behavioral change (invalid values now return `false` instead of `true`).
 3. This is also a feature improvement (`STAVEFILE_VERBOSE=yes` now works correctly).
 4. Add release note documenting the fix.
@@ -721,7 +721,7 @@ This RFC proposes consolidating five boolean environment parsing implementations
 - Accepts `"true"`, `"yes"`, `"1"` as true values
 - Accepts `"false"`, `"no"`, `"0"` as false values
 - Returns an error for any other non-empty value
-- Provides two wrapper functions: `ParseBoolEnvDefaultFalse` (fail-safe for opt-in features) and `ParseBoolEnvDefaultTrue` (for opt-out features)
+- Provides a single helper: `FailsafeParseBoolEnv` (with `defaultValue` controlling opt-in vs opt-out behavior)
 
 This approach follows GTS conventions and provides a user-friendly, predictable API.
 
