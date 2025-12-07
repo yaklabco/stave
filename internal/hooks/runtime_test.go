@@ -410,6 +410,9 @@ func TestNewRuntime(t *testing.T) {
 	if runtime.Config != cfg {
 		t.Error("Config should be set")
 	}
+	if runtime.Stdin == nil {
+		t.Error("Stdin should be set")
+	}
 	if runtime.Stdout == nil {
 		t.Error("Stdout should be set")
 	}

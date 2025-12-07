@@ -2,18 +2,21 @@ package stave
 
 import (
 	"bytes"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-const testdataArgsDir = "./testdata/args"
+const testDataDir = "testdata"
+
+var testDataArgsDir = filepath.Join(testDataDir, "args")
 
 func TestArgs(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataArgsDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataArgsDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -24,7 +27,7 @@ func TestArgs(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stderr:  stderr,
 		Stdout:  stdout,
 		Args: []string{
@@ -47,8 +50,8 @@ not coughing
 
 func TestBadIntArg(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataArgsDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataArgsDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -60,7 +63,7 @@ func TestBadIntArg(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx:         ctx,
-		Dir:             testDataDir,
+		Dir:             dataDirForThisTest,
 		Stderr:          stderr,
 		Stdout:          stdout,
 		WriterForLogger: logOutput, // Isolate slog from stderr
@@ -76,8 +79,8 @@ func TestBadIntArg(t *testing.T) {
 
 func TestBadBoolArg(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataArgsDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataArgsDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -88,7 +91,7 @@ func TestBadBoolArg(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stderr:  stderr,
 		Stdout:  stdout,
 		Args:    []string{"cough", "abc123"},
@@ -103,8 +106,8 @@ func TestBadBoolArg(t *testing.T) {
 
 func TestBadDurationArg(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataArgsDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataArgsDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -116,7 +119,7 @@ func TestBadDurationArg(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx:         ctx,
-		Dir:             testDataDir,
+		Dir:             dataDirForThisTest,
 		Stderr:          stderr,
 		Stdout:          stdout,
 		WriterForLogger: logOutput, // Isolate slog from stderr
@@ -132,8 +135,8 @@ func TestBadDurationArg(t *testing.T) {
 
 func TestBadFloat64Arg(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataArgsDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataArgsDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -145,7 +148,7 @@ func TestBadFloat64Arg(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx:         ctx,
-		Dir:             testDataDir,
+		Dir:             dataDirForThisTest,
 		Stderr:          stderr,
 		Stdout:          stdout,
 		WriterForLogger: logOutput, // Isolate slog from stderr
@@ -161,8 +164,8 @@ func TestBadFloat64Arg(t *testing.T) {
 
 func TestMissingArgs(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataArgsDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataArgsDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -174,7 +177,7 @@ func TestMissingArgs(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx:         ctx,
-		Dir:             testDataDir,
+		Dir:             dataDirForThisTest,
 		Stderr:          stderr,
 		Stdout:          stdout,
 		WriterForLogger: logOutput, // Isolate slog from stderr
@@ -190,8 +193,8 @@ func TestMissingArgs(t *testing.T) {
 
 func TestDocs(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataArgsDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataArgsDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -202,7 +205,7 @@ func TestDocs(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stderr:  stderr,
 		Stdout:  stdout,
 		Info:    true,
@@ -226,8 +229,8 @@ Aliases: speak
 
 func TestMgF(t *testing.T) {
 	t.Parallel()
-	testDataDir := testdataArgsDir
-	mu := mutexByDir(testDataDir)
+	dataDirForThisTest := testDataArgsDir
+	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -238,7 +241,7 @@ func TestMgF(t *testing.T) {
 
 	runParams := RunParams{
 		BaseCtx: ctx,
-		Dir:     testDataDir,
+		Dir:     dataDirForThisTest,
 		Stderr:  stderr,
 		Stdout:  stdout,
 		Args:    []string{"HasDep"},

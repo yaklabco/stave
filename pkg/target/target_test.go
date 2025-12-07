@@ -124,7 +124,7 @@ func TestGlob(t *testing.T) {
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
 
-	err = os.MkdirAll(filepath.Join(dir, filepath.FromSlash("dir/dir2")), 0777)
+	err = os.MkdirAll(filepath.Join(dir, filepath.Join("dir", "dir2")), 0777)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,15 +132,15 @@ func TestGlob(t *testing.T) {
 	files := []string{
 		"old_executable",
 		"file_one.src",
-		"dir/file_two.src",
+		filepath.Join("dir", "file_two.src"),
 		"middle_executable",
 		"file_three.src",
-		"dir/dir2/file_four.src",
+		filepath.Join("dir", "dir2", "file_four.src"),
 		"built_executable",
 	}
 	for _, v := range files {
 		time.Sleep(10 * time.Millisecond)
-		f := filepath.Join(dir, filepath.FromSlash(v))
+		f := filepath.Join(dir, v)
 		err := os.WriteFile(f, []byte(v), testFilePerm)
 		if err != nil {
 			t.Fatal(err)
@@ -219,16 +219,16 @@ func TestPath(t *testing.T) {
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
 
-	err = os.MkdirAll(filepath.Join(dir, filepath.FromSlash("dir/dir2")), 0777)
+	err = os.MkdirAll(filepath.Join(dir, filepath.Join("dir", "dir2")), 0777)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// files are created in order so we know how to expect
 	files := []string{
 		"file_one",
-		"dir/file_two",
+		filepath.Join("dir", "file_two"),
 		"file_three",
-		"dir/dir2/file_four",
+		filepath.Join("dir", "dir2", "file_four"),
 	}
 	for _, v := range files {
 		time.Sleep(10 * time.Millisecond)
@@ -279,7 +279,7 @@ func TestPath(t *testing.T) {
 		{
 			desc:    "Source is newer dir2",
 			target:  "file_three",
-			sources: []string{"dir/dir2"},
+			sources: []string{filepath.Join("dir", "dir2")},
 			expect:  true,
 		},
 		{
@@ -326,16 +326,16 @@ func TestDir(t *testing.T) {
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
 
-	err = os.MkdirAll(filepath.Join(dir, filepath.FromSlash("dir/dir2")), 0777)
+	err = os.MkdirAll(filepath.Join(dir, filepath.Join("dir", "dir2")), 0777)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// files are created in order so we know which one is newer
 	files := []string{
 		"file_one",
-		"dir/file_two",
+		filepath.Join("dir", "file_two"),
 		"file_three",
-		"dir/dir2/file_four",
+		filepath.Join("dir", "dir2", "file_four"),
 		"file_five",
 	}
 	for _, v := range files {
@@ -424,13 +424,13 @@ func TestDir(t *testing.T) {
 		},
 		{
 			desc:    "Source file is newer than dst dir",
-			target:  "dir/dir2",
+			target:  filepath.Join("dir", "dir2"),
 			sources: []string{"file_five"},
 			expect:  true,
 		},
 		{
 			desc:    "Source file is not newer than dst dir",
-			target:  "dir/dir2",
+			target:  filepath.Join("dir", "dir2"),
 			sources: []string{"file_one"},
 			expect:  false,
 		},

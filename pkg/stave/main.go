@@ -77,6 +77,8 @@ type RunParams struct {
 	GoCmd      string        // the go binary command to run
 	CacheDir   string        // the directory where we should store compiled binaries
 	HashFast   bool          // don't rely on GOCACHE, just hash the stavefiles
+
+	HooksAreRunning bool // indicates whether hooks are currently being executed
 }
 
 // UsesStavefiles returns true if we are getting our stave files from a stavefiles directory.
@@ -258,13 +260,13 @@ func stave(ctx context.Context, params RunParams) error {
 	sort.Sort(info.Funcs)
 	sort.Sort(info.Imports)
 
-	main := filepath.Join(params.Dir, mainfile)
+	main := filepath.Join(params.Dir, mainFile)
 	binaryName := "stave"
 	if params.CompileOut != "" {
 		binaryName = filepath.Base(params.CompileOut)
 	}
 
-	err = GenerateMainfile(binaryName, main, info)
+	err = GenerateMainFile(binaryName, main, info)
 	if err != nil {
 		return err
 	}
@@ -560,8 +562,8 @@ func Compile(ctx context.Context, params CompileParams) error {
 	return nil
 }
 
-// GenerateMainfile generates the stave mainfile at path.
-func GenerateMainfile(binaryName, path string, info *parse.PkgInfo) error {
+// GenerateMainFile generates the stave mainfile at path.
+func GenerateMainFile(binaryName, path string, info *parse.PkgInfo) error {
 	slog.Debug("generating mainfile", slog.String(log.Path, path))
 
 	outputFile, err := os.Create(path)
@@ -721,6 +723,10 @@ func setupEnv(params RunParams) (map[string]string, error) {
 	}
 	if params.DryRun {
 		envMap["STAVEFILE_DRYRUN"] = "1"
+	}
+
+	if params.HooksAreRunning {
+		envMap[HooksAreRunningEnv] = "1"
 	}
 
 	if err := parallelism.Apply(envMap); err != nil {

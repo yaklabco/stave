@@ -145,7 +145,7 @@ func TestValidateHooks_ValidConfig(t *testing.T) {
 			{Target: "test", Args: []string{"./..."}},
 		},
 		"commit-msg": {
-			{Target: "validate-commit-message", PassStdin: true},
+			{Target: "validate-commit-message"},
 		},
 	}
 
@@ -301,9 +301,6 @@ hooks:
 	commitMsg := cfg.Hooks.Get("commit-msg")
 	if len(commitMsg) != 1 {
 		t.Errorf("commit-msg should have 1 target, got %d", len(commitMsg))
-	}
-	if !commitMsg[0].PassStdin {
-		t.Error("commit-msg[0].PassStdin should be true")
 	}
 }
 

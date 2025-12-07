@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/samber/lo"
 	"github.com/yaklabco/stave/config"
 	"github.com/yaklabco/stave/internal/hooks"
 	"github.com/yaklabco/stave/pkg/st"
@@ -21,6 +22,10 @@ const (
 	exitOK    = 0
 	exitError = 1
 	exitUsage = 2
+)
+
+const (
+	HooksAreRunningEnv = "STAVEFILE_HOOKS_RUNNING"
 )
 
 // printErr writes "Error: <message>\n" to w and returns exitError.
@@ -73,6 +78,8 @@ func newStaveTargetRunner(cfg *config.Config, workingDir string) hooks.TargetRun
 
 			// Target invocation: prepend target name to args
 			Args: append([]string{target}, args...),
+
+			HooksAreRunning: true,
 		}
 
 		err := Run(runParams)
@@ -248,7 +255,7 @@ func installHooks(repo *hooks.GitRepo, cfg *config.Config, force bool, params Ru
 		installed++
 	}
 
-	slog.Info("hooks installed",
+	slog.Debug("hooks installed",
 		slog.Int("count", installed),
 		slog.String("directory", repo.HooksPath()))
 
@@ -485,6 +492,7 @@ func runHooksRun(ctx context.Context, params RunParams, args []string) int {
 	// Create runtime and execute with real target runner
 	runtime := &hooks.Runtime{
 		Config:       cfg,
+		Stdin:        params.Stdin,
 		Stdout:       params.Stdout,
 		Stderr:       params.Stderr,
 		TargetRunner: newStaveTargetRunner(cfg, params.Dir),
@@ -499,12 +507,7 @@ func runHooksRun(ctx context.Context, params RunParams, args []string) int {
 }
 
 func parseHookArgs(args []string) []string {
-	for i, arg := range args {
-		if arg == "--" {
-			return args[i+1:]
-		}
-	}
-	return nil
+	return lo.Without(args, "--")
 }
 
 // hooksUsage prints the hooks command usage.

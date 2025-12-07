@@ -61,10 +61,10 @@ func TestPrePushCheck_ValidChangelog(t *testing.T) {
 	}
 
 	result, err := PrePushCheck(PrePushCheckOptions{
-		GitOps:        mock,
-		RemoteName:    "origin",
-		ChangelogPath: changelogPath,
-		SkipSVUCheck:  true, // Skip svu for this test
+		GitOps:               mock,
+		RemoteName:           "origin",
+		ChangelogPath:        changelogPath,
+		SkipNextVersionCheck: true, // Skip svu for this test
 		Refs: []PushRef{
 			{
 				LocalRef:  "refs/heads/feature",
@@ -111,10 +111,10 @@ func TestPrePushCheck_MissingChangelog(t *testing.T) {
 	}
 
 	result, err := PrePushCheck(PrePushCheckOptions{
-		GitOps:        mock,
-		RemoteName:    "origin",
-		ChangelogPath: changelogPath,
-		SkipSVUCheck:  true,
+		GitOps:               mock,
+		RemoteName:           "origin",
+		ChangelogPath:        changelogPath,
+		SkipNextVersionCheck: true,
 		Refs: []PushRef{
 			{
 				LocalRef:  "refs/heads/feature",
@@ -163,10 +163,10 @@ func TestPrePushCheck_InvalidFormat(t *testing.T) {
 	}
 
 	result, err := PrePushCheck(PrePushCheckOptions{
-		GitOps:        mock,
-		RemoteName:    "origin",
-		ChangelogPath: changelogPath,
-		SkipSVUCheck:  true,
+		GitOps:               mock,
+		RemoteName:           "origin",
+		ChangelogPath:        changelogPath,
+		SkipNextVersionCheck: true,
 		Refs: []PushRef{
 			{
 				LocalRef:  "refs/heads/feature",
@@ -200,10 +200,10 @@ func TestPrePushCheck_SkipTagPush(t *testing.T) {
 	}
 
 	result, err := PrePushCheck(PrePushCheckOptions{
-		GitOps:        mock,
-		RemoteName:    "origin",
-		ChangelogPath: changelogPath,
-		SkipSVUCheck:  true,
+		GitOps:               mock,
+		RemoteName:           "origin",
+		ChangelogPath:        changelogPath,
+		SkipNextVersionCheck: true,
 		Refs: []PushRef{
 			{
 				LocalRef:  "refs/tags/v1.0.0",
@@ -235,10 +235,10 @@ func TestPrePushCheck_SkipMainBranch(t *testing.T) {
 	}
 
 	result, err := PrePushCheck(PrePushCheckOptions{
-		GitOps:        mock,
-		RemoteName:    "origin",
-		ChangelogPath: changelogPath,
-		SkipSVUCheck:  true,
+		GitOps:               mock,
+		RemoteName:           "origin",
+		ChangelogPath:        changelogPath,
+		SkipNextVersionCheck: true,
 		Refs: []PushRef{
 			{
 				LocalRef:  "refs/heads/main",
@@ -286,10 +286,10 @@ func TestPrePushCheck_SkipSVUEnvVars(t *testing.T) {
 			}
 
 			result, err := PrePushCheck(PrePushCheckOptions{
-				GitOps:        mock,
-				RemoteName:    "origin",
-				ChangelogPath: changelogPath,
-				SkipSVUCheck:  false, // Not skipping via options
+				GitOps:               mock,
+				RemoteName:           "origin",
+				ChangelogPath:        changelogPath,
+				SkipNextVersionCheck: false, // Not skipping via options
 				Refs: []PushRef{
 					{
 						LocalRef:  "refs/heads/feature",
@@ -324,10 +324,10 @@ func TestPrePushCheck_NewBranch(t *testing.T) {
 	}
 
 	result, err := PrePushCheck(PrePushCheckOptions{
-		GitOps:        mock,
-		RemoteName:    "origin",
-		ChangelogPath: changelogPath,
-		SkipSVUCheck:  true,
+		GitOps:               mock,
+		RemoteName:           "origin",
+		ChangelogPath:        changelogPath,
+		SkipNextVersionCheck: true,
 		Refs: []PushRef{
 			{
 				LocalRef:  "refs/heads/new-feature",

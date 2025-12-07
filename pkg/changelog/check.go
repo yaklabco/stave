@@ -1,8 +1,10 @@
 package changelog
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 )
@@ -48,17 +50,21 @@ type PushRef struct {
 
 // PrePushCheckOptions configures pre-push behavior.
 type PrePushCheckOptions struct {
-	GitOps        GitOps    // Git operations interface
-	RemoteName    string    // Name of remote (e.g., "origin")
-	Refs          []PushRef // Refs being pushed (from stdin)
-	ChangelogPath string    // Path to CHANGELOG.md (default: CHANGELOG.md)
-	SkipSVUCheck  bool      // Skip svu next-version verification
+	GitOps               GitOps    // Git operations interface
+	RemoteName           string    // Name of remote (e.g., "origin")
+	Refs                 []PushRef // Refs being pushed (from stdin)
+	ChangelogPath        string    // Path to CHANGELOG.md (default: CHANGELOG.md)
+	SkipNextVersionCheck bool      // Skip svu next-version verification
 }
 
 // PrePushCheck runs all pre-push validations.
 // This mirrors the behavior of the bash pre-push hook.
 func PrePushCheck(opts PrePushCheckOptions) (*CheckResult, error) {
 	result := &CheckResult{}
+
+	if opts.GitOps == nil {
+		opts.GitOps = &ShellGitOps{}
+	}
 
 	if os.Getenv("BYPASS_CHANGELOG_CHECK") == "1" {
 		result.Skipped = true
@@ -80,7 +86,7 @@ func PrePushCheck(opts PrePushCheckOptions) (*CheckResult, error) {
 
 	sawBranchPush := checkRefChanges(opts, result)
 
-	if shouldSkipSVUCheck(opts.SkipSVUCheck, sawBranchPush) {
+	if shouldSkipNextVersionCheck(opts.SkipNextVersionCheck, sawBranchPush) {
 		result.Skipped = true
 		result.SkipReason = "svu check skipped (release/tag-only/opt-out)"
 		result.NextVersionPresent = true
@@ -90,6 +96,32 @@ func PrePushCheck(opts PrePushCheckOptions) (*CheckResult, error) {
 	verifyNextVersionInChangelog(changelog, changelogPath, result)
 
 	return result, nil
+}
+
+func ReadPushRefs(stdin io.Reader) ([]PushRef, error) {
+	scanner := bufio.NewScanner(stdin)
+
+	pushRefs := make([]PushRef, 0)
+	for scanner.Scan() {
+		line := scanner.Text()
+		fields := strings.Fields(line)
+		if len(fields) != 4 { //nolint:mnd // Git has a format with 4 fields here, it is what it is.
+			return nil, fmt.Errorf("invalid push-refs line: %q", line)
+		}
+
+		pushRefs = append(pushRefs, PushRef{
+			LocalRef:  fields[0],
+			LocalSHA:  fields[1],
+			RemoteRef: fields[2],
+			RemoteSHA: fields[3],
+		})
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("reading from stdin: %w", err)
+	}
+
+	return pushRefs, nil
 }
 
 // resolveChangelogPath returns the changelog path with a default fallback.
@@ -208,8 +240,8 @@ func checkRefForChangelog(opts PrePushCheckOptions, ref PushRef, result *CheckRe
 	return true
 }
 
-// shouldSkipSVUCheck returns true if the svu version check should be skipped.
-func shouldSkipSVUCheck(optOut bool, sawBranchPush bool) bool {
+// shouldSkipNextVersionCheck returns true if the svu version check should be skipped.
+func shouldSkipNextVersionCheck(optOut bool, sawBranchPush bool) bool {
 	return optOut ||
 		os.Getenv("SKIP_SVU_CHANGELOG_CHECK") == "1" ||
 		os.Getenv("GORELEASER_CURRENT_TAG") != "" ||

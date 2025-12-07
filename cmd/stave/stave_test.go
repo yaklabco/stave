@@ -3,6 +3,7 @@ package stave
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -87,6 +88,8 @@ func TestClean(t *testing.T) {
 	assert.Empty(t, names)
 }
 
+const testDataDir = "testdata"
+
 func TestAlias(t *testing.T) {
 	ctx := t.Context()
 
@@ -94,7 +97,7 @@ func TestAlias(t *testing.T) {
 	stderr := &bytes.Buffer{}
 	runParams := stave.RunParams{
 		BaseCtx: ctx,
-		Dir:     "testdata/alias",
+		Dir:     filepath.Join(testDataDir, "alias"),
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Args:    []string{"status"},

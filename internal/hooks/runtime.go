@@ -62,6 +62,9 @@ type Runtime struct {
 	// Config is the Stave configuration containing hook definitions.
 	Config *config.Config
 
+	// Stdin is where the target reads its input from.
+	Stdin io.Reader
+
 	// Stdout is where target output is written.
 	Stdout io.Writer
 
@@ -269,12 +272,7 @@ func (r *Runtime) executeTarget(
 		slog.String("target", target.Target),
 		slog.Any("args", targetArgs))
 
-	var stdin io.Reader
-	if target.PassStdin {
-		stdin = os.Stdin
-	}
-
-	exitCode, err := runner(ctx, target.Target, targetArgs, stdin, r.Stdout, r.Stderr)
+	exitCode, err := runner(ctx, target.Target, targetArgs, r.Stdin, r.Stdout, r.Stderr)
 
 	result := TargetResult{
 		Name:     target.Target,
@@ -314,6 +312,7 @@ func defaultTargetRunner(_ context.Context, _ string, _ []string, _ io.Reader, _
 func NewRuntime(cfg *config.Config) *Runtime {
 	return &Runtime{
 		Config: cfg,
+		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 	}

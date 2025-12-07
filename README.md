@@ -2,7 +2,7 @@
 
 <!-- markdownlint-disable MD033 -->
 <p align="center">
-  <img src="pics/stave-logo-251205.png" alt="Stave logo" width="200">
+  <img src="img/stave-logo-251205B.png" alt="Stave logo" width="200">
 </p>
 <!-- markdownlint-enable MD033 -->
 
@@ -78,11 +78,12 @@ stave -t 5m <target>  # Set timeout
 
 Stave is built on top of Stave with the following goals:
 
-- [ ] Modernized Go patterns (Go 1.21+)
+- [x] Modernized Go patterns (Go 1.21+)
 - [ ] Additional shell helpers
 - [ ] Watch mode for file changes
-- [ ] Dry-run support
-- [ ] Enhanced CLI experience
+- [x] Dry-run support
+- [x] Enhanced CLI experience
+- [x] Automatic detection of circular dependencies in build targets
 
 ## Attribution
 
