@@ -27,6 +27,7 @@ import (
 	"github.com/yaklabco/stave/pkg/changelog"
 	"github.com/yaklabco/stave/pkg/sh"
 	"github.com/yaklabco/stave/pkg/st"
+	"github.com/yaklabco/stave/pkg/stave"
 	"github.com/yaklabco/stave/pkg/stave/prettylog"
 	"github.com/yaklabco/stave/pkg/ui"
 )
@@ -379,6 +380,14 @@ func TestGo() error { // stave:help=Run Go tests with coverage (coverage.out, co
 	// so that tests *of* the dryrun functionality work as though they were run
 	// from a bare `go test` command-line.
 	if err := os.Unsetenv(dryrun.PossibleEnv); err != nil {
+		return err
+	}
+
+	// Unset STAVEFILES_HOOKS_RUNNING - if we have already made it into this code,
+	// then the environment variable has had its desired effect in (the source
+	// file derived from) mainfile.gotmpl, and we want to explicitly run the
+	// test suite as though we're *not* inside a hook.
+	if err := os.Unsetenv(stave.HooksAreRunningEnv); err != nil {
 		return err
 	}
 

@@ -77,6 +77,8 @@ type RunParams struct {
 	GoCmd      string        // the go binary command to run
 	CacheDir   string        // the directory where we should store compiled binaries
 	HashFast   bool          // don't rely on GOCACHE, just hash the stavefiles
+
+	HooksAreRunning bool // indicates whether hooks are currently being executed
 }
 
 // UsesStavefiles returns true if we are getting our stave files from a stavefiles directory.
@@ -721,6 +723,10 @@ func setupEnv(params RunParams) (map[string]string, error) {
 	}
 	if params.DryRun {
 		envMap["STAVEFILE_DRYRUN"] = "1"
+	}
+
+	if params.HooksAreRunning {
+		envMap[HooksAreRunningEnv] = "1"
 	}
 
 	if err := parallelism.Apply(envMap); err != nil {

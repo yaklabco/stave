@@ -192,7 +192,7 @@ func main() {
 		return "", false
 	}
 
-	// Terminals which  don't support color:
+	// Terminals which don't support color:
 	// 	TERM=vt100
 	// 	TERM=cygwin
 	// 	TERM=xterm-mono
@@ -469,6 +469,12 @@ func main() {
 		return
 		{{- end}}
 	}
+
+	hooksAreRunning := parseBool("STAVEFILE_HOOKS_RUNNING")
+	if args.Verbose {
+		logger.Println("STAVEFILE_HOOKS_RUNNING:", hooksAreRunning)
+	}
+
 	for iArg := 0; iArg < len(args.Args); {
 		target := args.Args[iArg]
 		iArg++
@@ -518,6 +524,11 @@ func main() {
 		default:
 			logger.Printf("Unknown target specified: %q\n", target)
 			os.Exit(2)
+		}
+
+		// If hooks are running, the remainder of the command-line might just be unused hook arguments; instead of treating them as targets, we ignore them.
+		if hooksAreRunning {
+			break
 		}
 	}
 }

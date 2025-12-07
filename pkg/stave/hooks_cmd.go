@@ -24,6 +24,10 @@ const (
 	exitUsage = 2
 )
 
+const (
+	HooksAreRunningEnv = "STAVEFILE_HOOKS_RUNNING"
+)
+
 // printErr writes "Error: <message>\n" to w and returns exitError.
 func printErr(w io.Writer, err error) int {
 	_, _ = fmt.Fprintf(w, "Error: %v\n", err)
@@ -74,6 +78,8 @@ func newStaveTargetRunner(cfg *config.Config, workingDir string) hooks.TargetRun
 
 			// Target invocation: prepend target name to args
 			Args: append([]string{target}, args...),
+
+			HooksAreRunning: true,
 		}
 
 		err := Run(runParams)
