@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/samber/lo"
 	"github.com/yaklabco/stave/config"
 	"github.com/yaklabco/stave/internal/hooks"
 	"github.com/yaklabco/stave/pkg/st"
@@ -485,6 +486,7 @@ func runHooksRun(ctx context.Context, params RunParams, args []string) int {
 	// Create runtime and execute with real target runner
 	runtime := &hooks.Runtime{
 		Config:       cfg,
+		Stdin:        params.Stdin,
 		Stdout:       params.Stdout,
 		Stderr:       params.Stderr,
 		TargetRunner: newStaveTargetRunner(cfg, params.Dir),
@@ -499,12 +501,7 @@ func runHooksRun(ctx context.Context, params RunParams, args []string) int {
 }
 
 func parseHookArgs(args []string) []string {
-	for i, arg := range args {
-		if arg == "--" {
-			return args[i+1:]
-		}
-	}
-	return nil
+	return lo.Without(args, "--")
 }
 
 // hooksUsage prints the hooks command usage.

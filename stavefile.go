@@ -6,6 +6,7 @@
 package main
 
 import (
+	"bufio"
 	"cmp"
 	"errors"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 	"time"
 
 	"charm.land/lipgloss/v2"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/samber/lo"
 	"github.com/yaklabco/stave/cmd/stave/version"
 	"github.com/yaklabco/stave/config"
@@ -299,28 +301,57 @@ func ValidateChangelog() error { // stave:help=Validate CHANGELOG.md format
 	return nil
 }
 
+// DumpStdin reads lines from stdin and dumps them until stdin is closed.
+// It uses spew.Dump() for output and returns an error if reading fails.
+func DumpStdin() error {
+	// Read lines from stdin and spew.Dump() them until stdin is closed.
+	scanner := bufio.NewScanner(os.Stdin)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		spew.Dump(line)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("reading from stdin: %w", err)
+	}
+
+	return nil
+}
+
 // PrePushCheck runs all pre-push validations for branch pushes.
 // This is the Go equivalent of the .githooks/pre-push bash script.
-func PrePushCheck() error { // stave:help=Run pre-push changelog validations
-	// First validate the changelog format
-	if err := ValidateChangelog(); err != nil {
-		return err
+func PrePushCheck(remoteName, _remoteURL string) error { // stave:help=Run pre-push changelog validations
+	pushRefs, err := changelog.ReadPushRefs(os.Stdin)
+	if err != nil {
+		return fmt.Errorf("failed to read push refs: %w", err)
 	}
 
-	// Check if we should skip svu verification
-	if os.Getenv("SKIP_SVU_CHANGELOG_CHECK") == "1" ||
-		os.Getenv("GORELEASER_CURRENT_TAG") != "" ||
-		os.Getenv("GORELEASER") != "" {
-		slog.Info("skipping svu next-version check (release/opt-out)")
-		return nil
+	// Check that changelog has changed on current branch
+
+	result, err := changelog.PrePushCheck(changelog.PrePushCheckOptions{
+		RemoteName:    remoteName,
+		ChangelogPath: "CHANGELOG.md",
+		Refs:          pushRefs,
+	})
+	if err != nil {
+		return fmt.Errorf("changelog pre-push check failed: %w", err)
 	}
 
-	// Verify next version exists in changelog
-	if err := changelog.VerifyNextVersion("CHANGELOG.md"); err != nil {
-		return fmt.Errorf("changelog version check failed: %w", err)
+	if result.HasErrors() {
+		return fmt.Errorf("changelog pre-push check failed: %s", result.Errors)
+	}
+
+	if !result.ChangelogValid {
+		return errors.New("changelog pre-push check failed: changelog is not valid")
+	}
+
+	if !result.ChangelogUpdated {
+		return errors.New("changelog pre-push check failed: changelog has not been updated")
 	}
 
 	slog.Info("CHANGELOG.md next-version verification passed")
+
 	return nil
 }
 

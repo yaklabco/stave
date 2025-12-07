@@ -13,10 +13,6 @@ type HookTarget struct {
 
 	// Args are additional CLI arguments passed to the target invocation.
 	Args []string `mapstructure:"args,omitempty"`
-
-	// PassStdin indicates whether stdin from Git should be forwarded to the target.
-	// This is important for hooks like commit-msg and prepare-commit-msg.
-	PassStdin bool `mapstructure:"passStdin,omitempty"`
 }
 
 // HooksConfig maps Git hook names to their configured targets.
