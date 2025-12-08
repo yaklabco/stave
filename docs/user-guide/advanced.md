@@ -181,7 +181,7 @@ stave -v build
 Or set the environment variable:
 
 ```bash
-STAVEFILE_VERBOSE=1 stave build
+STAVEFILE_VERBOSE=true stave build
 ```
 
 ### Debug Mode
@@ -195,7 +195,7 @@ stave -d build
 Or:
 
 ```bash
-STAVEFILE_DEBUG=1 stave build
+STAVEFILE_DEBUG=true stave build
 ```
 
 ### Keep Generated Files

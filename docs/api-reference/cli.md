@@ -207,7 +207,12 @@ Flags can also be set via environment variables:
 | `STAVEFILE_DRYRUN`     | `--dryrun`        |
 | `STAVE_NUM_PROCESSORS` | Parallelism limit |
 
-See [Configuration](../user-guide/configuration.md) for the full list.
+Boolean environment variables use the same value semantics as configuration options:
+
+- True values: `true`, `yes`, `1`
+- False values: `false`, `no`, `0`
+
+See [Configuration](../user-guide/configuration.md) for the full list and detailed boolean semantics.
 
 ---
 

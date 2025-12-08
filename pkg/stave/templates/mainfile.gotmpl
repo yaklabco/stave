@@ -33,17 +33,22 @@ func main() {
 		Args    []string      // args contain the non-flag command-line arguments
 	}
 
-	parseBool := func(env string) bool {
-		val := os.Getenv(env)
+	// parseBool implements the same semantics as internal/env.ParseBool:
+	// true: "true", "yes", "1"; false: "false", "no", "0" (case- and
+	// whitespace-insensitive). Any other non-empty value falls back to false.
+	parseBool := func(envVar string) bool {
+		val := _strings.TrimSpace(os.Getenv(envVar))
 		if val == "" {
 			return false
 		}
-		b, err := strconv.ParseBool(val)
-		if err != nil {
-			_log.Printf("warning: environment variable %s is not a valid bool value: %v", env, val)
+		switch _strings.ToLower(val) {
+		case "true", "yes", "1":
+			return true
+		case "false", "no", "0":
+			return false
+		default:
 			return false
 		}
-		return b
 	}
 
 	parseDuration := func(env string) time.Duration {
@@ -218,8 +223,7 @@ func main() {
 
 	// enableColor reports whether the user has requested to enable a color output.
 	enableColor := func() bool {
-		b, _ := strconv.ParseBool(os.Getenv("STAVEFILE_ENABLE_COLOR"))
-		return b
+		return parseBool("STAVEFILE_ENABLE_COLOR")
 	}
 
 	// targetColor returns the ANSI color which should be used to colorize targets.
@@ -450,8 +454,7 @@ func main() {
 	}
 	if len(args.Args) < 1 {
 		{{- if .DefaultFunc.Name}}
-		ignoreDefault, _ := strconv.ParseBool(os.Getenv("STAVEFILE_IGNOREDEFAULT"))
-		if ignoreDefault {
+		if parseBool("STAVEFILE_IGNOREDEFAULT") {
 			if err := list(); err != nil {
 				logger.Println("Error:", err)
 				os.Exit(1)

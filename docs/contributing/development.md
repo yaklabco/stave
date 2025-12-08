@@ -44,9 +44,22 @@ This installs:
 
 ## Setup Git Hooks
 
-Stave uses its own native hook system. Install hooks after cloning:
+Stave uses its own native hook system.
+
+### Fresh Clone
+
+For new clones, install hooks:
 
 ```bash
+stave --hooks install
+```
+
+### Switching from Husky
+
+If your local clone still has Husky configured (via `core.hooksPath`), unset it first:
+
+```bash
+git config --unset core.hooksPath
 stave --hooks install
 ```
 
@@ -173,6 +186,12 @@ go tool cover -html=coverage.out -o coverage.html
 - Use `slog` for structured logging
 - Error messages should be lowercase without trailing punctuation
 - Wrap errors with context: `fmt.Errorf("parsing file: %w", err)`
+
+### Boolean configuration and environment parsing
+
+- Use the helpers in `internal/env` (`ParseBool`, `ParseBoolEnv`, `FailsafeParseBoolEnv`) instead of implementing custom boolean parsing.
+- Boolean values should accept `true`, `yes`, and `1` as true, and `false`, `no`, and `0` as false (case-insensitive, whitespace-insensitive).
+- Use `FailsafeParseBoolEnv(envVar, false)` for opt-in features (invalid or unset values resolve to `false`) and `FailsafeParseBoolEnv(envVar, true)` for opt-out defaults (invalid or unset values resolve to `true`).
 
 ## Commit Messages
 

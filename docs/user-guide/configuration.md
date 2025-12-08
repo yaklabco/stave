@@ -66,6 +66,15 @@ Project config overrides user config.
 | `enable_color`   | bool   | `false`   | Enable colored output             |
 | `target_color`   | string | `Cyan`    | ANSI color for target names       |
 
+### Boolean values
+
+Boolean options accept a small set of string values. Input is trimmed and matched case-insensitively:
+
+- **True values**: `true`, `yes`, `1`
+- **False values**: `false`, `no`, `0`
+
+Empty strings are treated as `false` for configuration values. Any other non-empty value is considered invalid and falls back to the default value for that option.
+
 ## Environment Variables
 
 Environment variables override all config files:
@@ -80,6 +89,13 @@ Environment variables override all config files:
 | `STAVEFILE_IGNOREDEFAULT` | `ignore_default` |
 | `STAVEFILE_ENABLE_COLOR`  | `enable_color`   |
 | `STAVEFILE_TARGET_COLOR`  | `target_color`   |
+
+Boolean environment variables use the same value semantics as configuration options:
+
+- **True values**: `true`, `yes`, `1`
+- **False values**: `false`, `no`, `0`
+
+Unset or empty variables do not override configuration and therefore behave like the existing config value (which is `false` by default, unless otherwise documented).
 
 ## Parallelism Control
 
