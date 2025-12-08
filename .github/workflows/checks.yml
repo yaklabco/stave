@@ -78,3 +78,15 @@ jobs:
 
       - name: Run tests
         run: stave test
+
+      - name: Verify no uncommitted changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git update-index -q --refresh
+          if [ -n "$(git status --porcelain --ignore-submodules)" ]; then
+            echo "::error::Working tree is dirty (modified or untracked files not in the PR)"
+            git status --porcelain=v1 --ignore-submodules
+            git --no-pager diff
+            exit 1
+          fi
