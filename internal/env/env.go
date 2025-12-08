@@ -84,4 +84,3 @@ func FailsafeParseBoolEnv(envVar string, defaultValue bool) bool {
 
 	return b
 }
-
