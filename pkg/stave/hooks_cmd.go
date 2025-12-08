@@ -174,19 +174,7 @@ func runHooksInit(ctx context.Context, params RunParams) int {
 }
 
 func printHooksInitInstructions(out io.Writer) {
-	_, _ = fmt.Fprintln(out,
-		`
-Add hooks configuration to your stave.yaml file:
-
-hooks:
-  pre-commit:
-    - target: fmt
-    - target: lint
-  pre-push:
-    - target: test
-
- "Then run: stave --hooks install
-`[1:])
+	_, _ = fmt.Fprintln(out, staveInitText)
 }
 
 // runHooksInstall installs hook scripts to the Git repository.

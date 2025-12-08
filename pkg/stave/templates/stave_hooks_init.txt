@@ -1,0 +1,17 @@
+
+Add hooks configuration to your stave.yaml file:
+
+```yaml
+hooks:
+  pre-commit:
+    - target: fmt
+    - target: lint
+  pre-push:
+    - target: test
+```
+
+Then run:
+
+```console
+stave --hooks install
+```
