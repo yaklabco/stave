@@ -83,23 +83,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Refresh the index in case timestamps changed
           git update-index -q --refresh
-
-          # Fail if any tracked files were modified
-          if ! git diff --quiet --ignore-submodules --no-ext-diff; then
-            echo "::error::Tracked files were modified by the workflow (generation/linting/etc). Commit these changes in the PR."
-            echo "--- Diff stat ---"
-            git --no-pager diff --stat
-            echo "--- Full diff ---"
+          if [ -n "$(git status --porcelain --ignore-submodules)" ]; then
+            echo "::error::Working tree is dirty (modified or untracked files not in the PR)"
+            git status --porcelain=v1 --ignore-submodules
             git --no-pager diff
-            exit 1
-          fi
-
-          # Fail if any new untracked, non-ignored files appeared
-          UNTRACKED=$(git ls-files --others --exclude-standard)
-          if [[ -n "$UNTRACKED" ]]; then
-            echo "::error::Untracked, non-ignored files appeared during the workflow. Add them to the PR or .gitignore."
-            echo "$UNTRACKED"
             exit 1
           fi
