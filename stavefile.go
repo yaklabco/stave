@@ -32,7 +32,7 @@ import (
 	"github.com/yaklabco/stave/pkg/ui"
 )
 
-func init() { //nolint:gochecknoinits // This is a stavefile, we can have an init().
+func init() {
 	logHandler := prettylog.SetupPrettyLogger(os.Stdout)
 	if st.Debug() {
 		logHandler.SetLevel(log.DebugLevel)
