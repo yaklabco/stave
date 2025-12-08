@@ -431,6 +431,7 @@ linters:
           - forbidigo
         path: testmain_test\.go$
       - linters:
+          - gochecknoinits
           - noctx
           - unused
         path: stavefile\.go$
