@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOutCmd(t *testing.T) {
@@ -23,7 +25,7 @@ func TestOutCmd(t *testing.T) {
 }
 
 func TestExitCode(t *testing.T) {
-	ran, err := Exec(nil, nil, nil, os.Args[0], "-helper", "-exit", "99")
+	ran, err := Exec(nil, nil, nil, nil, os.Args[0], "-helper", "-exit", "99")
 	if err == nil {
 		t.Fatal("unexpected nil error from run")
 	}
@@ -39,7 +41,7 @@ func TestExitCode(t *testing.T) {
 func TestEnv(t *testing.T) {
 	env := "SOME_REALLY_LONG_STAVEFILE_SPECIFIC_THING"
 	out := &bytes.Buffer{}
-	ran, err := Exec(map[string]string{env: "foobar"}, out, nil, os.Args[0], "-printVar", env)
+	ran, err := Exec(map[string]string{env: "foobar"}, nil, out, nil, os.Args[0], "-printVar", env)
 	if err != nil {
 		t.Fatalf("unexpected error from runner: %#v", err)
 	}
@@ -52,7 +54,7 @@ func TestEnv(t *testing.T) {
 }
 
 func TestNotRun(t *testing.T) {
-	ran, err := Exec(nil, nil, nil, "thiswontwork")
+	ran, err := Exec(nil, nil, nil, nil, "thiswontwork")
 	if err == nil {
 		t.Fatal("unexpected nil error")
 	}
@@ -84,4 +86,47 @@ func TestDryRunOutput(t *testing.T) {
 	got := strings.TrimSpace(string(out))
 	want := "DRYRUN: somecmd arg1 arg two"
 	assert.Contains(t, got, want)
+}
+
+func TestPiper(t *testing.T) {
+	t.Run("pipes stdin to stdout", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("cat not available on windows in CI")
+		}
+		in := bytes.NewBufferString("hello\nworld\n")
+		var out bytes.Buffer
+		var errBuf bytes.Buffer
+		if err := Piper(in, &out, &errBuf, "cat"); err != nil {
+			t.Fatalf("Piper(cat) failed: %v", err)
+		}
+		assert.Equal(t, "hello\nworld\n", out.String())
+		assert.Empty(t, errBuf.String())
+	})
+
+	t.Run("captures stderr output", func(t *testing.T) {
+		var out bytes.Buffer
+		var errBuf bytes.Buffer
+		// Use test helper to write to stderr deterministically
+		err := Piper(nil, &out, &errBuf, os.Args[0], "-helper", "-stderr", "oops")
+		require.NoError(t, err)
+		assert.Equal(t, "oops\n", errBuf.String())
+		// helper prints a newline to stdout by default (empty string + Fprintln)
+		assert.Equal(t, "\n", out.String())
+	})
+}
+
+func TestPiperWith(t *testing.T) {
+	// Ensure env override is respected and stdout is captured
+	const key = "STAVE_TEST_PIPERWITH_VAR"
+	_ = os.Setenv(key, "outer")
+	defer os.Unsetenv(key)
+
+	var out bytes.Buffer
+	var errBuf bytes.Buffer
+	env := map[string]string{key: "inner"}
+	if err := PiperWith(env, nil, &out, &errBuf, os.Args[0], "-printVar", key); err != nil {
+		t.Fatalf("PiperWith failed: %v", err)
+	}
+	assert.Equal(t, "inner\n", out.String())
+	assert.Empty(t, errBuf.String())
 }
