@@ -39,7 +39,6 @@ This installs:
 - `golangci-lint` - Go linter
 - `gotestsum` - Test runner
 - `goreleaser` - Release automation
-- `svu` - Semantic version utility
 - `markdownlint-cli2` - Markdown linter
 
 ## Setup Git Hooks
