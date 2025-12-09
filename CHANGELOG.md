@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2025-12-09
+
+### Fixed
+
+- Maintenance release to ensure proper propagation to `sum.golang.org`.
+
 ## [0.2.0] - 2025-12-09
 
 ### Added
@@ -59,7 +65,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/yaklabco/stave/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/yaklabco/stave/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/yaklabco/stave/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/yaklabco/stave/compare/v0.1.1...v0.1.2
