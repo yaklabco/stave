@@ -64,7 +64,7 @@ func TestPrePushCheck_ValidChangelog(t *testing.T) {
 		GitOps:               mock,
 		RemoteName:           "origin",
 		ChangelogPath:        changelogPath,
-		SkipNextVersionCheck: true, // Skip svu for this test
+		SkipNextVersionCheck: true, // Skip next-version check for this test
 		Refs: []PushRef{
 			{
 				LocalRef:  "refs/heads/feature",
@@ -257,13 +257,13 @@ func TestPrePushCheck_SkipMainBranch(t *testing.T) {
 	}
 }
 
-func TestPrePushCheck_SkipSVUEnvVars(t *testing.T) {
+func TestPrePushCheck_SkipNextVerCheckEnvVars(t *testing.T) {
 	tests := []struct {
 		name   string
 		envKey string
 		envVal string
 	}{
-		{"SKIP_SVU_CHANGELOG_CHECK", "SKIP_SVU_CHANGELOG_CHECK", "1"},
+		{"STAVEFILE_SKIP_NEXTVER_CHANGELOG_CHECK", "STAVEFILE_SKIP_NEXTVER_CHANGELOG_CHECK", "1"},
 		{"GORELEASER_CURRENT_TAG", "GORELEASER_CURRENT_TAG", "v1.0.0"},
 		{"GORELEASER", "GORELEASER", "true"},
 	}

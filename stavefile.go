@@ -365,39 +365,17 @@ func Build() error { // stave:help=Build artifacts using goreleaser (snapshot)
 	return sh.RunV("goreleaser", "--parallelism", nCoresStr, "build", "--snapshot", "--clean")
 }
 
-// Release tags the next version with svu and runs goreleaser release.
-func Release() error { // stave:help=Create and push a new tag with svu, then goreleaser
-	if err := setSkipSVUChangelogCheck(); err != nil {
+// Release tags the next version and runs goreleaser release.
+func Release() error { // stave:help=Create and push a new tag, then goreleaser
+	if err := setSkipNextVerChangelogCheck(); err != nil {
 		return err
 	}
 
 	st.Deps(Init)
 
-	goBin, err := sh.Output("go", "env", "GOBIN")
+	nextVersion, err := changelog.NextVersion()
 	if err != nil {
 		return err
-	}
-	goBin = strings.TrimSpace(goBin)
-
-	if goBin == "" {
-		goPath, err := sh.Output("go", "env", "GOPATH")
-		if err != nil {
-			return err
-		}
-
-		goBin = filepath.Join(strings.TrimSpace(goPath), "bin")
-	}
-
-	svuPath := filepath.Join(goBin, "svu")
-	slog.Debug("svu binary path", slog.String("path", svuPath))
-	nextVersion, err := sh.Output(svuPath, "next")
-	if err != nil {
-		return err
-	}
-
-	nextVersion = strings.TrimSpace(nextVersion)
-	if nextVersion == "" {
-		return errors.New("svu returned empty version")
 	}
 
 	slog.Info("computed next version", slog.String("version", nextVersion))
@@ -420,10 +398,10 @@ func ParallelismCheck() {
 	outputf("GOMAXPROCS=%q\n", os.Getenv("GOMAXPROCS"))
 }
 
-// setSkipSVUChangelogCheck sets the SKIP_SVU_CHANGELOG_CHECK environment variable.
-func setSkipSVUChangelogCheck() error {
-	// Set SKIP_SVU_CHANGELOG_CHECK env var.
-	return os.Setenv("SKIP_SVU_CHANGELOG_CHECK", "1")
+// setSkipNextVerChangelogCheck sets the STAVEFILE_SKIP_NEXTVER_CHANGELOG_CHECK environment variable.
+func setSkipNextVerChangelogCheck() error {
+	// Set STAVEFILE_SKIP_NEXTVER_CHANGELOG_CHECK env var.
+	return os.Setenv("STAVEFILE_SKIP_NEXTVER_CHANGELOG_CHECK", "1")
 }
 
 // Say says something.

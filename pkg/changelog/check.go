@@ -21,7 +21,7 @@ const (
 type CheckResult struct {
 	ChangelogValid     bool     // CHANGELOG.md format is valid
 	ChangelogUpdated   bool     // CHANGELOG.md was modified in the push
-	NextVersionPresent bool     // svu next-version exists in changelog
+	NextVersionPresent bool     // next version to-be-released exists in changelog
 	Errors             []string // Accumulated error messages
 	Skipped            bool     // Check was skipped
 	SkipReason         string   // Reason for skipping
@@ -54,7 +54,7 @@ type PrePushCheckOptions struct {
 	RemoteName           string    // Name of remote (e.g., "origin")
 	Refs                 []PushRef // Refs being pushed (from stdin)
 	ChangelogPath        string    // Path to CHANGELOG.md (default: CHANGELOG.md)
-	SkipNextVersionCheck bool      // Skip svu next-version verification
+	SkipNextVersionCheck bool      // Skip next-version verification
 }
 
 // PrePushCheck runs all pre-push validations.
@@ -88,7 +88,7 @@ func PrePushCheck(opts PrePushCheckOptions) (*CheckResult, error) {
 
 	if shouldSkipNextVersionCheck(opts.SkipNextVersionCheck, sawBranchPush) {
 		result.Skipped = true
-		result.SkipReason = "svu check skipped (release/tag-only/opt-out)"
+		result.SkipReason = "next-version check skipped (release/tag-only/opt-out)"
 		result.NextVersionPresent = true
 		return result, nil
 	}
@@ -240,22 +240,22 @@ func checkRefForChangelog(opts PrePushCheckOptions, ref PushRef, result *CheckRe
 	return true
 }
 
-// shouldSkipNextVersionCheck returns true if the svu version check should be skipped.
+// shouldSkipNextVersionCheck returns true if the next-version version check should be skipped.
 func shouldSkipNextVersionCheck(optOut bool, sawBranchPush bool) bool {
 	return optOut ||
-		os.Getenv("SKIP_SVU_CHANGELOG_CHECK") == "1" ||
+		os.Getenv("STAVEFILE_SKIP_NEXTVER_CHANGELOG_CHECK") == "1" ||
 		os.Getenv("GORELEASER_CURRENT_TAG") != "" ||
 		os.Getenv("GORELEASER") != "" ||
 		!sawBranchPush
 }
 
-// verifyNextVersionInChangelog checks that the svu next-version exists.
+// verifyNextVersionInChangelog checks that the next version to-be-released exists in the changelog.
 func verifyNextVersionInChangelog(changelog *Changelog, path string, result *CheckResult) {
 	nextVersion, err := NextVersion()
 	if err != nil {
 		result.Errors = append(
 			result.Errors,
-			fmt.Sprintf("failed to get next version from svu: %s", err))
+			fmt.Sprintf("failed to get next version: %s", err))
 		return
 	}
 
@@ -311,7 +311,7 @@ func ValidateFile(path string) error {
 	return nil
 }
 
-// VerifyNextVersion checks that the svu next-version exists in the changelog.
+// VerifyNextVersion checks that the next version to-be-released exists in the changelog.
 // This is a convenience function for the stavefile targets.
 func VerifyNextVersion(path string) error {
 	content, err := os.ReadFile(path)
