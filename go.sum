@@ -8,8 +8,8 @@ github.com/aymanbagabas/go-udiff v0.3.1 h1:LV+qyBQ2pqe0u42ZsUEtPiCaUoqgA9gYRDs3v
 github.com/aymanbagabas/go-udiff v0.3.1/go.mod h1:G0fsKmG+P6ylD0r6N/KgQD/nWzgfnl8ZBcNLgcbrw8E=
 github.com/bitfield/gotestdox v0.2.2 h1:x6RcPAbBbErKLnapz1QeAlf3ospg8efBsedU93CDsnE=
 github.com/bitfield/gotestdox v0.2.2/go.mod h1:D+gwtS0urjBrzguAkTM2wodsTQYFHdpx8eqRJ3N+9pY=
-github.com/caarlos0/svu/v3 v3.3.0 h1:zjG8BQd5tWlr5kjqh5uJBnBEoNp0GfvFxGBIHgUcrjc=
-github.com/caarlos0/svu/v3 v3.3.0/go.mod h1:WtAu3yAuNo4zOkvHxp4bk/RgFc8OCt+Tr/A7OtOK51M=
+github.com/caarlos0/svu/v3 v3.2.4 h1:IL60vD8vc3gOFyUQ0eABjyCS4qA9GZ7QYM5w0wm2u3o=
+github.com/caarlos0/svu/v3 v3.2.4/go.mod h1:s5K8stA4Ip69rwNNDpHrAd6EKcyRk/L1mHpCgSNTSYA=
 github.com/charmbracelet/colorprofile v0.3.3 h1:DjJzJtLP6/NZ8p7Cgjno0CKGr7wwRJGxWUwh2IyhfAI=
 github.com/charmbracelet/colorprofile v0.3.3/go.mod h1:nB1FugsAbzq284eJcjfah2nhdSLppN2NqvfotkfRYP4=
 github.com/charmbracelet/fang v0.4.4 h1:G4qKxF6or/eTPgmAolwPuRNyuci3hTUGGX1rj1YkHJY=
