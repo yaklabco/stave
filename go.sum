@@ -8,8 +8,8 @@ github.com/aymanbagabas/go-udiff v0.3.1 h1:LV+qyBQ2pqe0u42ZsUEtPiCaUoqgA9gYRDs3v
 github.com/aymanbagabas/go-udiff v0.3.1/go.mod h1:G0fsKmG+P6ylD0r6N/KgQD/nWzgfnl8ZBcNLgcbrw8E=
 github.com/bitfield/gotestdox v0.2.2 h1:x6RcPAbBbErKLnapz1QeAlf3ospg8efBsedU93CDsnE=
 github.com/bitfield/gotestdox v0.2.2/go.mod h1:D+gwtS0urjBrzguAkTM2wodsTQYFHdpx8eqRJ3N+9pY=
-github.com/caarlos0/svu/v3 v3.3.0 h1:zjG8BQd5tWlr5kjqh5uJBnBEoNp0GfvFxGBIHgUcrjc=
-github.com/caarlos0/svu/v3 v3.3.0/go.mod h1:WtAu3yAuNo4zOkvHxp4bk/RgFc8OCt+Tr/A7OtOK51M=
+github.com/caarlos0/svu/v3 v3.2.4 h1:IL60vD8vc3gOFyUQ0eABjyCS4qA9GZ7QYM5w0wm2u3o=
+github.com/caarlos0/svu/v3 v3.2.4/go.mod h1:s5K8stA4Ip69rwNNDpHrAd6EKcyRk/L1mHpCgSNTSYA=
 github.com/charmbracelet/colorprofile v0.3.3 h1:DjJzJtLP6/NZ8p7Cgjno0CKGr7wwRJGxWUwh2IyhfAI=
 github.com/charmbracelet/colorprofile v0.3.3/go.mod h1:nB1FugsAbzq284eJcjfah2nhdSLppN2NqvfotkfRYP4=
 github.com/charmbracelet/fang v0.4.4 h1:G4qKxF6or/eTPgmAolwPuRNyuci3hTUGGX1rj1YkHJY=
@@ -93,8 +93,8 @@ github.com/pelletier/go-toml/v2 v2.2.4 h1:mye9XuhQ6gvn5h28+VilKrrPoQVanw5PMw/TB0
 github.com/pelletier/go-toml/v2 v2.2.4/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/preminger/goctx v0.14.7 h1:V9IkkUTOvmYFlZhMe5Cbz5ktDlK7vb9KH685i9W2F0E=
-github.com/preminger/goctx v0.14.7/go.mod h1:OfC5JrvTnELiqUp7ZVmmFznP1jLHPPLsgJt+jiXysCQ=
+github.com/preminger/goctx v0.15.0 h1:1e0mvicI1hftXchcLmVbq+2XVrRRr06vWQcgHNDsq9E=
+github.com/preminger/goctx v0.15.0/go.mod h1:OfC5JrvTnELiqUp7ZVmmFznP1jLHPPLsgJt+jiXysCQ=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
 github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
 github.com/rogpeppe/go-internal v1.11.0 h1:cWPaGQEPrBb5/AsnsZesgZZ9yb1OQ+GOISoDNXVBh4M=

@@ -55,7 +55,7 @@ func Run(cmd string, args ...string) error {
 
 // RunV is like Run, but always sends the command's stdout to os.Stdout.
 func RunV(cmd string, args ...string) error {
-	_, err := Exec(nil, os.Stdout, os.Stderr, cmd, args...)
+	_, err := Exec(nil, os.Stdin, os.Stdout, os.Stderr, cmd, args...)
 	return err
 }
 
@@ -70,28 +70,42 @@ func RunWith(env map[string]string, cmd string, args ...string) error {
 	if st.Verbose() || dryrun.IsDryRun() {
 		output = os.Stdout
 	}
-	_, err := Exec(env, output, os.Stderr, cmd, args...)
+	_, err := Exec(env, os.Stdin, output, os.Stderr, cmd, args...)
 	return err
 }
 
 // RunWithV is like RunWith, but always sends the command's stdout to os.Stdout.
 func RunWithV(env map[string]string, cmd string, args ...string) error {
-	_, err := Exec(env, os.Stdout, os.Stderr, cmd, args...)
+	_, err := Exec(env, os.Stdin, os.Stdout, os.Stderr, cmd, args...)
 	return err
 }
 
 // Output runs the command and returns the text from stdout.
 func Output(cmd string, args ...string) (string, error) {
 	buf := &bytes.Buffer{}
-	_, err := Exec(nil, buf, os.Stderr, cmd, args...)
+	_, err := Exec(nil, os.Stdin, buf, os.Stderr, cmd, args...)
 	return strings.TrimSuffix(buf.String(), "\n"), err
 }
 
 // OutputWith is like RunWith, but returns what is written to stdout.
 func OutputWith(env map[string]string, cmd string, args ...string) (string, error) {
 	buf := &bytes.Buffer{}
-	_, err := Exec(env, buf, os.Stderr, cmd, args...)
+	_, err := Exec(env, os.Stdin, buf, os.Stderr, cmd, args...)
 	return strings.TrimSuffix(buf.String(), "\n"), err
+}
+
+// Piper runs the given command, piping its stdin to the given reader, stdout to
+// the given writer, and stderr to the given writer.
+func Piper(stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) error {
+	_, err := Exec(nil, stdin, stdout, stderr, cmd, args...)
+	return err
+}
+
+// PiperWith is like Piper, but adds env to the environment variables for the
+// command being run.
+func PiperWith(env map[string]string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) error {
+	_, err := Exec(env, stdin, stdout, stderr, cmd, args...)
+	return err
 }
 
 // Exec executes the command, piping its stdout and stderr to the given
@@ -106,19 +120,24 @@ func OutputWith(env map[string]string, cmd string, args ...string) (string, erro
 // Ran reports if the command ran (rather than was not found or not executable).
 // Code reports the exit code the command returned if it ran. If err == nil, ran
 // is always true and code is always 0.
-func Exec(env map[string]string, stdout, stderr io.Writer, cmd string, args ...string) (bool, error) {
-	expand := func(s string) string {
-		s2, ok := env[s]
-		if ok {
-			return s2
+func Exec(env map[string]string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) (bool, error) {
+	expand := func(varName string) string {
+		if env != nil {
+			s2, ok := env[varName]
+			if ok {
+				return s2
+			}
 		}
-		return os.Getenv(s)
+		return os.Getenv(varName)
 	}
+
 	cmd = os.Expand(cmd, expand)
+
 	for i := range args {
 		args[i] = os.Expand(args[i], expand)
 	}
-	ran, code, err := run(env, stdout, stderr, cmd, args...)
+
+	ran, code, err := run(env, stdin, stdout, stderr, cmd, args...)
 	if err == nil {
 		return true, nil
 	}
@@ -128,7 +147,7 @@ func Exec(env map[string]string, stdout, stderr io.Writer, cmd string, args ...s
 	return ran, fmt.Errorf(`failed to run "%s %s: %w"`, cmd, strings.Join(args, " "), err)
 }
 
-func run(env map[string]string, stdout, stderr io.Writer, cmd string, args ...string) (bool, int, error) {
+func run(env map[string]string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) (bool, int, error) {
 	ctx := context.Background()
 	theCmd := dryrun.Wrap(ctx, cmd, args...)
 	theCmd.Env = os.Environ()
@@ -137,7 +156,7 @@ func run(env map[string]string, stdout, stderr io.Writer, cmd string, args ...st
 	}
 	theCmd.Stderr = stderr
 	theCmd.Stdout = stdout
-	theCmd.Stdin = os.Stdin
+	theCmd.Stdin = stdin
 
 	quoted := make([]string, 0, len(args))
 	for i := range args {

@@ -85,7 +85,7 @@ out, err := sh.OutputWith(map[string]string{"GOOS": "linux"}, "go", "env", "GOOS
 ### Exec
 
 ```go
-func Exec(env map[string]string, stdout, stderr io.Writer, cmd string, args ...string) (bool, error)
+func Exec(env map[string]string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) (bool, error)
 ```
 
 Execute a command with full control over I/O.
@@ -93,6 +93,7 @@ Execute a command with full control over I/O.
 Parameters:
 
 - `env`: Additional environment variables (merged with current environment)
+- `stdin`: Reader for standard input (nil to use no input)
 - `stdout`: Writer for standard output (nil to discard)
 - `stderr`: Writer for standard error
 - `cmd`: Command to execute
@@ -106,10 +107,43 @@ Returns:
 ```go
 ran, err := sh.Exec(
     map[string]string{"DEBUG": "1"},
+    os.Stdin,
     os.Stdout,
     os.Stderr,
     "my-command", "arg1",
 )
+```
+
+### Piper
+
+```go
+func Piper(stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) error
+```
+
+Run a command while explicitly controlling `stdin`, `stdout`, and `stderr`.
+
+```go
+in := bytes.NewBufferString("input data\n")
+var out, errBuf bytes.Buffer
+if err := sh.Piper(in, &out, &errBuf, "cat"); err != nil {
+    return err
+}
+```
+
+### PiperWith
+
+```go
+func PiperWith(env map[string]string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) error
+```
+
+Same as `Piper`, but with additional environment variables.
+
+```go
+env := map[string]string{"FOO": "bar"}
+var out, errBuf bytes.Buffer
+if err := sh.PiperWith(env, nil, &out, &errBuf, "env", "FOO"); err != nil {
+    return err
+}
 ```
 
 ## Command Factories

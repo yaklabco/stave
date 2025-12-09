@@ -6,7 +6,7 @@ import (
 	"runtime"
 
 	"github.com/yaklabco/stave/internal/dryrun"
-	"github.com/yaklabco/stave/internal/env"
+	"github.com/yaklabco/stave/pkg/env"
 )
 
 // CacheEnv is the environment variable that users may set to change the

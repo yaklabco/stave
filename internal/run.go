@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/yaklabco/stave/internal/dryrun"
-	"github.com/yaklabco/stave/internal/env"
 	"github.com/yaklabco/stave/internal/log"
+	"github.com/yaklabco/stave/pkg/env"
 )
 
 const (

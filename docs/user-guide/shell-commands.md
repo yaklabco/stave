@@ -85,6 +85,7 @@ For complete control over stdin, stdout, and stderr:
 ```go
 ran, err := sh.Exec(
     map[string]string{"DEBUG": "1"},  // environment
+    os.Stdin,                          // stdin reader
     os.Stdout,                         // stdout writer
     os.Stderr,                         // stderr writer
     "my-command",
@@ -93,6 +94,27 @@ ran, err := sh.Exec(
 ```
 
 Returns whether the command ran (vs. not found) and any error.
+
+### sh.Piper and sh.PiperWith
+
+Pipe input and capture output directly:
+
+```go
+in := bytes.NewBufferString("hello\n")
+var out, errBuf bytes.Buffer
+
+// Without extra environment
+if err := sh.Piper(in, &out, &errBuf, "cat"); err != nil {
+    return err
+}
+
+// With additional environment
+env := map[string]string{"FOO": "bar"}
+var out2, errBuf2 bytes.Buffer
+if err := sh.PiperWith(env, nil, &out2, &errBuf2, "env", "FOO"); err != nil {
+    return err
+}
+```
 
 ## Command Factories
 

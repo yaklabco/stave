@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"github.com/spf13/viper"
-	"github.com/yaklabco/stave/internal/env"
+	"github.com/yaklabco/stave/pkg/env"
 )
 
 // Config holds all Stave configuration values.

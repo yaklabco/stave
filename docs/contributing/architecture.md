@@ -134,7 +134,8 @@ Shell command execution.
 
 - `Run()`, `RunV()`, `RunWith()`: Execute commands
 - `Output()`, `OutputWith()`: Capture stdout
-- `Exec()`: Full control over I/O
+- `Piper()`, `PiperWith()`: Run commands with explicit control of `stdin`, `stdout`, and `stderr`
+- `Exec()`: Full control over I/O (includes `stdin`, `stdout`, and `stderr`)
 - `RunCmd()`, `OutCmd()`: Command factories
 
 All functions:

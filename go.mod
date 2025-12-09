@@ -1,15 +1,15 @@
 module github.com/yaklabco/stave
 
-go 1.25.3
+go 1.24.11
 
 require (
 	charm.land/lipgloss/v2 v2.0.0-beta.3.0.20251106193318-19329a3e8410
-	github.com/caarlos0/svu/v3 v3.3.0
+	github.com/caarlos0/svu/v3 v3.2.4
 	github.com/charmbracelet/fang v0.4.4
 	github.com/charmbracelet/log v0.4.2
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/google/uuid v1.6.0
-	github.com/preminger/goctx v0.14.7
+	github.com/preminger/goctx v0.15.0
 	github.com/samber/lo v1.52.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
