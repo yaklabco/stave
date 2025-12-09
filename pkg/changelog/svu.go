@@ -24,7 +24,7 @@ func NextVersion() (string, error) {
 		return "", err
 	}
 
-	out, err := sh.Output(svuPath, "next", "--force-patch-increment")
+	out, err := sh.Output(svuPath, "next")
 	if err != nil {
 		return "", err
 	}

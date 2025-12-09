@@ -390,7 +390,7 @@ func Release() error { // stave:help=Create and push a new tag with svu, then go
 
 	svuPath := filepath.Join(goBin, "svu")
 	slog.Debug("svu binary path", slog.String("path", svuPath))
-	nextVersion, err := sh.Output(svuPath, "next", "--force-patch-increment")
+	nextVersion, err := sh.Output(svuPath, "next")
 	if err != nil {
 		return err
 	}

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2025-12-08
+
+### Changed
+
+- Upgraded `caarlos0/svu` to `v3`, and removed deprecated `--force-patch-increment` flag from all its invocations.
+
 ## [0.1.1] - 2025-12-08
 
 ### Changed
@@ -37,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.1.1...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/yaklabco/stave/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/yaklabco/stave/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/yaklabco/stave/releases/tag/v0.1.0
