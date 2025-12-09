@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - New `sh.Piper(...)` and `sh.PiperWith(...)` functions.
 
+### Changed
+
+- Refactored `internal/env` -> `pkg/env` to expose `env` functions publicly.
+
 ## [0.1.3] - 2025-12-09
 
 ### Changed

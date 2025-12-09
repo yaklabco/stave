@@ -6,7 +6,7 @@ import (
 	"os/exec"
 
 	"github.com/samber/lo"
-	"github.com/yaklabco/stave/internal/env"
+	"github.com/yaklabco/stave/pkg/env"
 )
 
 type mustExecOption struct {
