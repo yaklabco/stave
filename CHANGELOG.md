@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5] - 2025-12-10
+
+### Added
+
+- Section on using `stave` in CI has been added to [the README](./README.md#using-stave-in-your-ci).
+
 ## [0.2.4] - 2025-12-10
 
 ### Added
@@ -87,7 +93,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.2.4...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/yaklabco/stave/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/yaklabco/stave/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/yaklabco/stave/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/yaklabco/stave/compare/v0.2.1...v0.2.2

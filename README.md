@@ -33,6 +33,19 @@ cd stave
 go run bootstrap.go
 ```
 
+## Using `stave` in your CI
+
+The most portable, cross-platform way to make `stave` available in your CI workflow is probably to install it via the [Go-based](#using-go-install) install method:
+
+```yaml
+    steps:
+      # ... prev. steps clipped ...
+      - name: Install stave
+        run: go install github.com/yaklabco/stave@latest
+```
+
+You will, of course, need to install Go in one of the previous steps - for example, via the [setup-go](https://github.com/actions/setup-go?tab=readme-ov-file#quick-start) action.
+
 ## Quick Start
 
 Create a `stavefile.go` in your project:
