@@ -12,11 +12,20 @@ Stave is a fork of [Mage](https://github.com/magefile/mage) by Nate Finch, with 
 
 ## Installation
 
+### Using Homebrew
+
+```shell
+brew tap yaklabco/tap
+brew install stave
+```
+
+### Using `go install`
+
 ```bash
 go install github.com/yaklabco/stave@latest
 ```
 
-Or build from source:
+### Building & installing from source
 
 ```bash
 git clone https://github.com/yaklabco/stave.git

@@ -23,7 +23,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/yaklabco/stave/cmd/stave/version"
 	"github.com/yaklabco/stave/config"
-	"github.com/yaklabco/stave/internal/dryrun"
 	"github.com/yaklabco/stave/pkg/changelog"
 	"github.com/yaklabco/stave/pkg/sh"
 	"github.com/yaklabco/stave/pkg/st"
@@ -325,22 +324,11 @@ func TestGo() error { // stave:help=Run Go tests with coverage (coverage.out, co
 
 	nCoresStr := cmp.Or(os.Getenv("STAVE_NUM_PROCESSORS"), "1")
 
-	// Unset STAVEFILE_DRYRUN_POSSIBLE - which will be set by this point, normally -
-	// so that tests *of* the dryrun functionality work as though they were run
-	// from a bare `go test` command-line.
-	if err := os.Unsetenv(dryrun.PossibleEnv); err != nil {
-		return err
-	}
-
-	// Unset STAVEFILES_HOOKS_RUNNING - if we have already made it into this code,
-	// then the environment variable has had its desired effect in (the source
-	// file derived from) mainfile.gotmpl, and we want to explicitly run the
-	// test suite as though we're *not* inside a hook.
-	if err := os.Unsetenv(stave.HooksAreRunningEnv); err != nil {
-		return err
-	}
-
-	if err := sh.RunV(
+	if err := sh.RunWithV(
+		map[string]string{
+			st.DryRunPossibleEnv:     "",
+			stave.HooksAreRunningEnv: "",
+		},
 		"go", "tool", "gotestsum", "-f", "pkgname-and-test-fails",
 		"--",
 		"-v", "-p", nCoresStr, "-parallel", nCoresStr, "./...", "-count", "1",
