@@ -70,11 +70,11 @@ jobs:
       - name: Self-install
         run: go run bootstrap.go
 
-      - name: Parallelism check
-        run: stave parallelismcheck
-
       - name: Project init
         run: stave init
+
+      - name: Parallelism check
+        run: stave parallelismcheck
 
       - name: Run tests
         run: stave test
