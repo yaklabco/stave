@@ -373,16 +373,14 @@ func Release() error { // stave:help=Create and push a new tag, then goreleaser
 
 	st.Deps(Init)
 
-	nextVersion, err := changelog.NextVersion()
+	nextTag, err := changelog.NextTag()
 	if err != nil {
 		return err
 	}
 
-	nextVersion = "v" + nextVersion
+	slog.Info("computed next tag", slog.String("next_tag", nextTag))
 
-	slog.Info("computed next version", slog.String("version", nextVersion))
-
-	if err := sh.Run("git", "tag", nextVersion); err != nil {
+	if err := sh.Run("git", "tag", nextTag); err != nil {
 		return err
 	}
 

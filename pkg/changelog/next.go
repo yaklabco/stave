@@ -29,3 +29,13 @@ func NextVersion() (string, error) {
 
 	return version, nil
 }
+
+// NextTag is like NextVersion except its return value *is* prefixed with 'v'.
+func NextTag() (string, error) {
+	version, err := NextVersion()
+	if err != nil {
+		return "", err
+	}
+
+	return "v" + version, err
+}
