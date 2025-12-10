@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/preminger/goctx/pkg/util/fsutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/yaklabco/stave/config"
 	"github.com/yaklabco/stave/internal/hooks"
+	"github.com/yaklabco/stave/pkg/fsutils"
 )
 
 // testConfigPerm is the permission mode for test config files.
