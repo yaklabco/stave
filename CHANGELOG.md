@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2025-12-10
+
+### Changed
+
+- Replace dependency on `goctx`'s `fsutils` with an "in-house" `fsutils`.
+
 ## [0.2.2] - 2025-12-10
 
 ### Added
@@ -71,7 +77,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.2.2...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/yaklabco/stave/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/yaklabco/stave/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/yaklabco/stave/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/yaklabco/stave/compare/v0.1.3...v0.2.0

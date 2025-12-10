@@ -23,10 +23,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/preminger/goctx/pkg/util/fsutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/yaklabco/stave/internal"
+	"github.com/yaklabco/stave/pkg/fsutils"
 	"github.com/yaklabco/stave/pkg/st"
 )
 
