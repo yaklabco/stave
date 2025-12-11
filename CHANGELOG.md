@@ -75,6 +75,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Git hooks management. Stave can manage your git hooks, implementing both native hooks management, and `husky`-based hooks management for support of legacy projects. See [docs/user-guide/hooks.md](./docs/user-guide/hooks.md) for details.
 
+- Public Go functions, exported as `pkg/changelog`, for automatically enforcing [_keep-a-changelog_](https://keepachangelog.com/en/1.1.0/)-compliant CHANGELOG formatting; and, separately, for enforcing that every push includes an update to the CHANGELOG (each can be used / not used separately from one another). Also, `changelog.NextVersion()`, which automatically calculates next release version based on [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#summary).
+
 - `--dryrun` mode.
 
 - Automated detection of circular dependencies among stavefile targets.
