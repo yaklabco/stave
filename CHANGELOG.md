@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6] - 2025-12-11
+
+### Changed
+
+- Lots of updates to documentation. See [docs/index.md](./docs/index.md) and links therein.
+
+- Bump all updatable Go dependencies to their latest versions as of this date.
+
 ## [0.2.5] - 2025-12-10
 
 ### Added
@@ -75,6 +83,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Git hooks management. Stave can manage your git hooks, implementing both native hooks management, and `husky`-based hooks management for support of legacy projects. See [docs/user-guide/hooks.md](./docs/user-guide/hooks.md) for details.
 
+- Public Go functions, exported as `pkg/changelog`, for automatically enforcing [_keep-a-changelog_](https://keepachangelog.com/en/1.1.0/)-compliant CHANGELOG formatting; and, separately, for enforcing that every push includes an update to the CHANGELOG (each can be used / not used separately from one another). Also, `changelog.NextVersion()`, which automatically calculates next release version based on [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#summary).
+
 - `--dryrun` mode.
 
 - Automated detection of circular dependencies among stavefile targets.
@@ -93,7 +103,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.2.5...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/yaklabco/stave/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/yaklabco/stave/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/yaklabco/stave/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/yaklabco/stave/compare/v0.2.2...v0.2.3
