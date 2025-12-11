@@ -66,6 +66,12 @@ Stave maintains compatibility with Mage features and adds:
 
 ## Stave-Only Features
 
+### Modernized Go Patterns and Compatibility
+
+- Stave targets are just Go functions with the `//go:build stave` build tag.
+- The codebase and templates follow modern Go patterns (errors wrapping, contexts, generics where appropriate).
+- Minimum supported Go version: 1.24 (see `go.mod`). Using newer Go versions is recommended.
+
 ### Dry-Run Mode
 
 Preview commands without execution:

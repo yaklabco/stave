@@ -71,6 +71,24 @@ func Build() error {
 
 Multiple parallel dependencies that fail report all errors.
 
+## Circular Dependency Detection
+
+Stave automatically detects circular dependencies between targets and fails fast with a clear error message. For example, if `A` depends on `B` and `B` depends on `A`, Stave will stop before executing any target and report the cycle:
+
+```text
+stave: detected circular dependency: A -> B -> A
+```
+
+Typical causes and fixes:
+
+- A target indirectly depends on itself via a long chain. Inspect the reported cycle and break it by removing the unnecessary dependency.
+- Use `st.SerialDeps` to clarify order when sequencing is required, rather than introducing back-edges in the graph.
+
+Notes:
+
+- Cycles are detected across namespaces as well (e.g., `build:All -> test:Prepare -> build:All`).
+- Each distinct set of target arguments passed via `st.F` participates in cycle detection independently, so a cycle can include a specific argumentized invocation.
+
 ## Dependencies with Arguments
 
 Use `st.F` to wrap a target with arguments:
