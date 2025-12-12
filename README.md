@@ -89,7 +89,7 @@ Full documentation is available in the [docs/](./docs/index.md) folder.
 
 ## Differences from Mage
 
-Stave was forked from [mage](https://magefile.org/), with the following goals (checked items are already implemented as of the latest release of stave):
+Stave was forked from [mage](https://magefile.org/), with the following goals (checked items are already implemented as of the latest release of `stave`):
 
 - [x] Modernized Go patterns (Go 1.21+)
 - [x] Additional shell helpers (`sh.Piper`, `sh.PiperWith`)
