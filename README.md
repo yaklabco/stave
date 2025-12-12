@@ -8,7 +8,7 @@
 
 A make-like build tool using Go. Write plain Go functions, and Stave will automatically use them as runnable targets.
 
-Stave was forked from [mage](https://github.com/magefile/mage) (which was written by Nate Finch), and adds [various features and improvements](#differences-from-mage).
+Stave was forked from [mage](https://github.com/magefile/mage) (originally created by Nate Finch), and adds [various features and improvements](#differences-from-mage).
 
 Documentation for `stave` is available [here](./docs/index.md).
 
@@ -46,7 +46,7 @@ The most portable, cross-platform way to make `stave` available in your CI workf
         run: go install github.com/yaklabco/stave@latest
 ```
 
-You will, of course, need to install Go in one of the previous steps - for example, via the [setup-go](https://github.com/actions/setup-go?tab=readme-ov-file#quick-start) action.
+You will, of course, need to install Go in one of the previous steps - for example, by using the [setup-go](https://github.com/actions/setup-go?tab=readme-ov-file#quick-start) GitHub action.
 
 ## Quick Start
 
@@ -89,7 +89,7 @@ Full documentation is available in the [docs/](./docs/index.md) folder.
 
 ## Differences from Mage
 
-Stave was forked from [Mage](https://magefile.org/), with the following goals (checked items are already implemented as of the latest release of stave):
+Stave was forked from [mage](https://magefile.org/), with the following goals (checked items are already implemented as of the latest release of stave):
 
 - [x] Modernized Go patterns (Go 1.21+)
 - [x] Additional shell helpers (`sh.Piper`, `sh.PiperWith`)
@@ -103,7 +103,7 @@ Stave was forked from [Mage](https://magefile.org/), with the following goals (c
 
 ## Attribution
 
-This project is a fork of [Mage](https://github.com/magefile/mage), originally created by Nate Finch.
+This project is a fork of [mage](https://github.com/magefile/mage), originally created by Nate Finch.
 Licensed under the Apache License 2.0.
 
 ## License
