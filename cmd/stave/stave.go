@@ -15,7 +15,7 @@ import (
 
 const (
 	shortDescription = "Stave is a Go-native, make-like command runner. " +
-		"It is a fork of Mage. See https://github.com/yaklabco/stave"
+		"It is a fork of mage. See https://github.com/yaklabco/stave"
 )
 
 type rootCmdOptions struct {
@@ -81,9 +81,9 @@ func NewRootCmd(ctx context.Context, opts ...Option) *cobra.Command {
 		&runParams.WorkDir, "workdir", "w", "", "working directory where stavefiles will run")
 	rootCmd.PersistentFlags().StringVar(
 		&runParams.GoCmd, "gocmd", st.GoCmd(), "use the given go binary to compile the output")
-	rootCmd.PersistentFlags().StringVar(&runParams.GOOS, "goos", "", "set GOOS for binary produced with -compile")
-	rootCmd.PersistentFlags().StringVar(&runParams.GOARCH, "goarch", "", "set GOARCH for binary produced with -compile")
-	rootCmd.PersistentFlags().StringVar(&runParams.Ldflags, "ldflags", "", "set ldflags for binary produced with -compile")
+	rootCmd.PersistentFlags().StringVar(&runParams.GOOS, "goos", "", "set GOOS for binary produced with --compile")
+	rootCmd.PersistentFlags().StringVar(&runParams.GOARCH, "goarch", "", "set GOARCH for binary produced with --compile")
+	rootCmd.PersistentFlags().StringVar(&runParams.Ldflags, "ldflags", "", "set ldflags for binary produced with --compile")
 
 	// commands below
 
