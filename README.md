@@ -10,6 +10,8 @@ A make-like build tool using Go. Write plain Go functions, Stave automatically u
 
 Stave is a fork of [Mage](https://github.com/magefile/mage) by Nate Finch, with additional features and improvements.
 
+Documentation is available [here](./docs/index.md).
+
 ## Installation
 
 ### Using Homebrew
@@ -75,30 +77,19 @@ Then run:
 stave build    # Run the Build target
 stave test     # Run the Test target
 stave -l       # List all targets
-stave -h build # Show help for Build target
-```
-
-## Features
-
-- Write build tasks in Go - no new syntax to learn
-- Dependency management with `st.Deps()`
-- Parallel and serial dependency execution
-- Namespaced targets for organization
-- Cross-platform (Linux, macOS, Windows)
-- No external dependencies beyond Go
-
-## Documentation
-
-```bash
 stave -h              # Show help
-stave -l              # List targets
+stave -h build # Show help for Build target
 stave -v <target>     # Verbose mode
 stave -t 5m <target>  # Set timeout
 ```
 
+## Documentation
+
+Full docs are available in [docs/](./docs/index.md).
+
 ## Differences from Mage
 
-Stave is built on top of [Mage](https://magefile.org/), with the following goals (checked items are already implemented as of latest release):
+Stave was forked from [Mage](https://magefile.org/), with the following goals (checked items are already implemented as of the latest release of stave):
 
 - [x] Modernized Go patterns (Go 1.21+)
 - [x] Additional shell helpers (`sh.Piper`, `sh.PiperWith`)
