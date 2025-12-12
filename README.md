@@ -85,7 +85,7 @@ stave -t 5m <target>  # Set timeout
 
 ## Documentation
 
-Full docs are available in [docs/](./docs/index.md).
+Full documentation is available in [docs/](./docs/index.md).
 
 ## Differences from Mage
 
