@@ -12,7 +12,7 @@ All features listed below are introduced in commits after that fork in `yaklabco
 
 ## Stave-Only Features
 
-### Dry-Run Mode for Shell Commands
+### Dry-run support
 
 - **Summary**: Simulate command execution while still compiling and running the stavefile.
 - **Commits**: `2bae053 feat: add in dryrun functionality` (+ follow-on wiring such as `86c2262 chore: add context arg to dryrun.Wrap(...)`).
@@ -33,6 +33,21 @@ All features listed below are introduced in commits after that fork in `yaklabco
     - Opt-in via flag / env.
     - Plumbed through the compiled stavefile and `pkg/sh`.
     - Designed to be safe for nested Stave invocations (top-level compilation still runs even when `--dryrun` is set).
+
+---
+
+### Additional Shell Helpers: sh.Piper and sh.PiperWith
+
+- Summary: Stream-oriented variants of sh.Run/sh.RunWith that make it easy to wire stdin/stdout/stderr for subprocesses.
+- Commits: Introduced as part of the post-fork shell utilities work in pkg/sh (see pkg/sh/cmd.go).
+- Behavior:
+  - sh.Piper(stdin, stdout, stderr, cmd, args...) error
+    - Runs cmd with provided readers/writers, no env injection.
+  - sh.PiperWith(env, stdin, stdout, stderr, cmd, args...) error
+    - Like Piper, but merges an additional env map into the child process environment.
+  - Both helpers honor dry-run mode via internal/dryrun, printing the simulated command.
+- Why this is new vs Mage:
+  - Mage provides sh.Run/sh.RunWith but lacks first-class helpers focused on explicit piping of stdio streams.
 
 ---
 
@@ -63,6 +78,18 @@ All features listed below are introduced in commits after that fork in `yaklabco
     - XDG-aware config/cache/data resolution.
     - A `mage config` command surface.
   - Mage behavior is driven purely by flags and environment variables, while Stave adds a richer, layered configuration model.
+
+---
+
+### Automatic Detection of Circular Dependencies in Targets
+
+- Summary: Detect and stop execution when a cycle is found in target dependencies.
+- Commits/Code: pkg/toposort/toposort.go (ErrCircularDependency), exercised by pkg/stave/cyclic_dependencies_test.go and testdata/cyclic_dependencies.
+- Behavior:
+  - Dependency resolution builds a graph of target prerequisites.
+  - If a cycle exists, Stave fails fast with the error message "circular dependency detected" and does not run any targets in the cycle.
+- Why this is new vs Mage:
+  - Mage does not surface a standardized, user-visible cycle detection error in the same manner; Stave bakes this into its target resolution to prevent confusing partial runs.
 
 ---
 
@@ -114,16 +141,46 @@ All features listed below are introduced in commits after that fork in `yaklabco
 
 ---
 
+### Native Git Hooks Management
+
+- Summary: Built-in management of Git hooks that can run Stave targets without external tools (no husky/pre-commit required).
+- Commits/Code: pkg/stave/hooks_cmd.go, internal/hooks/*, config/hooks.go; end-user docs at docs/user-guide/hooks.md.
+- Behavior:
+  - Declarative configuration in stave.yaml under hooks: mapping hook name → list of targets/args.
+  - CLI surface: `stave --hooks` (list), `stave --hooks install`, `stave --hooks uninstall`, `stave --hooks doctor`.
+  - POSIX-compatible wrapper scripts installed into .git/hooks calling back into Stave.
+  - Honors CI detection and can be disabled via env.
+- Why this is new vs Mage:
+  - Mage does not ship built-in Git hooks management; typical workflows require third-party tooling. Stave integrates this capability natively.
+
+---
+
+### Changelog Toolkit (Keep a Changelog + Conventional Commits Versioning)
+
+- Summary: Public Go helpers for enforcing CHANGELOG format and for computing next versions/tags from commit history.
+- Commits/Code: pkg/changelog/* (check.go, validate.go, next.go, git.go, etc.).
+- Behavior:
+  - Validation helpers enforce Keep a Changelog semantics and can be used in CI targets to require a CHANGELOG update.
+  - Versioning helpers compute the next semantic version and build tag from Conventional Commits, leveraging svu (bundled as a module dependency).
+  - The two aspects (format enforcement and version/tag generation) can be adopted independently.
+- Why this is new vs Mage:
+  - Mage does not include a standard changelog toolkit; Stave packages reusable, tested helpers to encourage consistent release practices.
+
+---
+
 ## Implementation-Focused Changes (Not Counted as “New Functionality”)
 
 The following changes are important for maintainability and UX but are **not** counted as “new functionality” in the sense of capabilities that Mage did not have:
 
-- **Cobra-style CLI surface**:
+- Modernized Go patterns (Go 1.21+):
+  - Effect: adoption of modern stdlib features and idioms; improves maintainability and performance without introducing new end-user capabilities relative to Mage.
+
+- Enhanced CLI experience / Cobra-style CLI surface:
 
   - **Commits**: `ce22920 feat: cobra-ify!`, `804ad4d chore: mimic spf13/cobra in mainfile_tmpl.go without adding 3rd-party dependency`, and related.
   - Effect: more structured flag parsing and help output, but conceptually similar commands and options to Mage.
 
-- **Logging revamp with `slog` and charmbracelet-style logging**:
+- Logging revamp with `slog` and charmbracelet-style logging:
   - **Commit**: `0700a0f feat: logging revamp`.
   - Effect: higher-quality structured logs and nicer terminal presentation, without introducing fundamentally new user capabilities vs Mage.
 
@@ -135,11 +192,6 @@ These are kept separate here to match the “bona fide new features, not just ni
 
 The following items have been discussed as differentiators but are **not yet** fully implemented or surfaced in the current tree. Once they land, they should be added to the “Confirmed Stave-Only Features” section above with commit references:
 
-- **Cyclic dependency detection**:
-  - Omer has explicitly called out cycle detection in target dependencies as a desired Stave-only feature.
-  - As of this snapshot, there is no user-facing cycle-detection behavior or commit message referencing it.
-  - Once implemented (e.g., detection in the dependency graph before execution), it should be documented here with:
-    - How cycles are detected and reported.
-    - How this differs from Mage’s current behavior.
+- (none at the moment)
 
 This section is intended as a staging area for upcoming work so that the Stave-vs-Mage feature delta remains easy to track over time.
