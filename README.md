@@ -87,7 +87,7 @@ stave -t 5m <target>  # Set timeout
 
 Full documentation is available in the [docs/](./docs/index.md) folder.
 
-## Differences from Mage
+## Differences from `mage`
 
 Stave was forked from [mage](https://magefile.org/), with the following goals (checked items are already implemented as of the latest release of `stave`):
 
