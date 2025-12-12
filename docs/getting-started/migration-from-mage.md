@@ -1,8 +1,8 @@
-# Migration from Mage
+# Migration from `mage`
 
-[Home](../index.md) > Getting Started > Migration from Mage
+[Home](../index.md) > Getting Started > Migration from `mage`
 
-Stave is a fork of Mage. Existing Magefiles require minimal changes to work with Stave.
+Stave is a fork of `mage`. Existing magefiles require minimal changes to work with `stave`.
 
 ## Migration Steps
 
@@ -24,7 +24,7 @@ Change the build tag from `mage` to `stave`:
 
 ### 3. Update Imports
 
-Replace Mage imports with Stave equivalents:
+Replace `mage` imports with `stave` equivalents:
 
 | Mage Import                       | Stave Import                           |
 | --------------------------------- | -------------------------------------- |

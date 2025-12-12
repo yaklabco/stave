@@ -6,7 +6,7 @@
 </p>
 <!-- markdownlint-enable MD033 -->
 
-Stave is a make-like build tool using Go. Write plain Go functions, and Stave automatically exposes them as runnable targets. It is a fork of [Mage](https://github.com/magefile/mage) with additional features including dry-run mode, XDG-compliant configuration, and parallelism control.
+Stave is a make-like build tool using Go. Write plain Go functions, and Stave automatically exposes them as runnable targets. It is a fork of [mage](https://github.com/magefile/mage) with additional features including dry-run mode, XDG-compliant configuration, and parallelism control.
 
 ## Installation
 
@@ -50,7 +50,7 @@ stave -l       # List available targets
 
 - [Installation](getting-started/installation.md) - Install Stave via `go install` or from source
 - [Quickstart](getting-started/quickstart.md) - Create your first stavefile
-- [Migration from Mage](getting-started/migration-from-mage.md) - Guide for existing Mage users
+- [Migration from mage](getting-started/migration-from-mage.md) - Guide for existing Mage users
 
 ### User Guide
 
