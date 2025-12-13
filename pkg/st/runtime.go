@@ -54,6 +54,11 @@ const HashFastEnv = "STAVEFILE_HASHFAST"
 // stave targets will be displayed in the default colors (e.g. black and white).
 const EnableColorEnv = "STAVEFILE_ENABLE_COLOR"
 
+// NoColorEnv is the standard environment variable to disable color output.
+// When set to any value, color output is disabled regardless of terminal capabilities.
+// See https://no-color.org/ for the specification.
+const NoColorEnv = "NO_COLOR"
+
 // TargetColorEnv is the environment variable that indicates which ANSI color
 // should be used to colorize stave targets. This is only applicable when
 // the STAVEFILE_ENABLE_COLOR environment variable is true.
@@ -129,8 +134,26 @@ func CacheDir() string {
 }
 
 // EnableColor reports whether the user has requested to enable a color output.
+// This is the legacy behavior used by the generated mainfile (opt-in via env var).
 func EnableColor() bool {
 	return env.FailsafeParseBoolEnv(EnableColorEnv, false)
+}
+
+// ColorEnabled returns true if color output should be enabled.
+// This uses auto-detection (like Lipgloss) with the following rules:
+//  1. If NO_COLOR is set (any value), return false.
+//  2. If TERM is in the no-color list, return false.
+//  3. Otherwise return true (Lipgloss will handle TTY detection).
+//
+// This is the modern behavior for Stave-side output (not the generated mainfile).
+func ColorEnabled() bool {
+	// NO_COLOR standard: if set to any value, disable color
+	if _, noColor := os.LookupEnv(NoColorEnv); noColor {
+		return false
+	}
+
+	// Check TERM blacklist
+	return TerminalSupportsColor(os.Getenv("TERM"))
 }
 
 // TargetColor returns the configured ANSI color name a color output.
