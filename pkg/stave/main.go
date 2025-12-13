@@ -142,6 +142,10 @@ func Run(params RunParams) error {
 		return runConfigMode(ctx, params)
 	}
 
+	if params.List {
+		return runListMode(ctx, params)
+	}
+
 	return stave(ctx, params)
 }
 
@@ -185,6 +189,39 @@ func runConfigMode(ctx context.Context, params RunParams) error {
 		return st.Fatal(exitCode, "config command failed")
 	}
 	return nil
+}
+
+// runListMode handles the -l/--list flag by parsing stavefiles and rendering
+// the target list directly, without compiling a temporary binary.
+func runListMode(ctx context.Context, params RunParams) error {
+	files, err := Stavefiles(params.Dir, params.GOOS, params.GOARCH, params.UsesStavefiles())
+	if err != nil {
+		return fmt.Errorf("determining list of stavefiles: %w", err)
+	}
+
+	if len(files) == 0 {
+		return errors.New("no .go files marked with the stave build tag in this directory")
+	}
+
+	fnames := make([]string, 0, len(files))
+	for _, f := range files {
+		fnames = append(fnames, filepath.Base(f))
+	}
+
+	info, err := parse.PrimaryPackage(ctx, params.GoCmd, params.Dir, fnames)
+	if err != nil {
+		return fmt.Errorf("parsing stavefiles: %w", err)
+	}
+
+	sort.Sort(info.Funcs)
+	sort.Sort(info.Imports)
+
+	return renderTargetList(
+		params.Stdout,
+		filepath.Base(os.Args[0]),
+		info,
+		params.Args,
+	)
 }
 
 func stave(ctx context.Context, params RunParams) error {
@@ -384,12 +421,13 @@ func applyBasicRunParams(params RunParams) error {
 }
 
 type mainfileTemplateData struct {
-	Description string
-	Funcs       []*parse.Function
-	DefaultFunc parse.Function
-	Aliases     map[string]*parse.Function
-	Imports     []*parse.Import
-	BinaryName  string
+	Description  string
+	Funcs        []*parse.Function
+	DefaultFunc  parse.Function
+	Aliases      map[string]*parse.Function
+	Imports      []*parse.Import
+	BinaryName   string
+	NoColorTERMs []string
 }
 
 // listGoFiles returns a list of all .go files in a given directory,
@@ -572,11 +610,12 @@ func GenerateMainFile(binaryName, path string, info *parse.PkgInfo) error {
 	}
 	defer func() { _ = outputFile.Close() }()
 	data := mainfileTemplateData{
-		Description: info.Description,
-		Funcs:       info.Funcs,
-		Aliases:     info.Aliases,
-		Imports:     info.Imports,
-		BinaryName:  binaryName,
+		Description:  info.Description,
+		Funcs:        info.Funcs,
+		Aliases:      info.Aliases,
+		Imports:      info.Imports,
+		BinaryName:   binaryName,
+		NoColorTERMs: st.NoColorTERMs(),
 	}
 
 	if info.DefaultFunc != nil {
@@ -705,9 +744,6 @@ func setupEnv(params RunParams) (map[string]string, error) {
 
 	if params.Verbose {
 		envMap["STAVEFILE_VERBOSE"] = "1"
-	}
-	if params.List {
-		envMap["STAVEFILE_LIST"] = "1"
 	}
 	if params.Info {
 		envMap["STAVEFILE_INFO"] = "1"
