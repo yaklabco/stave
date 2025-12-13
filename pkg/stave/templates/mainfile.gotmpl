@@ -201,10 +201,10 @@ func main() {
 	// 	TERM=vt100
 	// 	TERM=cygwin
 	// 	TERM=xterm-mono
-	var noColorTerms = map[string]bool{
-		"vt100":      false,
-		"cygwin":     false,
-		"xterm-mono": false,
+	var noColorTerms = map[string]struct{}{
+		{{- range .NoColorTERMs}}
+		"{{.}}": {},
+		{{- end}}
 	}
 
 	// terminalSupportsColor checks if the current console supports color output
