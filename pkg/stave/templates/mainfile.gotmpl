@@ -11,11 +11,9 @@ import (
 	"os"
 	"os/signal"
 	_filepath "path/filepath"
-	_sort "sort"
 	"strconv"
 	_strings "strings"
 	"syscall"
-	_tabwriter "text/tabwriter"
 	"time"
 
 {{range .Imports}}{{.UniqueName}} "{{.Path}}"
@@ -27,7 +25,6 @@ func main() {
 	type arguments struct {
 		Verbose bool          // print out log statements
 		Debug   bool          // print out more detailed logs
-		List    bool          // print out a list of targets
 		Info    bool          // print out docstring for a specific target
 		Timeout time.Duration // set a timeout to running the targets
 		Args    []string      // args contain the non-flag command-line arguments
@@ -75,9 +72,6 @@ func main() {
 	var debugLong bool
 	fs.BoolVar(&args.Debug, "d", parseBool("STAVEFILE_DEBUG"), "print out more detailed logs")
 	fs.BoolVar(&debugLong, "debug", parseBool("STAVEFILE_DEBUG"), "print out more detailed logs")
-	var listLong bool
-	fs.BoolVar(&args.List, "l", parseBool("STAVEFILE_LIST"), "list targets for this binary")
-	fs.BoolVar(&listLong, "list", parseBool("STAVEFILE_LIST"), "list targets for this binary")
 	var infoLong bool
 	fs.BoolVar(&args.Info, "i", parseBool("STAVEFILE_INFO"), "print out docstring for a specific target")
 	fs.BoolVar(&infoLong, "info", parseBool("STAVEFILE_INFO"), "print out docstring for a specific target")
@@ -90,7 +84,6 @@ func main() {
 		%s [options] [target]
 
 	Commands:
-		-l --list      list targets in this binary
 		-h --info      show this help
 
 	Options:
@@ -111,9 +104,6 @@ func main() {
 	}
 	if debugLong != parseBool("STAVEFILE_DEBUG") {
 		args.Debug = debugLong
-	}
-	if listLong != parseBool("STAVEFILE_LIST") {
-		args.List = listLong
 	}
 	if infoLong != parseBool("STAVEFILE_INFO") {
 		args.Info = infoLong
@@ -246,41 +236,6 @@ func main() {
 		}
 	}
 
-	list := func() error {
-		{{with .Description}}_fmt.Println(`{{.}}`+"\n")
-		{{- end}}
-		{{- $default := .DefaultFunc}}
-		targets := map[string]string{
-			{{- range .Funcs}}
-			"{{lowerFirst .TargetName}}{{if and (eq .Name $default.Name) (eq .Receiver $default.Receiver)}}*{{end}}": {{printf "%q" .Synopsis}},
-			{{- end}}
-			{{- range .Imports}}{{$imp := .}}
-		{{- range .Info.Funcs}}
-			"{{lowerFirst .TargetName}}{{if and (eq .Name $default.Name) (eq .Receiver $default.Receiver)}}*{{end}}": {{printf "%q" .Synopsis}},
-		{{- end}}
-		{{- end}}
-		}
-
-		keys := make([]string, 0, len(targets))
-		for name := range targets {
-			keys = append(keys, name)
-		}
-		_sort.Strings(keys)
-
-		_fmt.Println("Targets:")
-		w := _tabwriter.NewWriter(os.Stdout, 0, 4, 4, ' ', 0)
-		for _, name := range keys {
-			_fmt.Fprintf(w, "  %v\t%v\n", printName(name), targets[name])
-		}
-		err := w.Flush()
-		{{- if .DefaultFunc.Name}}
-		if err == nil {
-			_fmt.Println("\n* default target")
-		}
-		{{- end}}
-		return err
-	}
-
 	var ctx context.Context
 	ctxCancel := func(){}
 
@@ -392,13 +347,6 @@ func main() {
 		_log.SetOutput(_io.Discard)
 	}
 	logger := _log.New(os.Stderr, "", 0)
-	if args.List {
-		if err := list(); err != nil {
-			_log.Println(err)
-			os.Exit(1)
-		}
-		return
-	}
 
 	if args.Info {
 		if len(args.Args) < 1 {
@@ -452,21 +400,15 @@ func main() {
 	if len(args.Args) < 1 {
 		{{- if .DefaultFunc.Name}}
 		if parseBool("STAVEFILE_IGNOREDEFAULT") {
-			if err := list(); err != nil {
-				logger.Println("Error:", err)
-				os.Exit(1)
-			}
-			return
+			logger.Println("Error: STAVEFILE_IGNOREDEFAULT is on and no target specified.")
+			os.Exit(1)
 		}
 		{{.DefaultFunc.ExecCode}}
 		handleError(logger, ret)
 		return
 		{{- else}}
-		if err := list(); err != nil {
-			logger.Println("Error:", err)
-			os.Exit(1)
-		}
-		return
+		logger.Println("Error: no targets specified and no `Default` defined.")
+		os.Exit(1)
 		{{- end}}
 	}
 
