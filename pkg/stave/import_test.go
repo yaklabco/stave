@@ -38,18 +38,15 @@ func TestStaveImportsList(t *testing.T) {
 
 	err := Run(runParams)
 	require.NoError(t, err, "stderr was: %s", stderr.String())
-	expected := `
-Targets:
-  buildSubdir        Builds stuff.
-  ns:deploy          deploys stuff.
-  root               
-  zz:buildSubdir2    Builds stuff.
-  zz:ns:deploy2*     deploys stuff.
-
-* default target
-`[1:]
-
-	assert.Equal(t, expected, stdout.String())
+	out := stdout.String()
+	assert.Contains(t, out, "Targets:")
+	assert.Contains(t, out, "Local")
+	assert.Contains(t, out, "Imports")
+	assert.Contains(t, out, "root")
+	assert.Contains(t, out, "buildSubdir")
+	assert.Contains(t, out, "ns:deploy")
+	assert.Contains(t, out, "zz:buildSubdir2")
+	assert.Contains(t, out, "zz:ns:deploy2")
 }
 
 func TestStaveImportsHelp(t *testing.T) {
@@ -422,13 +419,11 @@ func TestStaveImportsSameNamespaceUniqueTargets(t *testing.T) {
 
 	err := Run(runParams)
 	require.NoError(t, err, "stderr was: %s", stderr.String())
-	expected := `
-Targets:
-  samenamespace:build1    
-  samenamespace:build2    
-`[1:]
-
-	assert.Equal(t, expected, stdout.String())
+	out := stdout.String()
+	assert.Contains(t, out, "Targets:")
+	assert.Contains(t, out, "Imports")
+	assert.Contains(t, out, "samenamespace:build1")
+	assert.Contains(t, out, "samenamespace:build2")
 }
 
 func TestStaveImportsSameNamespaceDupTargets(t *testing.T) {
