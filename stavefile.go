@@ -79,6 +79,7 @@ var Aliases = map[string]interface{}{
 
 var Default = All
 
+// All runs init, test, and build in sequence.
 func All() error {
 	st.Deps(Init, Test)
 	st.Deps(Build)
@@ -87,10 +88,11 @@ func All() error {
 }
 
 // Init installs required tools and sets up git hooks and modules.
-func Init() { // stave:help=Install dev tools (Brewfile), setup hooks (respects current choice), and tidy modules
+func Init() {
 	st.Deps(Brew, SetupHooks, InitGo)
 }
 
+// InitGo tidies modules and runs go generate.
 func InitGo() error {
 	st.Deps(Brew)
 
@@ -105,12 +107,13 @@ func InitGo() error {
 	return sh.Run("go", "mod", "tidy")
 }
 
+// Brew installs tools from Brewfile via Homebrew.
 func Brew() error {
-	// Install tools from Brewfile.
 	return sh.Run("brew", "bundle", "--file=Brewfile")
 }
 
-func SetupHooks() error { // stave:help=Switch git hooks system to stave
+// SetupHooks configures git hooks to use stave targets.
+func SetupHooks() error {
 	st.Deps(Brew)
 
 	cs := ui.GetFangScheme()
@@ -188,7 +191,7 @@ hooks:
 }
 
 // Markdownlint runs markdownlint-cli2 on all tracked Markdown files.
-func Markdownlint() error { // stave:help=Run markdownlint on Markdown files
+func Markdownlint() error {
 	st.Deps(Init)
 
 	markdownFilesList, err := sh.Output("git", "ls-files", "--cached", "--others", "--exclude-standard", "--", "*.md")
@@ -209,7 +212,7 @@ func Markdownlint() error { // stave:help=Run markdownlint on Markdown files
 	return sh.Run("markdownlint-cli2", files...)
 }
 
-// LintGo runs golangci-lint with auto-fix and parallel runner options enabled.
+// LintGo runs golangci-lint with auto-fix enabled.
 func LintGo() error {
 	st.Deps(Init)
 	out, err := sh.Output("golangci-lint", "run", "--fix", "--allow-parallel-runners", "--build-tags='!ignore'")
@@ -225,12 +228,12 @@ func LintGo() error {
 }
 
 // Lint runs golangci-lint after markdownlint and init.
-func Lint() { // stave:help=Run linters and auto-fix issues
+func Lint() {
 	st.Deps(Init, Markdownlint, LintGo)
 }
 
 // Test aggregate target runs Lint and TestGo.
-func Test() error { // stave:help=Run lint and Go tests with coverage
+func Test() error {
 	// Run Init first (handles setup messages like hooks configured)
 	st.Deps(Init)
 
@@ -252,7 +255,7 @@ func Test() error { // stave:help=Run lint and Go tests with coverage
 }
 
 // ValidateChangelog validates CHANGELOG.md format against 'Keep a Changelog' conventions.
-func ValidateChangelog() error { // stave:help=Validate CHANGELOG.md format
+func ValidateChangelog() error {
 	if err := changelog.ValidateFile("CHANGELOG.md"); err != nil {
 		return fmt.Errorf("CHANGELOG.md validation failed: %w", err)
 	}
@@ -260,10 +263,8 @@ func ValidateChangelog() error { // stave:help=Validate CHANGELOG.md format
 	return nil
 }
 
-// DumpStdin reads lines from stdin and dumps them until stdin is closed.
-// It uses spew.Dump() for output and returns an error if reading fails.
+// DumpStdin reads stdin and dumps each line via spew (debugging utility).
 func DumpStdin() error {
-	// Read lines from stdin and spew.Dump() them until stdin is closed.
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for scanner.Scan() {
@@ -278,9 +279,8 @@ func DumpStdin() error {
 	return nil
 }
 
-// PrePushCheck runs all pre-push validations for branch pushes.
-// This is the Go equivalent of the .githooks/pre-push bash script.
-func PrePushCheck(remoteName, _remoteURL string) error { // stave:help=Run pre-push changelog validations
+// PrePushCheck runs pre-push validations including changelog checks.
+func PrePushCheck(remoteName, _remoteURL string) error {
 	pushRefs, err := changelog.ReadPushRefs(os.Stdin)
 	if err != nil {
 		return fmt.Errorf("failed to read push refs: %w", err)
@@ -319,7 +319,7 @@ func PrePushCheck(remoteName, _remoteURL string) error { // stave:help=Run pre-p
 }
 
 // TestGo runs Go tests with coverage and produces coverage.out and coverage.html.
-func TestGo() error { // stave:help=Run Go tests with coverage (coverage.out, coverage.html)
+func TestGo() error {
 	st.Deps(Init)
 
 	nCoresStr := cmp.Or(os.Getenv("STAVE_NUM_PROCESSORS"), "1")
@@ -341,7 +341,7 @@ func TestGo() error { // stave:help=Run Go tests with coverage (coverage.out, co
 }
 
 // Build artifacts via goreleaser snapshot build.
-func Build() error { // stave:help=Build artifacts using goreleaser (snapshot)
+func Build() error {
 	st.Deps(Init)
 
 	nCoresStr := cmp.Or(os.Getenv("STAVE_NUM_PROCESSORS"), "1")
@@ -354,7 +354,7 @@ func Build() error { // stave:help=Build artifacts using goreleaser (snapshot)
 }
 
 // Release tags the next version and runs goreleaser release.
-func Release() error { // stave:help=Create and push a new tag, then goreleaser
+func Release() error {
 	if err := setSkipNextVerChangelogCheck(); err != nil {
 		return err
 	}
@@ -381,6 +381,7 @@ func Release() error { // stave:help=Create and push a new tag, then goreleaser
 	return sh.Run("goreleaser", "--parallelism", nCoresStr, "release", "--clean")
 }
 
+// ParallelismCheck prints parallelism environment variables (debugging utility).
 func ParallelismCheck() {
 	outputf("STAVE_NUM_PROCESSORS=%q\n", os.Getenv("STAVE_NUM_PROCESSORS"))
 	outputf("GOMAXPROCS=%q\n", os.Getenv("GOMAXPROCS"))
@@ -392,13 +393,13 @@ func setSkipNextVerChangelogCheck() error {
 	return os.Setenv("STAVEFILE_SKIP_NEXTVER_CHANGELOG_CHECK", "1")
 }
 
-// Say says something.
+// Say prints arguments with their types (example target demonstrating args).
 func Say(msg string, i int, b bool, d time.Duration) error {
 	outputf("%v(%T) %v(%T) %v(%T) %v(%T)\n", msg, msg, i, i, b, b, d, d)
 	return nil
 }
 
-// Install runs "go install" for stave. This also generates version info for the binary.
+// Install builds and installs stave to GOBIN with version info embedded.
 func Install() error {
 	name := "stave"
 	if runtime.GOOS == "windows" {
@@ -435,7 +436,7 @@ func Install() error {
 	return sh.RunV(gocmd, "build", "-o", path, "-ldflags="+flags(), "github.com/yaklabco/stave")
 }
 
-// Clean removes the temporarily generated files from Release.
+// Clean removes the dist directory created by goreleaser.
 func Clean() error {
 	return sh.Rm("dist")
 }
