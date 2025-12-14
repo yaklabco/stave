@@ -124,6 +124,37 @@ To force quiet mode outside CI:
 STAVE_QUIET=1 stave test
 ```
 
+## Color Output
+
+Stave automatically detects terminal color support for built-in commands (`stave -l`, `stave --version`). Colors are enabled by default when:
+
+- Standard output is a TTY
+- The `TERM` environment variable indicates color support (not `dumb`, `vt100`, `cygwin`, etc.)
+
+### Disabling Color
+
+Use the standard `NO_COLOR` environment variable to disable color output:
+
+```bash
+NO_COLOR=1 stave -l
+```
+
+See [no-color.org](https://no-color.org/) for the specification. When `NO_COLOR` is set to any value, color output is disabled regardless of terminal capabilities.
+
+### Target Colors
+
+Customize the ANSI color for target names in list output using `STAVEFILE_TARGET_COLOR` or `target_color` in config:
+
+```bash
+STAVEFILE_TARGET_COLOR=Green stave -l
+```
+
+Supported colors: `Black`, `Red`, `Green`, `Yellow`, `Blue`, `Magenta`, `Cyan`, `White`, and their `Hi` variants (e.g., `HiCyan`).
+
+### Compiled Stavefiles
+
+When running compiled stavefiles (not `stave -l`), color support uses opt-in behavior for backward compatibility. Set `STAVEFILE_ENABLE_COLOR=true` to enable colors in the compiled stavefile's own output.
+
 ## Git Hooks Configuration
 
 Configure Git hooks to run Stave targets automatically:
