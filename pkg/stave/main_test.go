@@ -880,16 +880,8 @@ func TestNoArgNoDefaultList(t *testing.T) {
 	}
 
 	err := Run(runParams)
-	require.NoError(t, err, "stderr was: %s", stderr.String())
-	assert.Empty(t, stderr.String())
-
-	expected := `
-Targets:
-  bazBuz    Prints out 'BazBuz'.
-  fooBar    Prints out 'FooBar'.
-`[1:]
-
-	assert.Equal(t, expected, stdout.String())
+	require.Error(t, err)
+	assert.Regexp(t, `no targets specified and no .*Default.* defined`, stderr.String())
 }
 
 func TestIgnoreDefault(t *testing.T) {
@@ -908,18 +900,8 @@ func TestIgnoreDefault(t *testing.T) {
 	require.NoError(t, resetTerm())
 
 	err := Run(runParams)
-	require.NoError(t, err, "stderr was: %s", stderr.String())
-	expected := `
-This is a comment on the package which should get turned into output with the list of targets.
-
-Targets:
-  somePig*       This is the synopsis for SomePig.
-  testVerbose    
-
-* default target
-`[1:]
-
-	assert.Equal(t, expected, stdout.String())
+	require.Error(t, err)
+	assert.Contains(t, stderr.String(), "no target specified")
 }
 
 func TestTargetError(t *testing.T) {
@@ -1521,14 +1503,6 @@ func TestCompiledFlags(t *testing.T) {
 	want = hiExclam
 	assert.Contains(t, stderr.String(), want)
 
-	// pass list flag -l
-	err = run(stdout, stderr, name, "-l")
-	require.NoError(t, err, "stderr was: %s", stderr.String())
-	want = "This is the synopsis for Deploy"
-	assert.Contains(t, stdout.String(), want)
-	want = "This is very verbose"
-	assert.Contains(t, stdout.String(), want)
-
 	// pass flag -t 1ms
 	err = run(stdout, stderr, name, "-t", "1ms", "sleep")
 	require.Error(t, err)
@@ -1589,29 +1563,29 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 		return nil
 	}
 
+	stdout.Reset()
+	stderr.Reset()
 	err = run(stdout, stderr, name, "STAVEFILE_INFO=1", "deploy")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want := "This is the synopsis for Deploy. This part shouldn't show up.\n\nUsage:\n\n\t" +
 		filepath.Base(name) + " deploy\n\n"
 	assert.Equal(t, want, stdout.String())
 
+	stdout.Reset()
+	stderr.Reset()
 	err = run(stdout, stderr, name, st.VerboseEnv+"=1", "testverbose")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want = hiExclam
 	assert.Contains(t, stderr.String(), want)
 
-	err = run(stdout, stderr, name, "STAVEFILE_LIST=1")
-	require.NoError(t, err, "stderr was: %s", stderr.String())
-	want = "This is the synopsis for Deploy"
-	assert.Contains(t, stdout.String(), want)
-	want = "This is very verbose"
-	assert.Contains(t, stdout.String(), want)
-
+	stdout.Reset()
+	stderr.Reset()
 	err = run(stdout, stderr, name, st.IgnoreDefaultEnv+"=1")
-	require.NoError(t, err, "stderr was: %s", stderr.String())
-	want = "Compiled package description."
-	assert.Contains(t, stdout.String(), want)
+	require.Error(t, err)
+	assert.Contains(t, stderr.String(), "no target specified")
 
+	stdout.Reset()
+	stderr.Reset()
 	err = run(stdout, stderr, name, "STAVEFILE_TIMEOUT=1ms", "sleep")
 	require.Error(t, err)
 	want = "context deadline exceeded"
@@ -1890,7 +1864,6 @@ func TestGoModules(t *testing.T) {
 		assert.NoError(t, os.RemoveAll(dir))
 	}()
 
-	// beware, stave builds in go versions older than 1.17 so both build tag formats need to be present
 	err = os.WriteFile(filepath.Join(dir, "stavefile.go"), []byte(`//go:build stave
 
 package main
@@ -1928,14 +1901,8 @@ func Test() {
 		Stderr: stderr,
 		Stdout: stdout,
 	})
-	require.NoError(t, err, "stderr was: %s", stderr.String())
-
-	expected := `
-Targets:
-  test    
-`[1:]
-
-	assert.Equal(t, expected, stdout.String())
+	require.Error(t, err)
+	assert.Regexp(t, `no targets specified and no .*Default.* defined`, stderr.String())
 }
 
 func TestNamespaceDep(t *testing.T) {

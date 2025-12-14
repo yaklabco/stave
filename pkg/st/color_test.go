@@ -5,7 +5,6 @@ import (
 )
 
 func TestValidTargetColor(t *testing.T) {
-	t.Setenv(EnableColorEnv, "true")
 	t.Setenv(TargetColorEnv, "Yellow")
 	expected := "\u001b[33m"
 	if actual := TargetColor(); actual != expected {
@@ -14,7 +13,6 @@ func TestValidTargetColor(t *testing.T) {
 }
 
 func TestValidTargetColorCaseInsensitive(t *testing.T) {
-	t.Setenv(EnableColorEnv, "true")
 	t.Setenv(TargetColorEnv, "rED")
 	expected := "\u001b[31m"
 	if actual := TargetColor(); actual != expected {
@@ -23,7 +21,6 @@ func TestValidTargetColorCaseInsensitive(t *testing.T) {
 }
 
 func TestInvalidTargetColor(t *testing.T) {
-	t.Setenv(EnableColorEnv, "true")
 	// NOTE: Brown is not a defined Color constant
 	t.Setenv(TargetColorEnv, "Brown")
 	expected := DefaultTargetAnsiColor

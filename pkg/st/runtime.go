@@ -133,12 +133,6 @@ func CacheDir() string {
 	}
 }
 
-// EnableColor reports whether the user has requested to enable a color output.
-// This is the legacy behavior used by the generated mainfile (opt-in via env var).
-func EnableColor() bool {
-	return env.FailsafeParseBoolEnv(EnableColorEnv, false)
-}
-
 // ColorEnabled returns true if color output should be enabled.
 // This uses auto-detection (like Lipgloss) with the following rules:
 //  1. If NO_COLOR is set (any value), return false.

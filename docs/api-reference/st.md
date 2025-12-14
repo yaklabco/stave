@@ -197,14 +197,6 @@ func IgnoreDefault() bool
 
 Returns true if `STAVEFILE_IGNOREDEFAULT` is a true value (`true`, `yes`, or `1`, case-insensitive).
 
-### EnableColor
-
-```go
-func EnableColor() bool
-```
-
-Returns true if `STAVEFILE_ENABLE_COLOR` is a true value (`true`, `yes`, or `1`, case-insensitive). This is primarily used by compiled stavefiles for opt-in color support.
-
 ### ColorEnabled
 
 ```go
