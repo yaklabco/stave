@@ -197,14 +197,11 @@ func main() {
 		return "", false
 	}
 
-	// Terminals which don't support color:
-	// 	TERM=vt100
-	// 	TERM=cygwin
-	// 	TERM=xterm-mono
-	var noColorTerms = map[string]bool{
-		"vt100":      false,
-		"cygwin":     false,
-		"xterm-mono": false,
+	// Terminals which don't support color (populated from pkg/st.NoColorTERMs).
+	var noColorTerms = map[string]struct{}{
+		{{- range .NoColorTERMs}}
+		"{{.}}": {},
+		{{- end}}
 	}
 
 	// terminalSupportsColor checks if the current console supports color output
