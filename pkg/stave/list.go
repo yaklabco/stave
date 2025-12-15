@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"os"
 	"slices"
+	"strconv"
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/term"
+	"github.com/muesli/reflow/wordwrap"
 	"github.com/yaklabco/stave/internal/parse"
 	"github.com/yaklabco/stave/pkg/st"
 	"github.com/yaklabco/stave/pkg/ui"
@@ -20,6 +24,11 @@ const (
 	targetGroupLocal targetGroupKind = iota
 	targetGroupNamespace
 	targetGroupImport
+)
+
+const (
+	termWidthFloor    = 20
+	fallbackTermWidth = 80
 )
 
 type targetKey struct {
@@ -87,7 +96,10 @@ func renderTargetList(out io.Writer, binaryName string, info *parse.PkgInfo, fil
 	// Header
 	desc := strings.TrimSpace(info.Description)
 	if desc != "" {
-		_, _ = fmt.Fprintln(out, desc)
+		width := detectTermWidth(out)
+		usable := max(termWidthFloor, width) // ensure a sane floor
+		wrapped := wordwrap.String(desc, usable)
+		_, _ = fmt.Fprintln(out, wrapped)
 		_, _ = fmt.Fprintln(out)
 	}
 
@@ -400,14 +412,30 @@ func writeTable(
 	}, "  ")
 	_, _ = fmt.Fprintln(out, indent+headerStyle.Render(headerLine))
 
-	// Print rows.
-	for _, r := range rows[1:] {
-		name := renderName(r.name, r.isDefault)
+	// Compute terminal width and synopsis column width for wrapping.
+	termWidth := detectTermWidth(out)
+	const gap = 2
+	leftOffset := lipgloss.Width(indent) + maxName + gap + maxUsage + gap
+	synWidth := termWidth - leftOffset
+	if synWidth < termWidthFloor {
+		synWidth = termWidthFloor
+	}
+
+	spaceLeft := strings.Repeat(" ", leftOffset)
+
+	// Print rows with word-wrapped synopsis using a hanging indent.
+	for _, theRow := range rows[1:] {
+		name := renderName(theRow.name, theRow.isDefault)
+
+		wrappedSyn := wordwrap.String(theRow.synopsis, synWidth)
+		// Align continuation lines under the start of the synopsis column.
+		wrappedSyn = strings.ReplaceAll(wrappedSyn, "\n", "\n"+spaceLeft)
+
 		line := strings.Join([]string{
 			pad(name, maxName),
-			pad(r.usage, maxUsage),
-			pad(r.synopsis, maxSyn),
-		}, "  ")
+			pad(theRow.usage, maxUsage),
+			wrappedSyn,
+		}, strings.Repeat(" ", gap))
 		_, _ = fmt.Fprintln(out, indent+line)
 	}
 }
@@ -416,6 +444,21 @@ func enableColorForList() bool {
 	// Use auto-detection (like stave --version), not opt-in env var.
 	// Respects NO_COLOR and TERM blacklist via st.ColorEnabled().
 	return st.ColorEnabled()
+}
+
+// detectTermWidth returns the terminal width to use for wrapping.
+// It prefers the actual stdout size, falls back to $COLUMNS, then 80.
+func detectTermWidth(_ io.Writer) int {
+	if w, _, err := term.GetSize(os.Stdout.Fd()); err == nil && w > 0 {
+		return w
+	}
+	if cols := os.Getenv("COLUMNS"); cols != "" {
+		if v, err := strconv.Atoi(cols); err == nil && v > 0 {
+			return v
+		}
+	}
+
+	return fallbackTermWidth
 }
 
 func lowerFirstTargetName(s string) string {

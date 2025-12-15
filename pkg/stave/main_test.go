@@ -687,7 +687,7 @@ func TestList(t *testing.T) {
 	err := Run(runParams)
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 	out := stdout.String()
-	assert.Contains(t, out, "This is a comment on the package which should get turned into output with the list of targets.")
+	assert.Regexp(t, `This\s+is\s+a\s+comment\s+on\s+the\s+package\s+which\s+should\s+get\s+turned\s+into\s+output\s+with\s+the\s+list\s+of\s+targets`, out)
 	assert.Contains(t, out, "Targets:")
 	assert.Contains(t, out, "Local")
 	assert.Contains(t, out, "somePig")
