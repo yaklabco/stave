@@ -197,13 +197,32 @@ func IgnoreDefault() bool
 
 Returns true if `STAVEFILE_IGNOREDEFAULT` is a true value (`true`, `yes`, or `1`, case-insensitive).
 
-### EnableColor
+### ColorEnabled
 
 ```go
-func EnableColor() bool
+func ColorEnabled() bool
 ```
 
-Returns true if `STAVEFILE_ENABLE_COLOR` is a true value (`true`, `yes`, or `1`, case-insensitive).
+Returns true if color output should be enabled using auto-detection. This is used by Stave's built-in commands (`stave -l`, `stave --version`). Auto-detection respects:
+
+- `NO_COLOR` environment variable (disables color when set to any value)
+- `TERM` environment variable (disables color for terminals like `dumb`, `vt100`, `cygwin`)
+
+### TerminalSupportsColor
+
+```go
+func TerminalSupportsColor(term string) bool
+```
+
+Returns true if the given TERM value is not in the known-no-color blacklist. Returns false for terminals like `dumb`, `vt100`, `cygwin`, `xterm-mono`. An empty string returns true (letting Lipgloss handle further TTY detection).
+
+### NoColorTERMs
+
+```go
+func NoColorTERMs() []string
+```
+
+Returns a sorted list of TERM values that do not support color output. Used internally and by the generated mainfile template.
 
 ### TargetColor
 
@@ -211,7 +230,15 @@ Returns true if `STAVEFILE_ENABLE_COLOR` is a true value (`true`, `yes`, or `1`,
 func TargetColor() string
 ```
 
-Returns the ANSI color code for target names.
+Returns the ANSI color code for target names. Respects `STAVEFILE_TARGET_COLOR` environment variable if set.
+
+### TargetStyle
+
+```go
+func TargetStyle() lipgloss.Style
+```
+
+Returns a Lipgloss style configured with the user's target color. This is the preferred way to style target names when using Charmbracelet/Lipgloss, as it respects `STAVEFILE_TARGET_COLOR` and integrates cleanly with other Lipgloss styles.
 
 ## Types
 

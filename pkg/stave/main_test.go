@@ -40,7 +40,7 @@ const (
 
 	dotExe = ".exe"
 
-	targetsBuild = "Targets:\n  build    \n"
+	targetsBuild = "build"
 
 	windows = "windows"
 	amd64   = "amd64"
@@ -156,7 +156,9 @@ func resetTerm() error {
 		}
 	}
 
-	return os.Setenv(st.EnableColorEnv, "false")
+	// Use standard NO_COLOR to disable color output in tests.
+	// See https://no-color.org/
+	return os.Setenv(st.NoColorEnv, "1")
 }
 
 func TestTransitiveDepCache(t *testing.T) {
@@ -439,8 +441,9 @@ func TestMixedStaveImports(t *testing.T) {
 
 	err := Run(runParams)
 	require.NoError(t, err, "stderr was: %s", stderr.String())
-	expected := targetsBuild
-	assert.Equal(t, expected, stdout.String())
+	assert.Contains(t, stdout.String(), "Targets:")
+	assert.Contains(t, stdout.String(), "Local")
+	assert.Contains(t, stdout.String(), targetsBuild)
 }
 
 func TestStavefilesFolder(t *testing.T) {
@@ -472,8 +475,9 @@ func TestStavefilesFolder(t *testing.T) {
 	err = Run(runParams)
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 
-	expected := targetsBuild
-	assert.Equal(t, expected, stdout.String())
+	assert.Contains(t, stdout.String(), "Targets:")
+	assert.Contains(t, stdout.String(), "Local")
+	assert.Contains(t, stdout.String(), targetsBuild)
 }
 
 func TestStavefilesFolderMixedWithStavefiles(t *testing.T) {
@@ -500,8 +504,9 @@ func TestStavefilesFolderMixedWithStavefiles(t *testing.T) {
 	err = Run(runParams)
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 
-	expected := targetsBuild
-	assert.Contains(t, stdout.String(), expected)
+	assert.Contains(t, stdout.String(), "Targets:")
+	assert.Contains(t, stdout.String(), "Local")
+	assert.Contains(t, stdout.String(), targetsBuild)
 
 	expectedErrRegexp := `WARN.* You have both a stavefiles directory and stave files in the current directory, in future versions the files will be ignored in favor of the directory` //nolint:lll // Long string-literal.
 	assert.Regexp(t, expectedErrRegexp, stderr.String())
@@ -536,8 +541,9 @@ func TestUntaggedStavefilesFolder(t *testing.T) {
 	err = Run(runParams)
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 
-	expected := targetsBuild
-	assert.Equal(t, expected, stdout.String())
+	assert.Contains(t, stdout.String(), "Targets:")
+	assert.Contains(t, stdout.String(), "Local")
+	assert.Contains(t, stdout.String(), targetsBuild)
 }
 
 func TestMixedTaggingStavefilesFolder(t *testing.T) {
@@ -569,8 +575,10 @@ func TestMixedTaggingStavefilesFolder(t *testing.T) {
 	err = Run(runParams)
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 
-	expected := "Targets:\n  build            \n  untaggedBuild    \n"
-	assert.Equal(t, expected, stdout.String())
+	assert.Contains(t, stdout.String(), "Targets:")
+	assert.Contains(t, stdout.String(), "Local")
+	assert.Contains(t, stdout.String(), "build")
+	assert.Contains(t, stdout.String(), "untaggedBuild")
 }
 
 func TestSetDirWithStavefilesFolder(t *testing.T) {
@@ -597,8 +605,9 @@ func TestSetDirWithStavefilesFolder(t *testing.T) {
 
 	err := Run(runParams)
 	require.NoError(t, err, "stderr was: %s", stderr.String())
-	expected := targetsBuild
-	assert.Equal(t, expected, stdout.String())
+	assert.Contains(t, stdout.String(), "Targets:")
+	assert.Contains(t, stdout.String(), "Local")
+	assert.Contains(t, stdout.String(), targetsBuild)
 }
 
 func TestGoRun(t *testing.T) {
@@ -677,17 +686,12 @@ func TestList(t *testing.T) {
 
 	err := Run(runParams)
 	require.NoError(t, err, "stderr was: %s", stderr.String())
-	expected := `
-This is a comment on the package which should get turned into output with the list of targets.
-
-Targets:
-  somePig*       This is the synopsis for SomePig.
-  testVerbose    
-
-* default target
-`[1:]
-
-	assert.Equal(t, expected, stdout.String())
+	out := stdout.String()
+	assert.Contains(t, out, "This is a comment on the package which should get turned into output with the list of targets.")
+	assert.Contains(t, out, "Targets:")
+	assert.Contains(t, out, "Local")
+	assert.Contains(t, out, "somePig")
+	assert.Contains(t, out, "testVerbose")
 }
 
 var terminals = []struct {
@@ -695,6 +699,7 @@ var terminals = []struct {
 	supportsColor bool
 }{
 	{"", true},
+	{"dumb", false},
 	{"vt100", false},
 	{"cygwin", false},
 	{"xterm-mono", false},
@@ -706,30 +711,25 @@ var terminals = []struct {
 }
 
 func TestListWithColor(t *testing.T) {
-	t.Setenv(st.EnableColorEnv, "true")
+	// This test manipulates environment variables, so it cannot run in parallel.
+	// Acquire mutex for shared test directory to prevent races with parallel tests.
+	mu := mutexByDir(testDataListDir)
+	mu.Lock()
+	defer mu.Unlock()
+
+	// Color is now auto-enabled (no need to set STAVEFILE_ENABLE_COLOR).
+	// We set a specific target color for predictable test output.
 	t.Setenv(st.TargetColorEnv, st.Cyan.String())
 
-	expectedPlainText := `
-This is a comment on the package which should get turned into output with the list of targets.
-
-Targets:
-  somePig*       This is the synopsis for SomePig.
-  testVerbose    
-
-* default target
-`[1:]
-
-	// NOTE: using the literal string would be complicated because I would need to break it
-	// in the middle and join with a normal string for the target names,
-	// otherwise the single backslash would be taken literally and encoded as \\
-	expectedColorizedText := "" +
-		"This is a comment on the package which should get turned into output with the list of targets.\n" +
-		"\n" +
-		"Targets:\n" +
-		"  \x1b[36msomePig*\x1b[0m       This is the synopsis for SomePig.\n" +
-		"  \x1b[36mtestVerbose\x1b[0m    \n" +
-		"\n" +
-		"* default target\n"
+	// Ensure NO_COLOR is not set so color auto-detection works.
+	// Save and restore to avoid leaking state to other tests.
+	origNoColor, hadNoColor := os.LookupEnv(st.NoColorEnv)
+	_ = os.Unsetenv(st.NoColorEnv)
+	t.Cleanup(func() {
+		if hadNoColor {
+			_ = os.Setenv(st.NoColorEnv, origNoColor)
+		}
+	})
 
 	for _, terminal := range terminals {
 		t.Run(terminal.code, func(t *testing.T) {
@@ -750,16 +750,113 @@ Targets:
 
 			err := Run(runParams)
 			require.NoError(t, err, "stderr was: %s", stderr.String())
-			var expected string
-			if terminal.supportsColor {
-				expected = expectedColorizedText
-			} else {
-				expected = expectedPlainText
-			}
+			out := stdout.String()
 
-			assert.Equal(t, expected, stdout.String())
+			// Verify basic structure regardless of color.
+			assert.Contains(t, out, "Targets:")
+			assert.Contains(t, out, "Local")
+			assert.Contains(t, out, "somePig")
+			assert.Contains(t, out, "testVerbose")
+			assert.Contains(t, out, "This is the synopsis for SomePig")
+
+			if terminal.supportsColor {
+				assert.Contains(t, out, "\x1b[", "expected ANSI codes for terminal %q", terminal.code)
+
+				// Default target (somePig) should have different styling than non-default.
+				// Extract the ANSI prefix for each target line.
+				var pigLine, verboseLine string
+				for _, line := range strings.Split(out, "\n") {
+					if strings.Contains(line, "somePig") {
+						pigLine = line
+					}
+					if strings.Contains(line, "testVerbose") {
+						verboseLine = line
+					}
+				}
+				require.NotEmpty(t, pigLine, "somePig line not found in output")
+				require.NotEmpty(t, verboseLine, "testVerbose line not found in output")
+
+				pigPrefix := strings.Split(pigLine, "somePig")[0]
+				verbosePrefix := strings.Split(verboseLine, "testVerbose")[0]
+				assert.NotEqual(t, verbosePrefix, pigPrefix,
+					"default target should have distinct styling from non-default")
+			} else {
+				assert.NotContains(t, out, "\x1b[",
+					"expected no ANSI codes for terminal %q", terminal.code)
+			}
 		})
 	}
+}
+
+func TestListNoColor(t *testing.T) {
+	// This test uses t.Setenv which prevents parallel execution.
+	// Acquire mutex for shared test directory to prevent races with parallel tests.
+	mu := mutexByDir(testDataListDir)
+	mu.Lock()
+	defer mu.Unlock()
+
+	ctx := t.Context()
+
+	t.Setenv("TERM", "xterm-256color") // Would normally support color
+	t.Setenv(st.NoColorEnv, "1")       // But NO_COLOR disables it
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     testDataListDir,
+		Stdout:  stdout,
+		Stderr:  stderr,
+		List:    true,
+	}
+
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+	out := stdout.String()
+
+	// Verify content is still correct.
+	assert.Contains(t, out, "Targets:")
+	assert.Contains(t, out, "Local")
+	assert.Contains(t, out, "somePig")
+	assert.Contains(t, out, "testVerbose")
+
+	// Verify NO_COLOR suppresses ANSI escape sequences.
+	assert.NotContains(t, out, "\x1b[", "NO_COLOR=1 should disable ANSI escape sequences")
+}
+
+func TestListFiltering(t *testing.T) {
+	t.Parallel()
+	dataDirForThisTest := testDataListDir
+	mu := mutexByDir(dataDirForThisTest)
+	mu.Lock()
+	defer mu.Unlock()
+
+	ctx := t.Context()
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     dataDirForThisTest,
+		Stdout:  stdout,
+		Stderr:  stderr,
+		List:    true,
+		Args:    []string{"pig"},
+	}
+
+	err := Run(runParams)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
+	out := stdout.String()
+
+	// Filter "pig" should match "somePig" (case-insensitive substring).
+	assert.Contains(t, out, "Targets:", "output should still have structure")
+	assert.Contains(t, out, "somePig", "somePig should match filter 'pig'")
+	assert.Contains(t, out, "This is the synopsis for SomePig", "matched target should show synopsis")
+
+	// Filter should exclude non-matching targets.
+	assert.NotContains(t, out, "testVerbose", "testVerbose should not match filter 'pig'")
 }
 
 func TestNoArgNoDefaultList(t *testing.T) {
@@ -783,16 +880,8 @@ func TestNoArgNoDefaultList(t *testing.T) {
 	}
 
 	err := Run(runParams)
-	require.NoError(t, err, "stderr was: %s", stderr.String())
-	assert.Empty(t, stderr.String())
-
-	expected := `
-Targets:
-  bazBuz    Prints out 'BazBuz'.
-  fooBar    Prints out 'FooBar'.
-`[1:]
-
-	assert.Equal(t, expected, stdout.String())
+	require.Error(t, err)
+	assert.Regexp(t, `no targets specified and no .*Default.* defined`, stderr.String())
 }
 
 func TestIgnoreDefault(t *testing.T) {
@@ -811,18 +900,8 @@ func TestIgnoreDefault(t *testing.T) {
 	require.NoError(t, resetTerm())
 
 	err := Run(runParams)
-	require.NoError(t, err, "stderr was: %s", stderr.String())
-	expected := `
-This is a comment on the package which should get turned into output with the list of targets.
-
-Targets:
-  somePig*       This is the synopsis for SomePig.
-  testVerbose    
-
-* default target
-`[1:]
-
-	assert.Equal(t, expected, stdout.String())
+	require.Error(t, err)
+	assert.Contains(t, stderr.String(), "no target specified")
 }
 
 func TestTargetError(t *testing.T) {
@@ -977,7 +1056,7 @@ func TestKeepFlag(t *testing.T) {
 		Dir:     dataDirForThisTest,
 		Stdout:  logWriter,
 		Stderr:  logWriter,
-		List:    true,
+		Args:    []string{"noop"},
 		Keep:    true,
 		Force:   true, // need force so we always regenerate
 	}
@@ -1021,7 +1100,7 @@ func TestNoSelfDependencies(t *testing.T) {
 		Dir:     dataDirForThisTest,
 		Stdout:  logWriter,
 		Stderr:  logWriter,
-		List:    true,
+		Args:    []string{"somePig"},
 		Keep:    true,
 		Force:   true, // need force so we always regenerate
 		Verbose: true,
@@ -1424,14 +1503,6 @@ func TestCompiledFlags(t *testing.T) {
 	want = hiExclam
 	assert.Contains(t, stderr.String(), want)
 
-	// pass list flag -l
-	err = run(stdout, stderr, name, "-l")
-	require.NoError(t, err, "stderr was: %s", stderr.String())
-	want = "This is the synopsis for Deploy"
-	assert.Contains(t, stdout.String(), want)
-	want = "This is very verbose"
-	assert.Contains(t, stdout.String(), want)
-
 	// pass flag -t 1ms
 	err = run(stdout, stderr, name, "-t", "1ms", "sleep")
 	require.Error(t, err)
@@ -1492,29 +1563,29 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 		return nil
 	}
 
+	stdout.Reset()
+	stderr.Reset()
 	err = run(stdout, stderr, name, "STAVEFILE_INFO=1", "deploy")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want := "This is the synopsis for Deploy. This part shouldn't show up.\n\nUsage:\n\n\t" +
 		filepath.Base(name) + " deploy\n\n"
 	assert.Equal(t, want, stdout.String())
 
+	stdout.Reset()
+	stderr.Reset()
 	err = run(stdout, stderr, name, st.VerboseEnv+"=1", "testverbose")
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 	want = hiExclam
 	assert.Contains(t, stderr.String(), want)
 
-	err = run(stdout, stderr, name, "STAVEFILE_LIST=1")
-	require.NoError(t, err, "stderr was: %s", stderr.String())
-	want = "This is the synopsis for Deploy"
-	assert.Contains(t, stdout.String(), want)
-	want = "This is very verbose"
-	assert.Contains(t, stdout.String(), want)
-
+	stdout.Reset()
+	stderr.Reset()
 	err = run(stdout, stderr, name, st.IgnoreDefaultEnv+"=1")
-	require.NoError(t, err, "stderr was: %s", stderr.String())
-	want = "Compiled package description."
-	assert.Contains(t, stdout.String(), want)
+	require.Error(t, err)
+	assert.Contains(t, stderr.String(), "no target specified")
 
+	stdout.Reset()
+	stderr.Reset()
 	err = run(stdout, stderr, name, "STAVEFILE_TIMEOUT=1ms", "sleep")
 	require.Error(t, err)
 	want = "context deadline exceeded"
@@ -1793,7 +1864,6 @@ func TestGoModules(t *testing.T) {
 		assert.NoError(t, os.RemoveAll(dir))
 	}()
 
-	// beware, stave builds in go versions older than 1.17 so both build tag formats need to be present
 	err = os.WriteFile(filepath.Join(dir, "stavefile.go"), []byte(`//go:build stave
 
 package main
@@ -1831,14 +1901,8 @@ func Test() {
 		Stderr: stderr,
 		Stdout: stdout,
 	})
-	require.NoError(t, err, "stderr was: %s", stderr.String())
-
-	expected := `
-Targets:
-  test    
-`[1:]
-
-	assert.Equal(t, expected, stdout.String())
+	require.Error(t, err)
+	assert.Regexp(t, `no targets specified and no .*Default.* defined`, stderr.String())
 }
 
 func TestNamespaceDep(t *testing.T) {

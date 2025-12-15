@@ -2,8 +2,13 @@
 package st
 
 import (
+	"image/color"
+	"maps"
+	"slices"
+	"strconv"
 	"strings"
 
+	"charm.land/lipgloss/v2"
 	"github.com/samber/lo"
 )
 
@@ -54,6 +59,8 @@ var ansiColorByLowerString = lo.MapKeys(ansiColor, func(_ string, key Color) str
 	return strings.ToLower(key.String())
 })
 
+var ansiColorInv = lo.Invert(ansiColor)
+
 // AnsiColorReset is an ANSI color code to reset the terminal color.
 const AnsiColorReset = "\033[0m"
 
@@ -61,10 +68,55 @@ const AnsiColorReset = "\033[0m"
 // It is set to Cyan as an arbitrary color, because it has a neutral meaning.
 var DefaultTargetAnsiColor = ansiColor[Cyan]
 
-func getAnsiColor(color string) (string, bool) {
-	colorLower := strings.ToLower(color)
+// noColorTERMs defines terminals that do not support ANSI color output.
+// Keep this list small and conservative.
+var noColorTERMs = lo.Keyify([]string{
+	"dumb",
+	"vt100",
+	"cygwin",
+	"xterm-mono",
+})
 
-	value, ok := ansiColorByLowerString[colorLower]
-
+func getAnsiColor(name string) (string, bool) {
+	nameLower := strings.ToLower(name)
+	value, ok := ansiColorByLowerString[nameLower]
 	return value, ok
+}
+
+// NoColorTERMs returns the set of TERM values for which Stave should disable ANSI color output.
+// This is exported so code generators can embed the same policy in stdlib-only code.
+func NoColorTERMs() []string {
+	terms := slices.Collect(maps.Keys(noColorTERMs))
+	slices.Sort(terms)
+	return terms
+}
+
+// TerminalSupportsColor returns true if the given TERM value is not in the
+// known-no-color blacklist. An empty term is treated as supporting colors
+// (letting Lipgloss handle further TTY detection).
+func TerminalSupportsColor(term string) bool {
+	if term == "" {
+		return true
+	}
+	_, blacklisted := noColorTERMs[term]
+	return !blacklisted
+}
+
+// TargetStyle returns a Lipgloss style configured with the user's target color.
+// This respects STAVEFILE_TARGET_COLOR if set, otherwise uses the default cyan.
+func TargetStyle() lipgloss.Style {
+	return lipgloss.NewStyle().Foreground(targetLipglossColor())
+}
+
+// targetLipglossColor returns the Lipgloss color for targets based on env config.
+func targetLipglossColor() color.Color {
+	ansi := TargetColor()
+	// TargetColor returns raw ANSI, extract the color code for Lipgloss.
+	// Default cyan is ANSI 36.
+	intVal, ok := ansiColorInv[ansi]
+	if !ok {
+		intVal = Cyan
+	}
+
+	return lipgloss.Color(strconv.Itoa(int(intVal)))
 }
