@@ -7,8 +7,10 @@ require (
 	github.com/caarlos0/svu/v3 v3.2.4
 	github.com/charmbracelet/fang v0.4.4
 	github.com/charmbracelet/log v0.4.2
+	github.com/charmbracelet/x/term v0.2.2
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/google/uuid v1.6.0
+	github.com/muesli/reflow v0.3.0
 	github.com/samber/lo v1.52.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
@@ -26,7 +28,6 @@ require (
 	github.com/charmbracelet/x/ansi v0.11.3 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.14 // indirect
 	github.com/charmbracelet/x/exp/charmtone v0.0.0-20251211193724-5cb91212b903 // indirect
-	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/charmbracelet/x/termios v0.1.1 // indirect
 	github.com/charmbracelet/x/windows v0.2.2 // indirect
 	github.com/clipperhouse/displaywidth v0.6.1 // indirect
