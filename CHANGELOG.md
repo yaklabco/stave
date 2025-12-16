@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2025-12-16
+
+### Removed
+
+- Extra printing of errors in main.go (`ExecuteWithFang(...)` already pretty-prints error; eliminates duplicate error printing).
+
 ## [0.3.2] - 2025-12-16
 
 ### Changed
@@ -149,7 +155,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.3.2...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/yaklabco/stave/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/yaklabco/stave/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/yaklabco/stave/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/yaklabco/stave/compare/v0.2.8...v0.3.0

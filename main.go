@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/yaklabco/stave/cmd/stave"
@@ -18,7 +17,6 @@ func actualMain() int {
 	rootCmd := stave.NewRootCmd(ctx)
 
 	if err := stave.ExecuteWithFang(ctx, rootCmd); err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
 
