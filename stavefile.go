@@ -88,14 +88,14 @@ var Default = All
 
 // All runs init, test, and build in sequence.
 func All() error {
-	st.Deps(Prereq.Init, Test.All)
+	st.Deps(Init, Test.All)
 	st.Deps(Build)
 
 	return nil
 }
 
 // Init installs required tools and sets up git hooks and modules.
-func (Prereq) Init() {
+func Init() {
 	st.Deps(Prereq.Brew, Setup.Hooks, Prereq.InitGo)
 }
 
@@ -199,7 +199,7 @@ hooks:
 
 // Markdown runs markdownlint-cli2 on all tracked Markdown files.
 func (Lint) Markdown() error {
-	st.Deps(Prereq.Init)
+	st.Deps(Init)
 
 	markdownFilesList, err := sh.Output("git", "ls-files", "--cached", "--others", "--exclude-standard", "--", "*.md")
 	if err != nil {
@@ -221,7 +221,7 @@ func (Lint) Markdown() error {
 
 // Go runs golangci-lint with auto-fix enabled.
 func (Lint) Go() error {
-	st.Deps(Prereq.Init)
+	st.Deps(Init)
 	out, err := sh.Output("golangci-lint", "run", "--fix", "--allow-parallel-runners", "--build-tags='!ignore'")
 	if err != nil {
 		titleStyle, blockStyle := ui.GetBlockStyles()
@@ -236,13 +236,13 @@ func (Lint) Go() error {
 
 // All runs golangci-lint after markdownlint and init.
 func (Lint) All() {
-	st.Deps(Prereq.Init, Lint.Markdown, Lint.Go)
+	st.Deps(Init, Lint.Markdown, Lint.Go)
 }
 
 // All aggregate target runs Lint and TestGo.
 func (Test) All() error {
 	// Run Init first (handles setup messages like hooks configured)
-	st.Deps(Prereq.Init)
+	st.Deps(Init)
 
 	// Print test header (unless in quiet/CI mode)
 	if !isQuietMode() {
@@ -327,7 +327,7 @@ func (Check) PrePush(remoteName, _remoteURL string) error {
 
 // Go runs Go tests with coverage and produces coverage.out and coverage.html.
 func (Test) Go() error {
-	st.Deps(Prereq.Init)
+	st.Deps(Init)
 
 	nCoresStr := cmp.Or(os.Getenv("STAVE_NUM_PROCESSORS"), "1")
 
@@ -349,7 +349,7 @@ func (Test) Go() error {
 
 // Build builds artifacts via goreleaser snapshot build.
 func Build() error {
-	st.Deps(Prereq.Init)
+	st.Deps(Init)
 
 	nCoresStr := cmp.Or(os.Getenv("STAVE_NUM_PROCESSORS"), "1")
 
@@ -366,7 +366,7 @@ func Release() error {
 		return err
 	}
 
-	st.Deps(Prereq.Init)
+	st.Deps(Init)
 
 	nextTag, err := changelog.NextTag()
 	if err != nil {

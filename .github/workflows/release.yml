@@ -80,10 +80,10 @@ jobs:
         run: go run bootstrap.go
 
       - name: Project init
-        run: stave prereq:init
+        run: stave init
 
       - name: Parallelism check
-        run: stave check:parallelism
+        run: stave debug:parallelism
 
       - name: Run tests
         run: stave test:all
