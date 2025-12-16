@@ -86,7 +86,7 @@ var Aliases = map[string]interface{}{
 
 var Default = All
 
-// All runs init, test, and build in sequence.
+// All runs init, test:all, and build in sequence.
 func All() error {
 	st.Deps(Init, Test.All)
 	st.Deps(Build)
@@ -96,11 +96,11 @@ func All() error {
 
 // Init installs required tools and sets up git hooks and modules.
 func Init() {
-	st.Deps(Prereq.Brew, Setup.Hooks, Prereq.InitGo)
+	st.Deps(Prereq.Brew, Setup.Hooks, Prereq.Go)
 }
 
-// InitGo tidies modules and runs go generate.
-func (Prereq) InitGo() error {
+// Go tidies modules and runs go generate.
+func (Prereq) Go() error {
 	st.Deps(Prereq.Brew)
 
 	if err := sh.Run("go", "mod", "tidy"); err != nil {
@@ -234,12 +234,12 @@ func (Lint) Go() error {
 	return nil
 }
 
-// All runs golangci-lint after markdownlint and init.
+// All runs ling:go after lint:markdown and init.
 func (Lint) All() {
 	st.Deps(Init, Lint.Markdown, Lint.Go)
 }
 
-// All aggregate target runs Lint and TestGo.
+// All aggregate target runs lint:all and test:go.
 func (Test) All() error {
 	// Run Init first (handles setup messages like hooks configured)
 	st.Deps(Init)
