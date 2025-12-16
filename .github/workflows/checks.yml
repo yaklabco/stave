@@ -71,13 +71,13 @@ jobs:
         run: go run bootstrap.go
 
       - name: Project init
-        run: stave init
+        run: stave prereq:init
 
       - name: Parallelism check
-        run: stave parallelismcheck
+        run: stave check:parallelism
 
       - name: Run tests
-        run: stave test
+        run: stave test:all
 
       - name: Verify no uncommitted changes
         shell: bash

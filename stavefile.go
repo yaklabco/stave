@@ -31,11 +31,11 @@ import (
 	"github.com/yaklabco/stave/pkg/ui"
 )
 
-type Prereqs st.Namespace
+type Prereq st.Namespace
 type Setup st.Namespace
 type Lint st.Namespace
 type Test st.Namespace
-type Checks st.Namespace
+type Check st.Namespace
 type Debug st.Namespace
 
 func init() {
@@ -57,7 +57,7 @@ func outputln(s string) {
 }
 
 // isQuietMode returns true if output should be suppressed (CI environments).
-// Checks STAVE_QUIET=1 first, then common CI environment variables.
+// Check STAVE_QUIET=1 first, then common CI environment variables.
 func isQuietMode() bool {
 	if os.Getenv("STAVE_QUIET") == "1" {
 		return true
@@ -88,20 +88,20 @@ var Default = All
 
 // All runs init, test, and build in sequence.
 func All() error {
-	st.Deps(Prereqs.Init, Test.All)
+	st.Deps(Prereq.Init, Test.All)
 	st.Deps(Build)
 
 	return nil
 }
 
 // Init installs required tools and sets up git hooks and modules.
-func (Prereqs) Init() {
-	st.Deps(Prereqs.Brew, Setup.Hooks, Prereqs.InitGo)
+func (Prereq) Init() {
+	st.Deps(Prereq.Brew, Setup.Hooks, Prereq.InitGo)
 }
 
 // InitGo tidies modules and runs go generate.
-func (Prereqs) InitGo() error {
-	st.Deps(Prereqs.Brew)
+func (Prereq) InitGo() error {
+	st.Deps(Prereq.Brew)
 
 	if err := sh.Run("go", "mod", "tidy"); err != nil {
 		return err
@@ -115,13 +115,13 @@ func (Prereqs) InitGo() error {
 }
 
 // Brew installs tools from Brewfile via Homebrew.
-func (Prereqs) Brew() error {
+func (Prereq) Brew() error {
 	return sh.Run("brew", "bundle", "--file=Brewfile")
 }
 
 // Hooks configures git hooks to use stave targets.
 func (Setup) Hooks() error {
-	st.Deps(Prereqs.Brew)
+	st.Deps(Prereq.Brew)
 
 	cs := ui.GetFangScheme()
 	successStyle := lipgloss.NewStyle().Foreground(cs.Flag)
@@ -199,7 +199,7 @@ hooks:
 
 // Markdown runs markdownlint-cli2 on all tracked Markdown files.
 func (Lint) Markdown() error {
-	st.Deps(Prereqs.Init)
+	st.Deps(Prereq.Init)
 
 	markdownFilesList, err := sh.Output("git", "ls-files", "--cached", "--others", "--exclude-standard", "--", "*.md")
 	if err != nil {
@@ -221,7 +221,7 @@ func (Lint) Markdown() error {
 
 // Go runs golangci-lint with auto-fix enabled.
 func (Lint) Go() error {
-	st.Deps(Prereqs.Init)
+	st.Deps(Prereq.Init)
 	out, err := sh.Output("golangci-lint", "run", "--fix", "--allow-parallel-runners", "--build-tags='!ignore'")
 	if err != nil {
 		titleStyle, blockStyle := ui.GetBlockStyles()
@@ -236,13 +236,13 @@ func (Lint) Go() error {
 
 // All runs golangci-lint after markdownlint and init.
 func (Lint) All() {
-	st.Deps(Prereqs.Init, Lint.Markdown, Lint.Go)
+	st.Deps(Prereq.Init, Lint.Markdown, Lint.Go)
 }
 
 // All aggregate target runs Lint and TestGo.
 func (Test) All() error {
 	// Run Init first (handles setup messages like hooks configured)
-	st.Deps(Prereqs.Init)
+	st.Deps(Prereq.Init)
 
 	// Print test header (unless in quiet/CI mode)
 	if !isQuietMode() {
@@ -262,7 +262,7 @@ func (Test) All() error {
 }
 
 // Changelog validates CHANGELOG.md format against 'Keep a Changelog' conventions.
-func (Checks) Changelog() error {
+func (Check) Changelog() error {
 	if err := changelog.ValidateFile("CHANGELOG.md"); err != nil {
 		return fmt.Errorf("CHANGELOG.md validation failed: %w", err)
 	}
@@ -287,7 +287,7 @@ func (Debug) DumpStdin() error {
 }
 
 // PrePush runs pre-push validations including changelog checks.
-func (Checks) PrePush(remoteName, _remoteURL string) error {
+func (Check) PrePush(remoteName, _remoteURL string) error {
 	pushRefs, err := changelog.ReadPushRefs(os.Stdin)
 	if err != nil {
 		return fmt.Errorf("failed to read push refs: %w", err)
@@ -327,7 +327,7 @@ func (Checks) PrePush(remoteName, _remoteURL string) error {
 
 // Go runs Go tests with coverage and produces coverage.out and coverage.html.
 func (Test) Go() error {
-	st.Deps(Prereqs.Init)
+	st.Deps(Prereq.Init)
 
 	nCoresStr := cmp.Or(os.Getenv("STAVE_NUM_PROCESSORS"), "1")
 
@@ -349,7 +349,7 @@ func (Test) Go() error {
 
 // Build builds artifacts via goreleaser snapshot build.
 func Build() error {
-	st.Deps(Prereqs.Init)
+	st.Deps(Prereq.Init)
 
 	nCoresStr := cmp.Or(os.Getenv("STAVE_NUM_PROCESSORS"), "1")
 
@@ -366,7 +366,7 @@ func Release() error {
 		return err
 	}
 
-	st.Deps(Prereqs.Init)
+	st.Deps(Prereq.Init)
 
 	nextTag, err := changelog.NextTag()
 	if err != nil {
