@@ -408,7 +408,7 @@ func writeTable(
 	headerLine := strings.Join([]string{
 		pad(h.name, maxName),
 		pad(h.usage, maxUsage),
-		pad(h.synopsis, maxSyn),
+		h.synopsis,
 	}, "  ")
 	_, _ = fmt.Fprintln(out, indent+headerStyle.Render(headerLine))
 
