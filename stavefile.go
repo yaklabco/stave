@@ -64,7 +64,7 @@ var Default = All
 // * Default namespace
 // *
 
-// All runs init, test:all, and build in sequence.
+// All runs init, test:all, and build in sequence
 func All() error {
 	st.Deps(Init, Test.All)
 	st.Deps(Build)
@@ -72,12 +72,12 @@ func All() error {
 	return nil
 }
 
-// Init installs required tools and sets up git hooks and modules.
+// Init installs required tools and sets up git hooks and modules
 func Init() {
 	st.Deps(Prereq.Brew, Setup.Hooks, Prereq.Go)
 }
 
-// Build builds artifacts via goreleaser snapshot build.
+// Build builds artifacts via goreleaser snapshot build
 func Build() error {
 	st.Deps(Init)
 
@@ -90,7 +90,7 @@ func Build() error {
 	return sh.RunV("goreleaser", "--parallelism", nCoresStr, "build", "--snapshot", "--clean")
 }
 
-// Release tags the next version and runs goreleaser release.
+// Release tags the next version and runs goreleaser release
 func Release() error {
 	if err := setSkipNextVerChangelogCheck(); err != nil {
 		return err
@@ -118,7 +118,7 @@ func Release() error {
 	return sh.Run("goreleaser", "--parallelism", nCoresStr, "release", "--clean")
 }
 
-// Install builds and installs stave to GOBIN with version info embedded.
+// Install builds and installs stave to GOBIN with version info embedded
 func Install() error {
 	name := "stave"
 	if runtime.GOOS == "windows" {
@@ -155,7 +155,7 @@ func Install() error {
 	return sh.RunV(gocmd, "build", "-o", path, "-ldflags="+flags(), "github.com/yaklabco/stave")
 }
 
-// Clean removes the dist directory created by goreleaser.
+// Clean removes the dist directory created by goreleaser
 func Clean() error {
 	return sh.Rm("dist")
 }
@@ -170,7 +170,7 @@ func Clean() error {
 
 type Prereq st.Namespace
 
-// Go tidies modules and runs go generate.
+// Go tidies modules and runs go generate
 func (Prereq) Go() error {
 	st.Deps(Prereq.Brew)
 
@@ -185,7 +185,7 @@ func (Prereq) Go() error {
 	return sh.Run("go", "mod", "tidy")
 }
 
-// Brew installs tools from Brewfile via Homebrew.
+// Brew installs tools from Brewfile via Homebrew
 func (Prereq) Brew() error {
 	return sh.Run("brew", "bundle", "--file=Brewfile")
 }
@@ -200,7 +200,7 @@ func (Prereq) Brew() error {
 
 type Setup st.Namespace
 
-// Hooks configures git hooks to use stave targets.
+// Hooks configures git hooks to use stave targets
 func (Setup) Hooks() error {
 	st.Deps(Prereq.Brew)
 
@@ -249,12 +249,12 @@ func (Setup) Hooks() error {
 
 type Lint st.Namespace
 
-// All runs ling:go after lint:markdown and init.
+// All runs ling:go after lint:markdown and init
 func (Lint) All() {
 	st.Deps(Init, Lint.Markdown, Lint.Go)
 }
 
-// Markdown runs markdownlint-cli2 on all tracked Markdown files.
+// Markdown runs markdownlint-cli2 on all tracked Markdown files
 func (Lint) Markdown() error {
 	st.Deps(Init)
 
@@ -276,7 +276,7 @@ func (Lint) Markdown() error {
 	return sh.Run("markdownlint-cli2", files...)
 }
 
-// Go runs golangci-lint with auto-fix enabled.
+// Go runs golangci-lint with auto-fix enabled
 func (Lint) Go() error {
 	st.Deps(Init)
 	out, err := sh.Output("golangci-lint", "run", "--fix", "--allow-parallel-runners", "--build-tags='!ignore'")
@@ -301,7 +301,7 @@ func (Lint) Go() error {
 
 type Check st.Namespace
 
-// Changelog validates CHANGELOG.md format against 'Keep a Changelog' conventions.
+// Changelog validates CHANGELOG.md format against 'Keep a Changelog' conventions
 func (Check) Changelog() error {
 	if err := changelog.ValidateFile("CHANGELOG.md"); err != nil {
 		return fmt.Errorf("CHANGELOG.md validation failed: %w", err)
@@ -310,7 +310,7 @@ func (Check) Changelog() error {
 	return nil
 }
 
-// PrePush runs pre-push validations including changelog checks.
+// PrePush runs pre-push validations including changelog checks
 func (Check) PrePush(remoteName, _remoteURL string) error {
 	pushRefs, err := changelog.ReadPushRefs(os.Stdin)
 	if err != nil {
@@ -359,7 +359,7 @@ func (Check) PrePush(remoteName, _remoteURL string) error {
 
 type Test st.Namespace
 
-// All aggregate target runs lint:all and test:go.
+// All aggregate target runs lint:all and test:go
 func (Test) All() error {
 	// Run Init first (handles setup messages like hooks configured)
 	st.Deps(Init)
@@ -381,7 +381,7 @@ func (Test) All() error {
 	return nil
 }
 
-// Go runs Go tests with coverage and produces coverage.out and coverage.html.
+// Go runs Go tests with coverage and produces coverage.out and coverage.html
 func (Test) Go() error {
 	st.Deps(Init)
 
@@ -413,13 +413,13 @@ func (Test) Go() error {
 
 type Debug st.Namespace
 
-// Parallelism prints parallelism environment variables (debugging utility).
+// Parallelism prints parallelism environment variables (debugging utility)
 func (Debug) Parallelism() {
 	outputf("STAVE_NUM_PROCESSORS=%q\n", os.Getenv("STAVE_NUM_PROCESSORS"))
 	outputf("GOMAXPROCS=%q\n", os.Getenv("GOMAXPROCS"))
 }
 
-// DumpStdin reads stdin and dumps each line via spew (debugging utility).
+// DumpStdin reads stdin and dumps each line via spew (debugging utility)
 func (Debug) DumpStdin() error {
 	scanner := bufio.NewScanner(os.Stdin)
 
@@ -435,7 +435,7 @@ func (Debug) DumpStdin() error {
 	return nil
 }
 
-// Say prints arguments with their types (example target demonstrating args).
+// Say prints arguments with their types (example target demonstrating args)
 func (Debug) Say(msg string, i int, b bool, d time.Duration) error {
 	outputf("%v(%T) %v(%T) %v(%T) %v(%T)\n", msg, msg, i, i, b, b, d, d)
 	return nil
