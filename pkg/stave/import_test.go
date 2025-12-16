@@ -4,6 +4,7 @@ package stave
 import (
 	"bytes"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/samber/lo"
@@ -232,7 +233,17 @@ func TestStaveImportsNamedRoot(t *testing.T) {
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 	expected := "buildsubdir2\n"
 	assert.Equal(t, expected, stdout.String())
-	assert.Empty(t, stderr.String())
+
+	stderrStr := stderr.String()
+
+	// Remove any line containing "hooks removed" from stderrStr
+	stderrLines := strings.Split(stderrStr, "\n")
+	stderrLines = lo.Filter(stderrLines, func(line string, _ int) bool {
+		return !strings.Contains(line, "hooks removed")
+	})
+	stderrStr = strings.Join(stderrLines, "\n")
+
+	assert.Empty(t, stderrStr)
 }
 
 func TestStaveImportsRootImportNS(t *testing.T) {

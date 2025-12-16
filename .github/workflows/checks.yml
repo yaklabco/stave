@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  checks:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -74,10 +74,10 @@ jobs:
         run: stave init
 
       - name: Parallelism check
-        run: stave parallelismcheck
+        run: stave debug:parallelism
 
       - name: Run tests
-        run: stave test
+        run: stave test:all
 
       - name: Verify no uncommitted changes
         shell: bash
