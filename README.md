@@ -1,16 +1,30 @@
 # Stave
 
-<!-- markdownlint-disable MD033 -->
+<!-- markdownlint-disable no-inline-html -->
 <p align="center">
-  <img src="img/stave-logo-251205B.png" alt="Stave logo" width="400">
+  <img src="img/stave-logo-251205B.png" alt="Stave logo" width="400" />
 </p>
-<!-- markdownlint-enable MD033 -->
+<!-- markdownlint-enable no-inline-html -->
 
 A make-like build tool using Go. Write plain Go functions, and Stave will automatically use them as runnable targets.
 
 Stave was forked from [mage](https://github.com/magefile/mage) (originally created by Nate Finch), and adds [various features and improvements](#differences-from-mage).
 
 Documentation for `stave` is available [here](./docs/index.md).
+
+<!-- markdownlint-disable no-inline-html no-multiple-blanks no-trailing-spaces -->
+ 
+
+<p align="center">
+  <a href="img/stave-l-in-goctx.png" target="_blank">
+    <img src="img/stave-l-in-goctx.png" alt="`stave -l` output in the goctx project" width="67%" />
+  </a>
+  <br />
+  <small>(screenshot: output of <code>stave -l</code> in the <a href="https://github.com/preminger/goctx">goctx</a> project)</small>
+</p>
+
+ 
+<!-- markdownlint-enable no-inline-html no-multiple-blanks no-trailing-spaces -->
 
 ## Installation
 
