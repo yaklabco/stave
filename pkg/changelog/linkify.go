@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+const (
+	unreleasedMarkerString = "unreleased"
+)
+
 var repoURLPattern = regexp.MustCompile(`https://github\.com/[^/]+/[^/]+`)
 
 // Linkify reads the content of the changelog file, runs LinkifyContent on it,
@@ -48,7 +52,7 @@ func LinkifyContent(content string) (string, error) {
 
 	// If the newly-linkified heading is the topmost one under "Unreleased",
 	// then the "Unreleased" Link Reference Definition should be updated.
-	if len(cl.Headings) > 1 && strings.ToLower(cl.Headings[0].Name) == "unreleased" {
+	if len(cl.Headings) > 1 && strings.ToLower(cl.Headings[0].Name) == unreleasedMarkerString {
 		if toLinkify[cl.Headings[1].Name] {
 			toLinkify[cl.Headings[0].Name] = true
 		}
@@ -80,7 +84,7 @@ func LinkifyContent(content string) (string, error) {
 		}
 
 		var link string
-		if strings.ToLower(theHeading.Name) == "unreleased" {
+		if strings.ToLower(theHeading.Name) == unreleasedMarkerString {
 			// Find next heading for comparison
 			if iHeading+1 >= len(cl.Headings) {
 				continue
@@ -128,8 +132,8 @@ func LinkifyContent(content string) (string, error) {
 		for _, h := range cl.Headings {
 			if link, ok := newLinks[h.Name]; ok {
 				name := h.Name
-				if strings.ToLower(name) == "unreleased" {
-					name = "unreleased"
+				if strings.ToLower(name) == unreleasedMarkerString {
+					name = unreleasedMarkerString
 				}
 				result = append(result, fmt.Sprintf("[%s]: %s", name, link))
 			}
