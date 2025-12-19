@@ -44,6 +44,7 @@ func init() {
 // *
 
 var Aliases = map[string]interface{}{
+	"LCL":   Prep.LinkifyChangelog,
 	"Speak": Debug.Say,
 }
 
@@ -306,7 +307,9 @@ func (Check) Changelog() error {
 	if err := changelog.ValidateFile("CHANGELOG.md"); err != nil {
 		return fmt.Errorf("CHANGELOG.md validation failed: %w", err)
 	}
+
 	slog.Info("CHANGELOG.md validation passed")
+
 	return nil
 }
 
@@ -351,6 +354,26 @@ func (Check) PrePush(remoteName, _remoteURL string) error {
 
 // *
 // * Check namespace
+// *********************************************************************
+
+// *********************************************************************
+// * Prep namespace
+// *
+
+type Prep st.Namespace
+
+func (Prep) LinkifyChangelog() error {
+	if err := changelog.Linkify("CHANGELOG.md"); err != nil {
+		return fmt.Errorf("CHANGELOG.md linkification failed: %w", err)
+	}
+
+	slog.Info("CHANGELOG.md linkification complete")
+
+	return nil
+}
+
+// *
+// * Prep namespace
 // *********************************************************************
 
 // *********************************************************************
@@ -438,6 +461,7 @@ func (Debug) DumpStdin() error {
 // Say prints arguments with their types (example target demonstrating args)
 func (Debug) Say(msg string, i int, b bool, d time.Duration) error {
 	outputf("%v(%T) %v(%T) %v(%T) %v(%T)\n", msg, msg, i, i, b, b, d, d)
+
 	return nil
 }
 

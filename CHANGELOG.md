@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5] - 2025-12-20
+
+### Added
+
+- Changelog "linkify" functionality (function `Linkify(...)` in `pkg/changelog).
+
 ## [0.3.4] - 2025-12-16
 
 ### Changed
@@ -161,7 +167,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.3.4...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.3.5...HEAD
+[0.3.5]: https://github.com/yaklabco/stave/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/yaklabco/stave/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/yaklabco/stave/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/yaklabco/stave/compare/v0.3.1...v0.3.2
