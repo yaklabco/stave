@@ -1,52 +1,16 @@
 package sh
 
 import (
-	"fmt"
-	"io"
-	"os"
-
-	"github.com/yaklabco/stave/internal/dryrun"
+	"github.com/yaklabco/stave/internal/ish"
 )
 
 // Rm removes the given file or directory even if non-empty. It will not return
 // an error if the target doesn't exist, only if the target cannot be removed.
 func Rm(path string) error {
-	if dryrun.IsDryRun() {
-		_, err := fmt.Println("DRYRUN: rm", path) //nolint:forbidigo // This is intentional console output.
-		return err
-	}
-
-	err := os.RemoveAll(path)
-	if err == nil || os.IsNotExist(err) {
-		return nil
-	}
-	return fmt.Errorf(`failed to remove %s: %w`, path, err)
+	return ish.Rm(path)
 }
 
 // Copy robustly copies the source file to the destination, overwriting the destination if necessary.
 func Copy(dst string, src string) error {
-	if dryrun.IsDryRun() {
-		_, err := fmt.Println("DRYRUN: cp", src, dst) //nolint:forbidigo // This is intentional console output.
-		return err
-	}
-
-	from, err := os.Open(src)
-	if err != nil {
-		return fmt.Errorf(`can't copy %s: %w`, src, err)
-	}
-	defer func() { _ = from.Close() }()
-	finfo, err := from.Stat()
-	if err != nil {
-		return fmt.Errorf(`can't stat %s: %w`, src, err)
-	}
-	to, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, finfo.Mode())
-	if err != nil {
-		return fmt.Errorf(`can't copy to %s: %w`, dst, err)
-	}
-	defer func() { _ = to.Close() }()
-	_, err = io.Copy(to, from)
-	if err != nil {
-		return fmt.Errorf(`error copying %s to %s: %w`, src, dst, err)
-	}
-	return nil
+	return ish.Copy(dst, src)
 }

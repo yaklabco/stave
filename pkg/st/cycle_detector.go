@@ -7,12 +7,8 @@ import (
 	"sync"
 
 	"github.com/samber/lo"
+	"github.com/yaklabco/stave/pkg/stack"
 	"github.com/yaklabco/stave/pkg/toposort"
-)
-
-const (
-	// maxStackDepthToCheck defines the maximum stack depth for runtime caller inspection.
-	maxStackDepthToCheck = 64
 )
 
 var (
@@ -30,7 +26,7 @@ func firstExternalCaller() *runtime.Frame {
 
 	// runtime.Callers (0), firstExternalCaller (1), the function calling firstExternalCaller (2)
 	const skip = 2
-	progCtrsAboveUs := make([]uintptr, maxStackDepthToCheck)
+	progCtrsAboveUs := make([]uintptr, stack.MaxStackDepthToCheck)
 	nProgCtrsAboveUs := runtime.Callers(skip, progCtrsAboveUs)
 	frames := runtime.CallersFrames(progCtrsAboveUs[:nProgCtrsAboveUs])
 

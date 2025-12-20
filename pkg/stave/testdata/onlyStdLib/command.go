@@ -5,8 +5,6 @@ package main
 import (
 	"fmt"
 	"log/slog"
-
-	"github.com/yaklabco/stave/pkg/st"
 )
 
 var Default = SomePig
@@ -23,7 +21,7 @@ func TestVerbose() {
 
 // This is the synopsis for SomePig.  There's more data that won't show up.
 func SomePig() {
-	st.Deps(f)
+	f()
 }
 
 func f() {}

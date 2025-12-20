@@ -63,6 +63,7 @@ stave -l       # List available targets
 - [Shell Commands](user-guide/shell-commands.md) - Running external commands with `pkg/sh`
 - [File Targets](user-guide/file-targets.md) - Incremental builds with `pkg/target`
 - [Git Hooks](user-guide/hooks.md) - Native Git hook management
+- [Watch Mode](user-guide/watch.md) - Automatically re-run targets on file changes
 - [Versioning](user-guide/versioning.md) - Compute next version/tag from Conventional Commits
 - [Advanced Topics](user-guide/advanced.md) - Cross-compilation, dry-run, CI, debugging
 
@@ -71,6 +72,7 @@ stave -l       # List available targets
 - [CLI Reference](api-reference/cli.md) - Command-line flags and subcommands
 - [pkg/st](api-reference/st.md) - Dependency management and runtime utilities
 - [pkg/sh](api-reference/sh.md) - Shell command execution
+- [pkg/watch](api-reference/watch.md) - Watch mode and cancellable contexts
 - [pkg/target](api-reference/target.md) - File modification time utilities
 - [pkg/changelog](api-reference/changelog.md) - Changelog validation and version helpers
 

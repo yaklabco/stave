@@ -21,7 +21,19 @@ import (
 )
 
 func main() {
+	{{- $watchPkg := "" -}}
+	{{- $stPkg := "" -}}
+	{{- range .Imports -}}
+		{{- if eq .Path "github.com/yaklabco/stave/pkg/watch" -}}{{- $watchPkg = .UniqueName -}}{{- end -}}
+		{{- if eq .Path "github.com/yaklabco/stave/pkg/st" -}}{{- $stPkg = .UniqueName -}}{{- end -}}
+	{{- end -}}
 	// Use local types and functions in order to avoid name conflicts with additional stavefiles.
+	{{- if $watchPkg }}
+	_ = {{ $watchPkg }}.IsOverallWatchMode
+	{{- end }}
+	{{- if $stPkg }}
+	_ = {{ $stPkg }}.ResetOnces
+	{{- end }}
 	type arguments struct {
 		Verbose bool          // print out log statements
 		Debug   bool          // print out more detailed logs
@@ -115,6 +127,26 @@ func main() {
 		fs.Usage()
 		return
 	}
+
+	// Set the outermost target name.
+	outermost := ""
+	if len(args.Args) > 0 {
+		outermost = args.Args[0]
+		// Resolve alias
+		switch _strings.ToLower(outermost) {
+			{{range $alias, $func := .Aliases}}
+		case "{{lower $alias}}":
+			outermost = "{{$func.TargetName}}"
+			{{- end}}
+		}
+	} else {
+		{{- if .DefaultFunc.Name}}
+		outermost = "{{.DefaultFunc.TargetName}}"
+		{{- end}}
+	}
+	{{ if $watchPkg }}
+	{{ $watchPkg }}.SetOutermostTarget(outermost)
+	{{ end }}
 
 	// color is ANSI color type
 	type color int
@@ -239,6 +271,9 @@ func main() {
 	var ctx context.Context
 	ctxCancel := func(){}
 
+	mainCtx, mainCancel := context.WithCancel(context.Background())
+	defer mainCancel()
+
 	// by deferring in a closure, we let the cancel function get replaced
 	// by the getContext function.
 	defer func() {
@@ -246,54 +281,55 @@ func main() {
 	}()
 
 	getContext := func() (context.Context, func()) {
-		if ctx == nil {
+		if ctx == nil || ctx.Err() != nil {
 			if args.Timeout != 0 {
-				ctx, ctxCancel = context.WithTimeout(context.Background(), args.Timeout)
+				ctx, ctxCancel = context.WithTimeout(mainCtx, args.Timeout)
 			} else {
-				ctx, ctxCancel = context.WithCancel(context.Background())
+				ctx, ctxCancel = context.WithCancel(mainCtx)
 			}
 		}
 
 		return ctx, ctxCancel
 	}
 
-	runTarget := func(logger *_log.Logger, fn func(context.Context) error) interface{} {
+	runTarget := func(logger *_log.Logger, name string, fn func(context.Context) error) interface{} {
 		var err interface{}
-		ctx, cancel := getContext()
-		d := make(chan interface{})
+		ctx, _ := getContext()
+		{{- if $watchPkg }}
+		{{ $watchPkg }}.RegisterTargetContext(ctx, name)
+		defer {{ $watchPkg }}.UnregisterTargetContext(name)
+		{{- end }}
+		d := make(chan interface{}, 2)
 		go func() {
+			var err interface{}
 			defer func() {
-				err := recover()
+				if r := recover(); r != nil {
+					err = r
+				}
 				d <- err
 			}()
-			err := fn(ctx)
+			err = fn(ctx)
 			d <- err
 		}()
-		sigCh := make(chan os.Signal, 1)
-		signal.Notify(sigCh, syscall.SIGINT)
 		select {
-		case <-sigCh:
+		case <-ctx.Done():
 			logger.Println("cancelling stave targets, waiting up to 5 seconds for cleanup...")
-			cancel()
 			cleanupCh := time.After(5 * time.Second)
 
 			select {
 			// target exited by itself
 			case err = <-d:
+				if err == nil && ctx.Err() == context.DeadlineExceeded {
+					err = ctx.Err()
+				}
 				return err
 			// cleanup timeout exceeded
 			case <-cleanupCh:
+				if ctx.Err() == context.DeadlineExceeded {
+					return _fmt.Errorf("cleanup timeout exceeded: %w", ctx.Err())
+				}
 				return _fmt.Errorf("cleanup timeout exceeded")
-			// second SIGINT received
-			case <-sigCh:
-				logger.Println("exiting stave")
-				return _fmt.Errorf("exit forced")
 			}
-		case <-ctx.Done():
-			cancel()
-			e := ctx.Err()
-			_fmt.Printf("ctx err: %v\n", e)
-			return e
 		case err = <-d:
 			// we intentionally don't cancel the context here, because
 			// the next target will need to run with the same context.
@@ -347,6 +383,15 @@ func main() {
 		_log.SetOutput(_io.Discard)
 	}
 	logger := _log.New(os.Stderr, "", 0)
+	globalSigCh := make(chan os.Signal, 1)
+	signal.Notify(globalSigCh, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-globalSigCh
+		mainCancel()
+		<-globalSigCh
+		_fmt.Fprintln(os.Stderr, "exiting stave")
+		handleError(logger, _fmt.Errorf("exit forced"))
+	}()
 	if args.Info {
 		if len(args.Args) < 1 {
 			logger.Println("no target specified")
@@ -402,7 +447,31 @@ func main() {
 			logger.Println("Error: STAVEFILE_IGNOREDEFAULT is on and no target specified.")
 			os.Exit(1)
 		}
-		{{.DefaultFunc.ExecCode}}
+		run := func() interface{} {
+			_targetArgs := []string{}
+			_ = _targetArgs
+			{{.DefaultFunc.ExecCode}}
+			return ret
+		}
+		ret := run()
+		{{ if $watchPkg }}
+		if {{ $watchPkg }}.IsOverallWatchMode() {
+			if ret != nil {
+				logger.Printf("Error: %+v\n", ret)
+			}
+			{{ $watchPkg }}.ReRunLoop(ctx, outermost, func() error {
+				{{ $watchPkg }}.ResetWatchDeps(outermost)
+				ret := run()
+				if ret != nil {
+					if err, ok := ret.(error); ok {
+						return err
+					}
+					return _fmt.Errorf("%v", ret)
+				}
+				return nil
+			})
+		}
+		{{ end }}
 		handleError(logger, ret)
 		return
 		{{- else}}
@@ -441,7 +510,32 @@ func main() {
 			if args.Verbose {
 				logger.Println("Running target: <{{.TargetName}}>")
 			}
-			{{.ExecCode}}
+			_targetArgs := args.Args[iArg:expected]
+			iArg = expected
+			run := func() interface{} {
+				_ = _targetArgs
+				{{.ExecCode}}
+				return ret
+			}
+			ret := run()
+			{{ if $watchPkg }}
+			if _strings.EqualFold(target, outermost) && {{ $watchPkg }}.IsOverallWatchMode() {
+				if ret != nil {
+					logger.Printf("Error: %+v\n", ret)
+				}
+				{{ $watchPkg }}.ReRunLoop(ctx, target, func() error {
+					{{ $watchPkg }}.ResetWatchDeps(target)
+					ret := run()
+					if ret != nil {
+						if err, ok := ret.(error); ok {
+							return err
+						}
+						return _fmt.Errorf("%v", ret)
+					}
+					return nil
+				})
+			}
+			{{ end }}
 			handleError(logger, ret)
 			{{- end}}
 			{{range .Imports}}
@@ -458,7 +552,32 @@ func main() {
 			if args.Verbose {
 				logger.Println("Running target: <{{.TargetName}}>")
 			}
-			{{.ExecCode}}
+			_targetArgs := args.Args[iArg:expected]
+			iArg = expected
+			run := func() interface{} {
+				_ = _targetArgs
+				{{.ExecCode}}
+				return ret
+			}
+			ret := run()
+			{{ if $watchPkg }}
+			if _strings.EqualFold(target, outermost) && {{ $watchPkg }}.IsOverallWatchMode() {
+				if ret != nil {
+					logger.Printf("Error: %+v\n", ret)
+				}
+				{{ $watchPkg }}.ReRunLoop(ctx, target, func() error {
+					{{ $watchPkg }}.ResetWatchDeps(target)
+					ret := run()
+					if ret != nil {
+						if err, ok := ret.(error); ok {
+							return err
+						}
+						return _fmt.Errorf("%v", ret)
+					}
+					return nil
+				})
+			}
+			{{ end }}
 			handleError(logger, ret)
 			{{- end}}
 			{{- end}}

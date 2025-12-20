@@ -204,6 +204,22 @@ DRYRUN: go build ./...
 
 The `sh.Rm` and `sh.Copy` helpers also respect dry-run mode.
 
+## Watch Mode Counterparts
+
+When using [Watch Mode](watch.md), it is recommended to use the shell helpers from the `pkg/watch` package instead of `pkg/sh`. These functions are identical in signature to their `sh` counterparts but are aware of the cancellable context used in watch mode.
+
+```go
+import "github.com/yaklabco/stave/pkg/watch"
+
+func Dev() error {
+    watch.Watch("**/*.go")
+    // This command will be automatically terminated if a file changes
+    return watch.RunV("go", "run", "main.go")
+}
+```
+
+See [Watch Mode](watch.md) for more details.
+
 ---
 
 ## See Also

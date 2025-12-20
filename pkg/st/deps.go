@@ -9,11 +9,52 @@ import (
 	"sync"
 
 	"github.com/yaklabco/stave/internal/log"
+	"github.com/yaklabco/stave/pkg/stctx"
 )
 
 type onceMap struct {
 	mu *sync.Mutex
 	m  map[onceKey]*onceFun
+}
+
+// ContextWithTarget returns a new context with the target name attached.
+func ContextWithTarget(ctx context.Context, name string) context.Context {
+	return stctx.ContextWithTarget(ctx, name)
+}
+
+// GetCurrentTarget returns the target name from the context, or empty string if not found.
+func GetCurrentTarget(ctx context.Context) string {
+	return stctx.GetCurrentTarget(ctx)
+}
+
+// ContextWithTargetState returns a new context with the target state attached.
+func ContextWithTargetState(ctx context.Context, state interface{}) context.Context {
+	return stctx.ContextWithTargetState(ctx, state)
+}
+
+// GetTargetState returns the target state from the context, or nil if not found.
+func GetTargetState(ctx context.Context) interface{} {
+	return stctx.GetTargetState(ctx)
+}
+
+// SetOverallWatchMode sets whether we are in overall watch mode.
+func SetOverallWatchMode(b bool) {
+	stctx.SetOverallWatchMode(b)
+}
+
+// IsOverallWatchMode returns whether we are in overall watch mode.
+func IsOverallWatchMode() bool {
+	return stctx.IsOverallWatchMode()
+}
+
+// SetOutermostTarget sets the name of the outermost target.
+func SetOutermostTarget(name string) {
+	stctx.SetOutermostTarget(name)
+}
+
+// GetOutermostTarget returns the name of the outermost target.
+func GetOutermostTarget() string {
+	return stctx.GetOutermostTarget()
 }
 
 type onceKey struct {
@@ -36,7 +77,7 @@ func (o *onceMap) LoadOrStore(theFunc Fn) *onceFun {
 	one := &onceFun{
 		once:        &sync.Once{},
 		fn:          theFunc,
-		displayName: displayName(theFunc.Name()),
+		displayName: DisplayName(theFunc.Name()),
 	}
 	o.m[key] = one
 	return one
@@ -47,7 +88,7 @@ func (o *onceMap) LoadOrStore(theFunc Fn) *onceFun {
 // shouldn't be run at the same time.
 func SerialDeps(fns ...interface{}) {
 	funcs := checkFns(fns)
-	ctx := context.Background()
+	ctx := stctx.GetActiveContext()
 	for i := range fns {
 		runDeps(ctx, funcs[i:i+1])
 	}
@@ -161,7 +202,7 @@ func checkFns(fns []interface{}) []Fn {
 // defining its own dependencies.  Functions must have the same signature as a
 // Stave target, i.e. optional context argument, optional error return.
 func Deps(fns ...interface{}) {
-	CtxDeps(context.Background(), fns...)
+	CtxDeps(stctx.GetActiveContext(), fns...)
 }
 
 func changeExit(oldExitCode, newExitCode int) int {
@@ -188,12 +229,8 @@ func funcObj(i interface{}) *runtime.Func {
 	return runtime.FuncForPC(reflect.ValueOf(i).Pointer())
 }
 
-func displayName(name string) string {
-	splitByPackage := strings.Split(name, ".")
-	if len(splitByPackage) == 2 && splitByPackage[0] == "main" {
-		return splitByPackage[len(splitByPackage)-1]
-	}
-	return name
+func DisplayName(name string) string {
+	return stctx.DisplayName(name)
 }
 
 type onceFun struct {
@@ -207,11 +244,29 @@ type onceFun struct {
 // run will run the function exactly once and capture the error output. Further runs simply return
 // the same error output.
 func (o *onceFun) run(ctx context.Context) error {
+	ctx = ContextWithTarget(ctx, o.displayName)
+	stctx.RegisterTargetContext(ctx, o.displayName)
+	defer stctx.UnregisterTargetContext(o.displayName)
 	o.once.Do(func() {
 		if Verbose() {
-			log.SimpleConsoleLogger.Println("Running dependency:", displayName(o.fn.Name()))
+			log.SimpleConsoleLogger.Println("Running dependency:", DisplayName(o.fn.Name()))
 		}
 		o.err = o.fn.Run(ctx)
 	})
 	return o.err
+}
+
+// RunFn runs the given function as a Stave target.
+func RunFn(ctx context.Context, theFunc interface{}) error {
+	var fn Fn
+	if f, ok := theFunc.(Fn); ok {
+		fn = f
+	} else {
+		fn = F(theFunc)
+	}
+	displayName := DisplayName(fn.Name())
+	ctx = ContextWithTarget(ctx, displayName)
+	stctx.RegisterTargetContext(ctx, displayName)
+	defer stctx.UnregisterTargetContext(displayName)
+	return fn.Run(ctx)
 }

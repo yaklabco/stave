@@ -59,3 +59,9 @@ stave_test_out
 
 # Hugo build lock
 .hugo_build.lock
+
+# Junie
+.junie
+
+# Unsynced notes
+.unsynced-notes

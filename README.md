@@ -109,7 +109,7 @@ For more details on any of these features, please see the [stave documentation](
 
 - [x] Modernized Go patterns (Go 1.21+)
 - [x] Additional shell helpers (`sh.Piper`, `sh.PiperWith`)
-- [ ] Watch mode for file changes
+- [x] Watch mode for file changes
 - [x] Dry-run support
 - [x] Enhanced CLI experience
 - [x] Automatic detection of circular dependencies in build targets

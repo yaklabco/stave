@@ -169,6 +169,20 @@ All features listed below are introduced in commits after that fork in `yaklabco
 
 ---
 
+### Watch Mode for File Changes
+
+- **Summary**: Automatically re-run targets when watched files change.
+- **Commits**: Introduced in `feat-watch` branch.
+- **Behavior**:
+  - `pkg/watch` provides `Watch(patterns ...string)` to register glob patterns for a target.
+  - When a watched file changes, the target's `context.Context` is cancelled, and the target is re-run.
+  - `pkg/watch` includes watch-aware shell helpers (`Run`, `Output`, etc.) that automatically use the cancellable context.
+  - Dependencies registered via `watch.Deps(...)` are also watch-aware.
+- **Why this is new vs Mage**:
+  - Mage does not have built-in watch functionality. Users typically rely on external tools like `entr` or `reflex`. Stave provides this natively within the Go-based build script.
+
+---
+
 ## Implementation-Focused Changes (Not Counted as “New Functionality”)
 
 The following changes are important for maintainability and UX but are **not** counted as “new functionality” in the sense of capabilities that Mage did not have:

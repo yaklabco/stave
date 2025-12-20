@@ -122,40 +122,39 @@ func (f Function) ExecCode() string {
 		switch theArg.Type {
 		case "string":
 			parseargs += fmt.Sprintf(`
-			theArg%d := args.Args[iArg]
-			iArg++`, iArg)
+			theArg%d := _targetArgs[%d]`, iArg, iArg)
 		case "int":
 			parseargs += fmt.Sprintf(`
-				theArg%d, err := strconv.Atoi(args.Args[iArg])
+				theArg%d, err := strconv.Atoi(_targetArgs[%d])
 				if err != nil {
-					logger.Printf("can't convert argument %%q to int\n", args.Args[iArg])
+					logger.Printf("can't convert argument %%q to int\n", _targetArgs[%d])
 					os.Exit(2)
 				}
-				iArg++`, iArg)
+				`, iArg, iArg, iArg)
 		case "float64":
 			parseargs += fmt.Sprintf(`
-				theArg%d, err := strconv.ParseFloat(args.Args[iArg], 64)
+				theArg%d, err := strconv.ParseFloat(_targetArgs[%d], 64)
 				if err != nil {
-					logger.Printf("can't convert argument %%q to float64\n", args.Args[iArg])
+					logger.Printf("can't convert argument %%q to float64\n", _targetArgs[%d])
 					os.Exit(2)
 				}
-				iArg++`, iArg)
+				`, iArg, iArg, iArg)
 		case "bool":
 			parseargs += fmt.Sprintf(`
-				theArg%d, err := strconv.ParseBool(args.Args[iArg])
+				theArg%d, err := strconv.ParseBool(_targetArgs[%d])
 				if err != nil {
-					logger.Printf("can't convert argument %%q to bool\n", args.Args[iArg])
+					logger.Printf("can't convert argument %%q to bool\n", _targetArgs[%d])
 					os.Exit(2)
 				}
-				iArg++`, iArg)
+				`, iArg, iArg, iArg)
 		case "time.Duration":
 			parseargs += fmt.Sprintf(`
-				theArg%d, err := time.ParseDuration(args.Args[iArg])
+				theArg%d, err := time.ParseDuration(_targetArgs[%d])
 				if err != nil {
-					logger.Printf("can't convert argument %%q to time.Duration\n", args.Args[iArg])
+					logger.Printf("can't convert argument %%q to time.Duration\n", _targetArgs[%d])
 					os.Exit(2)
 				}
-				iArg++`, iArg)
+				`, iArg, iArg, iArg)
 		}
 	}
 
@@ -181,7 +180,7 @@ func (f Function) ExecCode() string {
 	}
 	out += `
 				}
-				ret := runTarget(logger, wrapFn)`
+				ret := runTarget(logger, "` + f.TargetName() + `", wrapFn)`
 	return out
 }
 
@@ -519,6 +518,16 @@ func setImports(ctx context.Context, gocmd string, pi *PkgInfo) error {
 		}
 		imports = append(imports, imp)
 	}
+
+	for _, imp := range imports {
+		// If it's one of our internal API packages, we don't want to expose its functions as targets
+		// unless they are explicitly tagged (which they aren't).
+		// This prevents conflicts like SetOutermostTarget being defined in both st and watch.
+		if imp.Path == "github.com/yaklabco/stave/pkg/st" || imp.Path == "github.com/yaklabco/stave/pkg/watch" {
+			imp.Info.Funcs = nil
+		}
+	}
+
 	if err := checkDupes(pi, imports); err != nil {
 		return err
 	}
@@ -543,6 +552,11 @@ func setImports(ctx context.Context, gocmd string, pi *PkgInfo) error {
 }
 
 func getImportPath(imp *ast.ImportSpec) (string, string, bool) {
+	path, ok := lit2string(imp.Path)
+	if !ok {
+		return "", "", false
+	}
+
 	leadingVals := getImportPathFromCommentGroup(imp.Doc)
 	trailingVals := getImportPathFromCommentGroup(imp.Comment)
 
@@ -558,12 +572,14 @@ func getImportPath(imp *ast.ImportSpec) (string, string, bool) {
 		}
 	case len(trailingVals) > 0:
 		vals = trailingVals
+	case path == "github.com/yaklabco/stave/pkg/watch" || path == "github.com/yaklabco/stave/pkg/st":
+		// These packages are special and we always want to include them if they're imported.
+		alias := ""
+		if imp.Name != nil {
+			alias = imp.Name.Name
+		}
+		return path, alias, true
 	default:
-		return "", "", false
-	}
-
-	path, ok := lit2string(imp.Path)
-	if !ok {
 		return "", "", false
 	}
 

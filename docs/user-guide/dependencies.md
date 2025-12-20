@@ -108,6 +108,18 @@ func DeployAll() {
 
 Each `st.F` call with different arguments is treated as a distinct dependency (each runs once).
 
+## Watch Mode Dependencies
+
+When using [Watch Mode](watch.md), use `watch.Deps` instead of `st.Deps`. This ensures that the dependencies are aware of the cancellable context and will be terminated if a file change triggers a re-run.
+
+```go
+import "github.com/yaklabco/stave/pkg/watch"
+
+func All() {
+    watch.Deps(Build, Test)
+}
+```
+
 ## Dependency Trees
 
 Complex builds compose naturally:

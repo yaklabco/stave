@@ -154,8 +154,8 @@ func TestF(t *testing.T) {
 	dVal := time.Second
 
 	CtxDeps(ctx, F(theFunc, iVal, sVal, bVal, dVal))
-	if ctxOut != ctx {
-		t.Error(ctxOut)
+	if GetCurrentTarget(ctxOut) == "" {
+		t.Error("context missing target")
 	}
 	if iOut != iVal {
 		t.Error(iOut)
