@@ -13,9 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Watch-mode; see [documentation of this feature](./docs/user-guide/watch.md) for details.
 
-## [0.3.5] - 2025-12-21
+- Indication of watch targets in `stave -l` output with a `[W]` suffix.
 
-### Added
+- Inclusion of target aliases in `stave -l` output.
 
 - Changelog "linkify" functionality (function `Linkify(...)` in `pkg/changelog).
 
@@ -175,7 +175,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [unreleased]: https://github.com/yaklabco/stave/compare/v0.4.0...HEAD
 [0.4.0]: https://github.com/yaklabco/stave/compare/v0.3.5...v0.4.0
-[0.3.5]: https://github.com/yaklabco/stave/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/yaklabco/stave/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/yaklabco/stave/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/yaklabco/stave/compare/v0.3.1...v0.3.2

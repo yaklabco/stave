@@ -4,6 +4,8 @@
 
 Watch mode allows Stave to monitor your project's files and automatically re-run targets whenever changes are detected. This is particularly useful for development workflows like auto-testing or auto-rebuilding.
 
+In the target list (`stave -l`), watch targets are identified by a `[W]` suffix.
+
 ## Basic Usage
 
 To enable watch mode for a target, use the `watch.Watch` function in your `stavefile.go`:

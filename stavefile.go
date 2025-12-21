@@ -24,6 +24,7 @@ import (
 	"github.com/yaklabco/stave/cmd/stave/version"
 	"github.com/yaklabco/stave/config"
 	"github.com/yaklabco/stave/pkg/changelog"
+	"github.com/yaklabco/stave/pkg/fsutils"
 	"github.com/yaklabco/stave/pkg/sh"
 	"github.com/yaklabco/stave/pkg/st"
 	"github.com/yaklabco/stave/pkg/stave"
@@ -469,7 +470,18 @@ func (Debug) Say(msg string, i int, b bool, d time.Duration) error {
 	return nil
 }
 
-// WatchDir watches the director specified in its single argument, and re-runs `ls` any time anything contained therein changes.
+// WatchFile watches the file specified in its single argument, and `cat`s its content any time it changes.
+func (Debug) WatchFile(file string) {
+	st.Deps(Build)
+	watch.Deps(Lint.Go)
+
+	watch.Watch(file)
+
+	contents := fsutils.MustRead(file)
+	outputln(string(contents))
+}
+
+// WatchDir watches the directory specified in its single argument, and re-runs `ls` any time anything contained therein changes.
 func (Debug) WatchDir(dir string) error {
 	st.Deps(Build)
 	watch.Deps(Lint.Go)
