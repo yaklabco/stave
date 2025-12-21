@@ -197,6 +197,38 @@ func IgnoreDefault() bool
 
 Returns true if `STAVEFILE_IGNOREDEFAULT` is a true value (`true`, `yes`, or `1`, case-insensitive).
 
+### IsOverallWatchMode
+
+```go
+func IsOverallWatchMode() bool
+```
+
+Returns whether the current execution is in watch mode.
+
+### SetOverallWatchMode
+
+```go
+func SetOverallWatchMode(b bool)
+```
+
+Sets whether we are in overall watch mode.
+
+### SetOutermostTarget
+
+```go
+func SetOutermostTarget(name string)
+```
+
+Sets the name of the outermost target being run.
+
+### GetOutermostTarget
+
+```go
+func GetOutermostTarget() string
+```
+
+Returns the name of the outermost target.
+
 ### ColorEnabled
 
 ```go

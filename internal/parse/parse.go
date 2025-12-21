@@ -22,6 +22,11 @@ import (
 
 const importTag = "stave:import"
 
+const (
+	stPkgPath    = "github.com/yaklabco/stave/pkg/st"
+	watchPkgPath = "github.com/yaklabco/stave/pkg/watch"
+)
+
 // keyValueParts is the expected number of parts when splitting "key||value" strings.
 const keyValueParts = 2
 
@@ -52,6 +57,7 @@ type Function struct {
 	Synopsis   string
 	Comment    string
 	Args       []Arg
+	IsWatch    bool
 }
 
 var _ sort.Interface = (Functions)(nil)
@@ -122,40 +128,39 @@ func (f Function) ExecCode() string {
 		switch theArg.Type {
 		case "string":
 			parseargs += fmt.Sprintf(`
-			theArg%d := args.Args[iArg]
-			iArg++`, iArg)
+			theArg%d := _targetArgs[%d]`, iArg, iArg)
 		case "int":
 			parseargs += fmt.Sprintf(`
-				theArg%d, err := strconv.Atoi(args.Args[iArg])
+				theArg%d, err := strconv.Atoi(_targetArgs[%d])
 				if err != nil {
-					logger.Printf("can't convert argument %%q to int\n", args.Args[iArg])
+					logger.Printf("can't convert argument %%q to int\n", _targetArgs[%d])
 					os.Exit(2)
 				}
-				iArg++`, iArg)
+				`, iArg, iArg, iArg)
 		case "float64":
 			parseargs += fmt.Sprintf(`
-				theArg%d, err := strconv.ParseFloat(args.Args[iArg], 64)
+				theArg%d, err := strconv.ParseFloat(_targetArgs[%d], 64)
 				if err != nil {
-					logger.Printf("can't convert argument %%q to float64\n", args.Args[iArg])
+					logger.Printf("can't convert argument %%q to float64\n", _targetArgs[%d])
 					os.Exit(2)
 				}
-				iArg++`, iArg)
+				`, iArg, iArg, iArg)
 		case "bool":
 			parseargs += fmt.Sprintf(`
-				theArg%d, err := strconv.ParseBool(args.Args[iArg])
+				theArg%d, err := strconv.ParseBool(_targetArgs[%d])
 				if err != nil {
-					logger.Printf("can't convert argument %%q to bool\n", args.Args[iArg])
+					logger.Printf("can't convert argument %%q to bool\n", _targetArgs[%d])
 					os.Exit(2)
 				}
-				iArg++`, iArg)
+				`, iArg, iArg, iArg)
 		case "time.Duration":
 			parseargs += fmt.Sprintf(`
-				theArg%d, err := time.ParseDuration(args.Args[iArg])
+				theArg%d, err := time.ParseDuration(_targetArgs[%d])
 				if err != nil {
-					logger.Printf("can't convert argument %%q to time.Duration\n", args.Args[iArg])
+					logger.Printf("can't convert argument %%q to time.Duration\n", _targetArgs[%d])
 					os.Exit(2)
 				}
-				iArg++`, iArg)
+				`, iArg, iArg, iArg)
 		}
 	}
 
@@ -181,7 +186,7 @@ func (f Function) ExecCode() string {
 	}
 	out += `
 				}
-				ret := runTarget(logger, wrapFn)`
+				ret := runTarget(logger, "` + f.TargetName() + `", wrapFn)`
 	return out
 }
 
@@ -284,7 +289,11 @@ func Package(path string, files []string) (*PkgInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	watchTargets := detectWatchTargets(pkgFiles)
+
 	// Build documentation package from files to avoid relying on deprecated ast.Package
+	// Note: doc.NewFromFiles modifies pkgFiles in-place (nils out bodies), so we
+	// call detectWatchTargets before it.
 	thePackage, err := doc.NewFromFiles(fset, pkgFiles, "./")
 	if err != nil {
 		return nil, err
@@ -296,8 +305,8 @@ func Package(path string, files []string) (*PkgInfo, error) {
 		Description: toOneLine(thePackage.Doc),
 	}
 
-	setNamespaces(pkgInfo)
-	setFuncs(pkgInfo)
+	setNamespaces(pkgInfo, watchTargets)
+	setFuncs(pkgInfo, watchTargets)
 
 	hasDupes, names := checkDupeTargets(pkgInfo)
 	if hasDupes {
@@ -397,7 +406,7 @@ func (s Imports) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-func setFuncs(pkgInfo *PkgInfo) {
+func setFuncs(pkgInfo *PkgInfo, watchTargets map[string]bool) {
 	for _, theFunc := range pkgInfo.DocPkg.Funcs {
 		if theFunc.Recv != "" {
 			slog.Debug("skipping method", slog.String(log.Func, theFunc.Name), slog.String("recv", theFunc.Recv))
@@ -422,11 +431,12 @@ func setFuncs(pkgInfo *PkgInfo) {
 		funcInfo.Name = theFunc.Name
 		funcInfo.Comment = toOneLine(theFunc.Doc)
 		funcInfo.Synopsis = sanitizeSynopsis(theFunc)
+		funcInfo.IsWatch = watchTargets[theFunc.Name]
 		pkgInfo.Funcs = append(pkgInfo.Funcs, funcInfo)
 	}
 }
 
-func setNamespaces(pkgInfo *PkgInfo) {
+func setNamespaces(pkgInfo *PkgInfo, watchTargets map[string]bool) {
 	for _, theType := range pkgInfo.DocPkg.Types {
 		if !isNamespace(theType) {
 			continue
@@ -461,6 +471,7 @@ func setNamespaces(pkgInfo *PkgInfo) {
 			funcInfo.Comment = toOneLine(theMethod.Doc)
 			funcInfo.Synopsis = sanitizeSynopsis(theMethod)
 			funcInfo.Receiver = theType.Name
+			funcInfo.IsWatch = watchTargets[theType.Name+"."+theMethod.Name]
 
 			pkgInfo.Funcs = append(pkgInfo.Funcs, funcInfo)
 		}
@@ -519,6 +530,16 @@ func setImports(ctx context.Context, gocmd string, pi *PkgInfo) error {
 		}
 		imports = append(imports, imp)
 	}
+
+	for _, imp := range imports {
+		// If it's one of our internal API packages, we don't want to expose its functions as targets
+		// unless they are explicitly tagged (which they aren't).
+		// This prevents conflicts like SetOutermostTarget being defined in both st and watch.
+		if imp.Path == stPkgPath || imp.Path == watchPkgPath {
+			imp.Info.Funcs = nil
+		}
+	}
+
 	if err := checkDupes(pi, imports); err != nil {
 		return err
 	}
@@ -543,6 +564,11 @@ func setImports(ctx context.Context, gocmd string, pi *PkgInfo) error {
 }
 
 func getImportPath(imp *ast.ImportSpec) (string, string, bool) {
+	path, ok := lit2string(imp.Path)
+	if !ok {
+		return "", "", false
+	}
+
 	leadingVals := getImportPathFromCommentGroup(imp.Doc)
 	trailingVals := getImportPathFromCommentGroup(imp.Comment)
 
@@ -558,12 +584,14 @@ func getImportPath(imp *ast.ImportSpec) (string, string, bool) {
 		}
 	case len(trailingVals) > 0:
 		vals = trailingVals
+	case path == watchPkgPath || path == stPkgPath:
+		// These packages are special and we always want to include them if they're imported.
+		alias := ""
+		if imp.Name != nil {
+			alias = imp.Name.Name
+		}
+		return path, alias, true
 	default:
-		return "", "", false
-	}
-
-	path, ok := lit2string(imp.Path)
-	if !ok {
 		return "", "", false
 	}
 
@@ -1038,4 +1066,85 @@ func funcType(funcTypeNode *ast.FuncType) (*Function, error) {
 
 func toOneLine(s string) string {
 	return strings.TrimSpace(strings.ReplaceAll(s, "\n", " "))
+}
+
+func detectWatchTargets(files []*ast.File) map[string]bool {
+	watchTargets := make(map[string]bool)
+	for _, file := range files {
+		watchAlias := getWatchAlias(file)
+		if watchAlias == "" {
+			continue
+		}
+
+		for _, d := range file.Decls {
+			fn, ok := d.(*ast.FuncDecl)
+			if !ok || fn.Body == nil {
+				continue
+			}
+
+			key := getFuncKey(fn)
+			if hasWatchCall(fn, watchAlias) {
+				watchTargets[key] = true
+			}
+		}
+	}
+	return watchTargets
+}
+
+func getWatchAlias(file *ast.File) string {
+	for _, imp := range file.Imports {
+		path := strings.Trim(imp.Path.Value, `"`)
+		if path == watchPkgPath {
+			if imp.Name != nil {
+				return imp.Name.Name
+			}
+			return "watch"
+		}
+	}
+	return ""
+}
+
+func getFuncKey(fn *ast.FuncDecl) string {
+	key := fn.Name.Name
+	if fn.Recv != nil && len(fn.Recv.List) > 0 {
+		t := fn.Recv.List[0].Type
+		var recvName string
+		switch tr := t.(type) {
+		case *ast.Ident:
+			recvName = tr.Name
+		case *ast.StarExpr:
+			if id, ok := tr.X.(*ast.Ident); ok {
+				recvName = id.Name
+			}
+		}
+		if recvName != "" {
+			key = recvName + "." + key
+		}
+	}
+	return key
+}
+
+func hasWatchCall(fn *ast.FuncDecl, watchAlias string) bool {
+	hasWatch := false
+	ast.Inspect(fn.Body, func(n ast.Node) bool {
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		sel, ok := call.Fun.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		ident, ok := sel.X.(*ast.Ident)
+		if !ok {
+			return true
+		}
+
+		if ident.Name == watchAlias && (sel.Sel.Name == "Watch" || sel.Sel.Name == "Deps") {
+			hasWatch = true
+			return false
+		}
+		return true
+	})
+	return hasWatch
 }

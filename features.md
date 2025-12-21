@@ -155,16 +155,31 @@ All features listed below are introduced in commits after that fork in `yaklabco
 
 ---
 
-### Changelog Toolkit (Keep a Changelog + Conventional Commits Versioning)
+### Changelog Toolkit (Keep a Changelog + Conventional Commits Versioning + Auto-Linkification)
 
-- Summary: Public Go helpers for enforcing CHANGELOG format and for computing next versions/tags from commit history.
-- Commits/Code: pkg/changelog/* (check.go, validate.go, next.go, git.go, etc.).
+- Summary: Public Go helpers for enforcing CHANGELOG format, computing next versions/tags from commit history, and automatically linkifying version headings.
+- Commits/Code: pkg/changelog/* (check.go, validate.go, next.go, git.go, linkify.go, etc.).
 - Behavior:
   - Validation helpers enforce Keep a Changelog semantics and can be used in CI targets to require a CHANGELOG update.
   - Versioning helpers compute the next semantic version and build tag from Conventional Commits, leveraging svu (bundled as a module dependency).
-  - The two aspects (format enforcement and version/tag generation) can be adopted independently.
+  - Linkification helpers (`Linkify`, `LinkifyContent`) automatically add or update link reference definitions at the bottom of `CHANGELOG.md` based on version headings.
+  - The different aspects (format enforcement, version/tag generation, and linkification) can be adopted independently.
 - Why this is new vs Mage:
   - Mage does not include a standard changelog toolkit; Stave packages reusable, tested helpers to encourage consistent release practices.
+
+---
+
+### Watch Mode for File Changes
+
+- **Summary**: Automatically re-run targets when watched files change.
+- **Commits**: Introduced in `feat-watch` branch.
+- **Behavior**:
+  - `pkg/watch` provides `Watch(patterns ...string)` to register glob patterns for a target.
+  - When a watched file changes, the target's `context.Context` is cancelled, and the target is re-run.
+  - `pkg/watch` includes watch-aware shell helpers (`Run`, `Output`, etc.) that automatically use the cancellable context.
+  - Dependencies registered via `watch.Deps(...)` are also watch-aware.
+- **Why this is new vs Mage**:
+  - Mage does not have built-in watch functionality. Users typically rely on external tools like `entr` or `reflex`. Stave provides this natively within the Go-based build script.
 
 ---
 

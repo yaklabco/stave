@@ -53,6 +53,14 @@ func CheckChangelog() error {
 }
 ```
 
+- Automatically update version links in your CHANGELOG:
+
+```go
+func LinkifyChangelog() error {
+    return changelog.Linkify("CHANGELOG.md")
+}
+```
+
 ## How It Works
 
 - `NextVersion` and `NextTag` use svu to infer the next semantic version from your commit messages following Conventional Commits.

@@ -97,6 +97,12 @@ func actualTestMain(m *testing.M) int {
 		}
 	}()
 
+	testDataTrueDir, err = fsutils.TruePath(testDataDir)
+	if err != nil {
+		slog.Error(err.Error())
+		return 1
+	}
+
 	if err := os.Setenv(st.CacheEnv, dir); err != nil {
 		slog.Error(err.Error())
 		return 1
@@ -131,11 +137,36 @@ func actualTestMain(m *testing.M) int {
 
 var byDirSyncMap sync.Map
 
+var testDataTrueDir string
+
 func mutexByDir(dir string) *sync.Mutex {
 	trueDir, err := fsutils.TruePath(dir)
 	if err != nil {
 		panic(err)
 	}
+
+	if trueDir == testDataTrueDir {
+		panic("tests with the entire 'testdata' dir as their mutex basis should not be using t.Parallel() in the first place")
+	}
+
+	// Compute the relative path from trueDir to testdata dir
+	rel, err := filepath.Rel(trueDir, testDataTrueDir)
+	if err != nil {
+		panic(err)
+	}
+
+	if strings.HasPrefix(rel, "..") {
+		// Compute the inverse relative path, from testdata dir to trueDir
+		rel, err := filepath.Rel(testDataTrueDir, trueDir)
+		if err != nil {
+			panic(err)
+		}
+
+		// Add to testdata the first component of the inverse relative path; use that
+		// as the basis for mutexing
+		trueDir = filepath.Join(testDataTrueDir, strings.SplitN(rel, string(filepath.Separator), 2)[0])
+	}
+
 	v, _ := byDirSyncMap.LoadOrStore(trueDir, new(sync.Mutex))
 
 	mu, ok := v.(*sync.Mutex)
@@ -347,11 +378,7 @@ func TestListStavefilesIgnoresRespectsGOOSArg(t *testing.T) {
 }
 
 func TestCompileDiffGoosGoarch(t *testing.T) {
-	t.Parallel()
 	dataDirForThisTest := testDataDir
-	mu := mutexByDir(dataDirForThisTest)
-	mu.Lock()
-	defer mu.Unlock()
 
 	ctx := t.Context()
 
@@ -611,12 +638,6 @@ func TestSetDirWithStavefilesFolder(t *testing.T) {
 }
 
 func TestGoRun(t *testing.T) {
-	t.Parallel()
-	dataDirForThisTest := testDataDir
-	mu := mutexByDir(dataDirForThisTest)
-	mu.Lock()
-	defer mu.Unlock()
-
 	c := exec.Command("go", "run", "main.go")
 	c.Dir = testDataDir
 	c.Env = os.Environ()
@@ -628,11 +649,7 @@ func TestGoRun(t *testing.T) {
 }
 
 func TestVerbose(t *testing.T) {
-	t.Parallel()
 	dataDirForThisTest := testDataDir
-	mu := mutexByDir(dataDirForThisTest)
-	mu.Lock()
-	defer mu.Unlock()
 
 	ctx := t.Context()
 
@@ -687,7 +704,7 @@ func TestList(t *testing.T) {
 	err := Run(runParams)
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 	out := stdout.String()
-	assert.Regexp(t, `This\s+is\s+a\s+comment\s+on\s+the\s+package\s+which\s+should\s+get\s+turned\s+into\s+output\s+with\s+the\s+list\s+of\s+targets`, out)
+	assert.Regexp(t, `(?m)This\s+is\s+a\s+comment\s+on\s+the\s+package\s+which\s+should\s+get\s+turned\s+into\s+output\s+with\s+the\s+list\s+of\s+targets`, out)
 	assert.Contains(t, out, "Targets:")
 	assert.Contains(t, out, "Local")
 	assert.Contains(t, out, "somePig")
@@ -711,12 +728,6 @@ var terminals = []struct {
 }
 
 func TestListWithColor(t *testing.T) {
-	// This test manipulates environment variables, so it cannot run in parallel.
-	// Acquire mutex for shared test directory to prevent races with parallel tests.
-	mu := mutexByDir(testDataListDir)
-	mu.Lock()
-	defer mu.Unlock()
-
 	// Color is now auto-enabled (no need to set STAVEFILE_ENABLE_COLOR).
 	// We set a specific target color for predictable test output.
 	t.Setenv(st.TargetColorEnv, st.Cyan.String())
@@ -757,7 +768,7 @@ func TestListWithColor(t *testing.T) {
 			assert.Contains(t, out, "Local")
 			assert.Contains(t, out, "somePig")
 			assert.Contains(t, out, "testVerbose")
-			assert.Contains(t, out, "This is the synopsis for SomePig")
+			assert.Regexp(t, `(?m)This\s+is\s+the\s+synopsis\s+for\s+SomePig`, out)
 
 			if terminal.supportsColor {
 				assert.Contains(t, out, "\x1b[", "expected ANSI codes for terminal %q", terminal.code)
@@ -853,7 +864,7 @@ func TestListFiltering(t *testing.T) {
 	// Filter "pig" should match "somePig" (case-insensitive substring).
 	assert.Contains(t, out, "Targets:", "output should still have structure")
 	assert.Contains(t, out, "somePig", "somePig should match filter 'pig'")
-	assert.Contains(t, out, "This is the synopsis for SomePig", "matched target should show synopsis")
+	assert.Regexp(t, `(?m)This\s+is\s+the\s+synopsis\s+for\s+SomePig`, out, "matched target should show synopsis")
 
 	// Filter should exclude non-matching targets.
 	assert.NotContains(t, out, "testVerbose", "testVerbose should not match filter 'pig'")
@@ -881,7 +892,7 @@ func TestNoArgNoDefaultList(t *testing.T) {
 
 	err := Run(runParams)
 	require.Error(t, err)
-	assert.Regexp(t, `no targets specified and no .*Default.* defined`, stderr.String())
+	assert.Regexp(t, `(?m)no targets specified and no .*Default.* defined`, stderr.String())
 }
 
 func TestIgnoreDefault(t *testing.T) {
@@ -905,11 +916,7 @@ func TestIgnoreDefault(t *testing.T) {
 }
 
 func TestTargetError(t *testing.T) {
-	t.Parallel()
 	dataDirForThisTest := testDataDir
-	mu := mutexByDir(dataDirForThisTest)
-	mu.Lock()
-	defer mu.Unlock()
 
 	ctx := t.Context()
 
@@ -932,11 +939,7 @@ func TestTargetError(t *testing.T) {
 }
 
 func TestStdinCopy(t *testing.T) {
-	t.Parallel()
 	dataDirForThisTest := testDataDir
-	mu := mutexByDir(dataDirForThisTest)
-	mu.Lock()
-	defer mu.Unlock()
 
 	ctx := t.Context()
 
@@ -960,11 +963,7 @@ func TestStdinCopy(t *testing.T) {
 }
 
 func TestTargetPanics(t *testing.T) {
-	t.Parallel()
 	dataDirForThisTest := testDataDir
-	mu := mutexByDir(dataDirForThisTest)
-	mu.Lock()
-	defer mu.Unlock()
 
 	ctx := t.Context()
 
@@ -987,11 +986,7 @@ func TestTargetPanics(t *testing.T) {
 }
 
 func TestPanicsErr(t *testing.T) {
-	t.Parallel()
 	dataDirForThisTest := testDataDir
-	mu := mutexByDir(dataDirForThisTest)
-	mu.Lock()
-	defer mu.Unlock()
 
 	ctx := t.Context()
 
@@ -1125,11 +1120,7 @@ func TestNoSelfDependencies(t *testing.T) {
 }
 
 func TestMultipleTargets(t *testing.T) {
-	t.Parallel()
 	dataDirForThisTest := testDataDir
-	mu := mutexByDir(dataDirForThisTest)
-	mu.Lock()
-	defer mu.Unlock()
 
 	ctx := t.Context()
 
@@ -1155,11 +1146,7 @@ func TestMultipleTargets(t *testing.T) {
 }
 
 func TestFirstTargetFails(t *testing.T) {
-	t.Parallel()
 	dataDirForThisTest := testDataDir
-	mu := mutexByDir(dataDirForThisTest)
-	mu.Lock()
-	defer mu.Unlock()
 
 	ctx := t.Context()
 
@@ -1183,11 +1170,7 @@ func TestFirstTargetFails(t *testing.T) {
 }
 
 func TestBadSecondTargets(t *testing.T) {
-	t.Parallel()
 	dataDirForThisTest := testDataDir
-	mu := mutexByDir(dataDirForThisTest)
-	mu.Lock()
-	defer mu.Unlock()
 
 	ctx := t.Context()
 
@@ -1235,14 +1218,7 @@ func TestSetDir(t *testing.T) {
 }
 
 func TestSetWorkingDir(t *testing.T) {
-	t.Parallel()
 	dataDirForThisTest := filepath.Join(testDataDir, "setworkdir")
-	mu1 := mutexByDir(testDataDir)
-	mu1.Lock()
-	defer mu1.Unlock()
-	mu2 := mutexByDir(dataDirForThisTest)
-	mu2.Lock()
-	defer mu2.Unlock()
 
 	ctx := t.Context()
 
@@ -1293,11 +1269,7 @@ func TestTimeout(t *testing.T) {
 }
 
 func TestInfoTarget(t *testing.T) {
-	t.Parallel()
 	dataDirForThisTest := testDataDir
-	mu := mutexByDir(dataDirForThisTest)
-	mu.Lock()
-	defer mu.Unlock()
 
 	ctx := t.Context()
 
@@ -1902,7 +1874,7 @@ func Test() {
 		Stdout: stdout,
 	})
 	require.Error(t, err)
-	assert.Regexp(t, `no targets specified and no .*Default.* defined`, stderr.String())
+	assert.Regexp(t, `(?m)no targets specified and no .*Default.* defined`, stderr.String())
 }
 
 func TestNamespaceDep(t *testing.T) {

@@ -109,11 +109,11 @@ For more details on any of these features, please see the [stave documentation](
 
 - [x] Modernized Go patterns (Go 1.21+)
 - [x] Additional shell helpers (`sh.Piper`, `sh.PiperWith`)
-- [ ] Watch mode for file changes
+- [x] Watch mode for file changes
 - [x] Dry-run support
 - [x] Enhanced CLI experience
 - [x] Automatic detection of circular dependencies in build targets
-- [x] Public Go functions, exported under `pkg/changelog`, for automatically enforcing [_keep-a-changelog_](https://keepachangelog.com/en/1.1.0/)-compliant CHANGELOG formatting; and, separately, for enforcing that every push includes an update to the CHANGELOG (each can be used / not used separately from one another)
+- [x] Public Go functions, exported under `pkg/changelog`, for automatically enforcing [_keep-a-changelog_](https://keepachangelog.com/en/1.1.0/)-compliant CHANGELOG formatting; for enforcing that every push includes an update to the CHANGELOG; and for automatically linkifying your CHANGELOG (each can be used / not used separately from one another)
 - [x] Public Go functions, also exported under `pkg/changelog`, for automatically generating next version & next build-tag based on [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/), using [svu](https://github.com/caarlos0/svu) (included in `stave` as a module dependency; no need to install separately)
 - [x] Support for native git-hooks management: no more need to use `husky` or other hooks-management tools; `stave` will manage your hooks for you, and you can specify stavefile targets directly as hooks
 

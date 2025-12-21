@@ -1,18 +1,10 @@
 package sh
 
 import (
-	"bytes"
 	"context"
-	"errors"
-	"fmt"
 	"io"
-	"os"
-	"os/exec"
-	"strings"
 
-	"github.com/yaklabco/stave/internal/dryrun"
-	"github.com/yaklabco/stave/internal/log"
-	"github.com/yaklabco/stave/pkg/st"
+	"github.com/yaklabco/stave/internal/ish"
 )
 
 // RunCmd returns a function that will call Run with the given command. This is
@@ -55,8 +47,7 @@ func Run(cmd string, args ...string) error {
 
 // RunV is like Run, but always sends the command's stdout to os.Stdout.
 func RunV(cmd string, args ...string) error {
-	_, err := Exec(nil, os.Stdin, os.Stdout, os.Stderr, cmd, args...)
-	return err
+	return ish.RunV(context.Background(), nil, cmd, args...)
 }
 
 // RunWith runs the given command, directing stderr to this program's stderr and
@@ -64,48 +55,34 @@ func RunV(cmd string, args ...string) error {
 // environment variables for the command being run. Environment variables should
 // be in the format name=value.
 func RunWith(env map[string]string, cmd string, args ...string) error {
-	var output io.Writer
-	// In dryrun mode, the actual "command" will just print the cmd and args to stdout,
-	// so we want to make sure we're outputting that regardless of verbosity settings.
-	if st.Verbose() || dryrun.IsDryRun() {
-		output = os.Stdout
-	}
-	_, err := Exec(env, os.Stdin, output, os.Stderr, cmd, args...)
-	return err
+	return ish.Run(context.Background(), env, cmd, args...)
 }
 
 // RunWithV is like RunWith, but always sends the command's stdout to os.Stdout.
 func RunWithV(env map[string]string, cmd string, args ...string) error {
-	_, err := Exec(env, os.Stdin, os.Stdout, os.Stderr, cmd, args...)
-	return err
+	return ish.RunV(context.Background(), env, cmd, args...)
 }
 
 // Output runs the command and returns the text from stdout.
 func Output(cmd string, args ...string) (string, error) {
-	buf := &bytes.Buffer{}
-	_, err := Exec(nil, os.Stdin, buf, os.Stderr, cmd, args...)
-	return strings.TrimSuffix(buf.String(), "\n"), err
+	return ish.Output(context.Background(), nil, cmd, args...)
 }
 
 // OutputWith is like RunWith, but returns what is written to stdout.
 func OutputWith(env map[string]string, cmd string, args ...string) (string, error) {
-	buf := &bytes.Buffer{}
-	_, err := Exec(env, os.Stdin, buf, os.Stderr, cmd, args...)
-	return strings.TrimSuffix(buf.String(), "\n"), err
+	return ish.Output(context.Background(), env, cmd, args...)
 }
 
 // Piper runs the given command, piping its stdin to the given reader, stdout to
 // the given writer, and stderr to the given writer.
 func Piper(stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) error {
-	_, err := Exec(nil, stdin, stdout, stderr, cmd, args...)
-	return err
+	return ish.Piper(context.Background(), nil, stdin, stdout, stderr, cmd, args...)
 }
 
 // PiperWith is like Piper, but adds env to the environment variables for the
 // command being run.
 func PiperWith(env map[string]string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) error {
-	_, err := Exec(env, stdin, stdout, stderr, cmd, args...)
-	return err
+	return ish.Piper(context.Background(), env, stdin, stdout, stderr, cmd, args...)
 }
 
 // Exec executes the command, piping its stdout and stderr to the given
@@ -121,54 +98,7 @@ func PiperWith(env map[string]string, stdin io.Reader, stdout, stderr io.Writer,
 // Code reports the exit code the command returned if it ran. If err == nil, ran
 // is always true and code is always 0.
 func Exec(env map[string]string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) (bool, error) {
-	expand := func(varName string) string {
-		if env != nil {
-			s2, ok := env[varName]
-			if ok {
-				return s2
-			}
-		}
-		return os.Getenv(varName)
-	}
-
-	cmd = os.Expand(cmd, expand)
-
-	for i := range args {
-		args[i] = os.Expand(args[i], expand)
-	}
-
-	ran, code, err := run(env, stdin, stdout, stderr, cmd, args...)
-	if err == nil {
-		return true, nil
-	}
-	if ran {
-		return ran, st.Fatalf(code, `running "%s %s" failed with exit code %d`, cmd, strings.Join(args, " "), code)
-	}
-	return ran, fmt.Errorf(`failed to run "%s %s: %w"`, cmd, strings.Join(args, " "), err)
-}
-
-func run(env map[string]string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) (bool, int, error) {
-	ctx := context.Background()
-	theCmd := dryrun.Wrap(ctx, cmd, args...)
-	theCmd.Env = os.Environ()
-	for k, v := range env {
-		theCmd.Env = append(theCmd.Env, k+"="+v)
-	}
-	theCmd.Stderr = stderr
-	theCmd.Stdout = stdout
-	theCmd.Stdin = stdin
-
-	quoted := make([]string, 0, len(args))
-	for i := range args {
-		quoted = append(quoted, fmt.Sprintf("%q", args[i]))
-	}
-	// To protect against logging from doing exec in global variables
-	if st.Verbose() {
-		log.SimpleConsoleLogger.Println("exec:", cmd, strings.Join(quoted, " "))
-	}
-	err := theCmd.Run()
-
-	return CmdRan(err), ExitStatus(err), err
+	return ish.Exec(context.Background(), env, stdin, stdout, stderr, cmd, args...)
 }
 
 // CmdRan examines the error to determine if it was generated as a result of a
@@ -178,33 +108,12 @@ func run(env map[string]string, stdin io.Reader, stdout, stderr io.Writer, cmd s
 // the command failed to run (usually due to the command not existing or not
 // being executable), it reports false.
 func CmdRan(err error) bool {
-	if err == nil {
-		return true
-	}
-	var ee *exec.ExitError
-	ok := errors.As(err, &ee)
-	if ok {
-		return ee.Exited()
-	}
-	return false
+	return ish.CmdRan(err)
 }
 
 // ExitStatus returns the exit status of the error if it is an exec.ExitError
 // or if it implements ExitStatus() int.
 // 0 if it is nil or 1 if it is a different error.
 func ExitStatus(err error) int {
-	if err == nil {
-		return 0
-	}
-	var exit st.ExitStatuser
-	if errors.As(err, &exit) {
-		return exit.ExitStatus()
-	}
-	var e *exec.ExitError
-	if errors.As(err, &e) {
-		if ex, ok := e.Sys().(st.ExitStatuser); ok {
-			return ex.ExitStatus()
-		}
-	}
-	return 1
+	return ish.ExitStatus(err)
 }

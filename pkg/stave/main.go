@@ -720,11 +720,26 @@ func RunCompiled(ctx context.Context, params RunParams, exePath string) error {
 			return strings.HasPrefix(key, "STAVEFILE_")
 		})),
 	)
-	// catch SIGINT to allow stavefile to handle them
+
+	// catch signals to allow stavefile to handle them
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	defer signal.Stop(sigCh)
-	err = theCmd.Run()
+
+	if err := theCmd.Start(); err != nil {
+		return err
+	}
+
+	go func() {
+		for s := range sigCh {
+			sigProcessErr := theCmd.Process.Signal(s)
+			if sigProcessErr != nil {
+				slog.Error("failed to send signal to stavefile", slog.Any(log.Error, sigProcessErr))
+			}
+		}
+	}()
+
+	err = theCmd.Wait()
 	if !sh.CmdRan(err) {
 		slog.Error("failed to run compiled stavefile", slog.Any(log.Error, err))
 	}

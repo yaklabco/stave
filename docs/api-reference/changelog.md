@@ -15,6 +15,7 @@ import "github.com/yaklabco/stave/pkg/changelog"
 - Validate CHANGELOG.md formatting according to keep-a-changelog
 - Enforce that a push includes CHANGELOG updates (configurable)
 - Compute next version (no leading v) and next tag (with v) from Conventional Commits using svu
+- Automatically linkify version headings in CHANGELOG.md
 - Utilities to integrate these checks into Git hooks
 
 ## Validation and Pre-Push Checks
@@ -104,6 +105,41 @@ Typical uses:
 - Generate release notes for the upcoming version
 - Create annotated tags
 - Verify your CHANGELOG’s next version matches the computed value
+
+## Automatic Linkification
+
+Stave can automatically add and update link reference definitions at the bottom of your `CHANGELOG.md` based on your version headings.
+
+```go
+if err := changelog.Linkify("CHANGELOG.md"); err != nil {
+    return err
+}
+```
+
+The `Linkify` function:
+
+1. Parses the `CHANGELOG.md`.
+2. Identifies version headings that are missing links or need updates (including the `[Unreleased]` link).
+3. Determines the base repository URL from existing links.
+4. Generates comparison links between versions (e.g., `[0.2.0]: https://github.com/user/repo/compare/v0.1.0...v0.2.0`) or release tags for the oldest version.
+5. Inserts or updates the link block at the bottom of the file.
+
+### Manual Usage
+
+You can also use `LinkifyContent` to linkify a string directly:
+
+```go
+newContent, err := changelog.LinkifyContent(content)
+```
+
+Typical use in a target:
+
+```go
+// Linkify updates links in CHANGELOG.md
+func Linkify() error {
+    return changelog.Linkify("CHANGELOG.md")
+}
+```
 
 ## Wiring into Git Hooks
 

@@ -24,11 +24,13 @@ import (
 	"github.com/yaklabco/stave/cmd/stave/version"
 	"github.com/yaklabco/stave/config"
 	"github.com/yaklabco/stave/pkg/changelog"
+	"github.com/yaklabco/stave/pkg/fsutils"
 	"github.com/yaklabco/stave/pkg/sh"
 	"github.com/yaklabco/stave/pkg/st"
 	"github.com/yaklabco/stave/pkg/stave"
 	"github.com/yaklabco/stave/pkg/stave/prettylog"
 	"github.com/yaklabco/stave/pkg/ui"
+	"github.com/yaklabco/stave/pkg/watch"
 )
 
 func init() {
@@ -44,6 +46,7 @@ func init() {
 // *
 
 var Aliases = map[string]interface{}{
+	"LCL":   Prep.LinkifyChangelog,
 	"Speak": Debug.Say,
 }
 
@@ -288,6 +291,8 @@ func (Lint) Go() error {
 		return err
 	}
 
+	slog.Debug("golangci-lint completed successfully")
+
 	return nil
 }
 
@@ -306,7 +311,9 @@ func (Check) Changelog() error {
 	if err := changelog.ValidateFile("CHANGELOG.md"); err != nil {
 		return fmt.Errorf("CHANGELOG.md validation failed: %w", err)
 	}
+
 	slog.Info("CHANGELOG.md validation passed")
+
 	return nil
 }
 
@@ -351,6 +358,27 @@ func (Check) PrePush(remoteName, _remoteURL string) error {
 
 // *
 // * Check namespace
+// *********************************************************************
+
+// *********************************************************************
+// * Prep namespace
+// *
+
+type Prep st.Namespace
+
+// LinkifyChangelog ensures that heading links in changelog have Link Reference Definitions
+func (Prep) LinkifyChangelog() error {
+	if err := changelog.Linkify("CHANGELOG.md"); err != nil {
+		return fmt.Errorf("CHANGELOG.md linkification failed: %w", err)
+	}
+
+	slog.Info("CHANGELOG.md linkification complete")
+
+	return nil
+}
+
+// *
+// * Prep namespace
 // *********************************************************************
 
 // *********************************************************************
@@ -438,6 +466,34 @@ func (Debug) DumpStdin() error {
 // Say prints arguments with their types (example target demonstrating args)
 func (Debug) Say(msg string, i int, b bool, d time.Duration) error {
 	outputf("%v(%T) %v(%T) %v(%T) %v(%T)\n", msg, msg, i, i, b, b, d, d)
+
+	return nil
+}
+
+// WatchFile watches the file specified in its single argument, and `cat`s its content any time it changes.
+func (Debug) WatchFile(file string) {
+	st.Deps(Build)
+	watch.Deps(Lint.Go)
+
+	watch.Watch(file)
+
+	contents := fsutils.MustRead(file)
+	outputln(string(contents))
+}
+
+// WatchDir watches the directory specified in its single argument, and re-runs `ls` any time anything contained therein changes.
+func (Debug) WatchDir(dir string) error {
+	st.Deps(Build)
+	watch.Deps(Lint.Go)
+
+	watch.Watch(dir + "/**")
+
+	output, err := watch.Output("ls", dir)
+	if err != nil {
+		return err
+	}
+	outputf("%s\n", output)
+
 	return nil
 }
 
