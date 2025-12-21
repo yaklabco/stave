@@ -305,17 +305,23 @@ func handleFileChange(path string) error {
 	}
 
 	stateMu.Lock()
-	defer stateMu.Unlock()
 	if info, err := os.Stat(absPath); err == nil && info.IsDir() {
 		if watcher != nil {
 			err := watcher.Add(absPath)
 			if err != nil {
+				stateMu.Unlock()
 				return err
 			}
 		}
 	}
 
-	for _, theState := range states {
+	allStates := make([]*targetState, 0, len(states))
+	for _, s := range states {
+		allStates = append(allStates, s)
+	}
+	stateMu.Unlock()
+
+	for _, theState := range allStates {
 		theState.mu.Lock()
 		matched := false
 		for _, g := range theState.globs {
