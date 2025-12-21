@@ -362,6 +362,7 @@ func (Check) PrePush(remoteName, _remoteURL string) error {
 
 type Prep st.Namespace
 
+// LinkifyChangelog ensures that heading links in changelog have Link Reference Definitions
 func (Prep) LinkifyChangelog() error {
 	if err := changelog.Linkify("CHANGELOG.md"); err != nil {
 		return fmt.Errorf("CHANGELOG.md linkification failed: %w", err)
