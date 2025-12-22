@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/gobwas/glob"
 	"github.com/yaklabco/stave/pkg/st"
@@ -128,6 +127,8 @@ func Watch(patterns ...string) {
 
 // Deps registers watch-specific dependencies for the current target.
 func Deps(fns ...any) {
+	st.Deps(fns...)
+
 	ctx := wctx.GetActive()
 	target := wctx.GetCurrent(ctx)
 	if target == "" {
@@ -142,13 +143,13 @@ func Deps(fns ...any) {
 	}
 
 	if !mode.IsOverallWatchMode() {
-		st.CtxDeps(ctx, fns...)
 		return
 	}
 
 	// In overall watch mode, we use the outermost target's state for dependency tracking.
 	theState := GetTargetState(outermost)
 	theState.Mu.Lock()
+	defer theState.Mu.Unlock()
 
 	foundWatcher := false
 	for _, w := range theState.Watchers {
@@ -161,19 +162,13 @@ func Deps(fns ...any) {
 		theState.Watchers = append(theState.Watchers, target)
 	}
 
-	toRun := make([]any, 0, len(fns))
 	for _, theFunc := range fns {
 		id := st.F(theFunc).ID()
 		if !theState.DepIDs[id] {
 			theState.DepIDs[id] = true
 			theState.Deps = append(theState.Deps, theFunc)
 		}
-		toRun = append(toRun, theFunc)
 	}
-	theState.Mu.Unlock()
-
-	// Run them now
-	runDeps(ctx, toRun)
 }
 
 // ResetWatchDeps resets the once-cache for all dependencies registered via watch.Deps for the given target.
@@ -206,26 +201,4 @@ func RerunLoop(ctx context.Context, targetName string, fn func() error) {
 			}
 		}
 	}
-}
-
-func runDeps(ctx context.Context, fns []any) {
-	var wg sync.WaitGroup
-	for _, theFunc := range fns {
-		wg.Add(1)
-		go func(fn any) {
-			defer wg.Done()
-
-			depRunErr := st.RunFn(ctx, fn)
-			if depRunErr != nil {
-				fatalErr := st.Fatalf(1, "dependency failed: %v", depRunErr)
-				if fatalErr != nil {
-					slog.Error("dependency failed, and so did call to st.Fatalf",
-						slog.Any("dependency_error", depRunErr),
-						slog.Any("st_fatalf_error", fatalErr),
-					)
-				}
-			}
-		}(theFunc)
-	}
-	wg.Wait()
 }
