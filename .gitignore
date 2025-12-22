@@ -68,4 +68,5 @@ stave_test_out
 .unsynced-notes
 
 # Build artifacts
-completions/
+.build_cache
+/completions
