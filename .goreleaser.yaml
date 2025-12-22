@@ -91,9 +91,9 @@ brews:
     # We point to the 'completions' folder created in the archive step above
     install: |
       bin.install "stave"
-      bash_completion.install ".build_cache/completions/stave.bash" => "stave"
-      zsh_completion.install ".build_cache/completions/stave.zsh" => "_stave"
-      fish_completion.install ".build_cache/completions/stave.fish"
+      bash_completion.install "completions/stave.bash" => "stave"
+      zsh_completion.install "completions/stave.zsh" => "_stave"
+      fish_completion.install "completions/stave.fish"
 
     # Useful information displayed after 'brew install'
     caveats: |

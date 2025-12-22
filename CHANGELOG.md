@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.4] - 2025-12-22
+
+### Changed
+
+- Yet more minor improvements to goreleaser config for Homebrew handling of completion files.
+
 ## [0.5.3] - 2025-12-22
 
 ### Changed
@@ -203,7 +209,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.5.3...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.5.4...HEAD
+[0.5.4]: https://github.com/yaklabco/stave/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/yaklabco/stave/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/yaklabco/stave/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/yaklabco/stave/compare/v0.5.0...v0.5.1
