@@ -18,7 +18,7 @@ import (
 	stave "github.com/yaklabco/stave/pkg/stave/testdata/staveimport/subdir2"
 )
 
-var Aliases = map[string]interface{}{
+var Aliases = map[string]any{
 	"nsd2": stave.NS.Deploy2,
 }
 

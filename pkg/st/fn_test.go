@@ -88,7 +88,7 @@ func TestFuncCheck(t *testing.T) {
 		t.Error("func is  on a namespace")
 	}
 
-	hasContext, isNamespace, err = checkF(Foo.CtxErrorArgs, []interface{}{1, "s", true, time.Second})
+	hasContext, isNamespace, err = checkF(Foo.CtxErrorArgs, []any{1, "s", true, time.Second})
 	if err != nil {
 		t.Error(err)
 	}
@@ -101,7 +101,7 @@ func TestFuncCheck(t *testing.T) {
 
 	hasContext, isNamespace, err = checkF(
 		func(int, bool, string, time.Duration) {},
-		[]interface{}{1, true, "s", time.Second},
+		[]any{1, true, "s", time.Second},
 	)
 	if err != nil {
 		t.Error(err)
@@ -124,7 +124,7 @@ func TestFuncCheck(t *testing.T) {
 			t.Error("expected a nil function argument to be handled gracefully")
 		}
 	}()
-	_, _, err = checkF(nil, []interface{}{1, 2})
+	_, _, err = checkF(nil, []any{1, 2})
 	if err == nil {
 		t.Error("expected a nil function argument to be invalid")
 	}
@@ -147,7 +147,7 @@ func TestF(t *testing.T) {
 		return nil
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	iVal := 1776
 	sVal := "abc124"
 	bVal := true
@@ -196,7 +196,7 @@ func ExampleF() {
 }
 
 func TestFNamespace(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	i := 1776
 	s := "abc124"
 	b := true
@@ -211,33 +211,34 @@ func TestFNamespace(t *testing.T) {
 
 func TestFNilError(t *testing.T) {
 	fn := F(func() error { return nil })
-	err := fn.Run(context.Background())
+	err := fn.Run(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestFVariadic(t *testing.T) {
+	ctx := t.Context()
 	testFn := F(func(args ...string) {
 		if !reflect.DeepEqual(args, []string{"a", "b"}) {
 			t.Errorf("Wrong args, got %v, want [a b]", args)
 		}
 	}, "a", "b")
-	err := testFn.Run(context.Background())
+	err := testFn.Run(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//nolint:revive // Let's keep this as it is for the sake of the test.
 	testFn = F(func(a string, b ...string) {}, "a", "b1", "b2")
-	err = testFn.Run(context.Background())
+	err = testFn.Run(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//nolint:revive // Let's keep this as it is for the sake of the test.
 	testFn = F(func(a ...string) {})
-	err = testFn.Run(context.Background())
+	err = testFn.Run(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -18,7 +18,7 @@ func ResetOnces() {
 }
 
 // ResetSpecificOnces clears specific functions from the global map of once-run dependencies.
-func ResetSpecificOnces(fns ...interface{}) {
+func ResetSpecificOnces(fns ...any) {
 	onces.mu.Lock()
 	defer onces.mu.Unlock()
 	for _, fInterface := range fns {

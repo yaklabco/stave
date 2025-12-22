@@ -45,7 +45,7 @@ func init() {
 // * (This is a stave convention - stavefiles define this global to create target aliases.)
 // *
 
-var Aliases = map[string]interface{}{
+var Aliases = map[string]any{
 	"LCL":   Prep.LinkifyChangelog,
 	"Speak": Debug.Say,
 }
@@ -507,7 +507,7 @@ func (Debug) WatchDir(dir string) error {
 
 // outputf writes a formatted string to stdout.
 // Uses fmt.Fprintf for output (avoids forbidigo which bans fmt.Print* patterns).
-func outputf(format string, args ...interface{}) {
+func outputf(format string, args ...any) {
 	_, _ = fmt.Fprintf(os.Stdout, format, args...)
 }
 

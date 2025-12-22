@@ -59,7 +59,7 @@ func TestRuntime_Run_HooksDisabled(t *testing.T) {
 		Stderr: &stderr,
 	}
 
-	result, err := runtime.Run(context.Background(), "pre-commit", nil)
+	result, err := runtime.Run(t.Context(), "pre-commit", nil)
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
@@ -82,7 +82,7 @@ func TestRuntime_Run_NoConfig(t *testing.T) {
 		Config: nil,
 	}
 
-	result, err := runtime.Run(context.Background(), "pre-commit", nil)
+	result, err := runtime.Run(t.Context(), "pre-commit", nil)
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
@@ -101,7 +101,7 @@ func TestRuntime_Run_NoHooksConfig(t *testing.T) {
 		},
 	}
 
-	result, err := runtime.Run(context.Background(), "pre-commit", nil)
+	result, err := runtime.Run(t.Context(), "pre-commit", nil)
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
@@ -124,7 +124,7 @@ func TestRuntime_Run_UnconfiguredHook(t *testing.T) {
 		},
 	}
 
-	result, err := runtime.Run(context.Background(), "pre-commit", nil)
+	result, err := runtime.Run(t.Context(), "pre-commit", nil)
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
@@ -151,7 +151,7 @@ func TestRuntime_Run_SingleTarget_Success(t *testing.T) {
 		TargetRunner: mockRunner(0),
 	}
 
-	result, err := runtime.Run(context.Background(), "pre-commit", nil)
+	result, err := runtime.Run(t.Context(), "pre-commit", nil)
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
@@ -186,7 +186,7 @@ func TestRuntime_Run_SingleTarget_Failure(t *testing.T) {
 		TargetRunner: mockRunner(1),
 	}
 
-	result, err := runtime.Run(context.Background(), "pre-commit", nil)
+	result, err := runtime.Run(t.Context(), "pre-commit", nil)
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
@@ -221,7 +221,7 @@ func TestRuntime_Run_MultipleTargets_AllPass(t *testing.T) {
 		TargetRunner: mockRunner(0, 0, 0),
 	}
 
-	result, err := runtime.Run(context.Background(), "pre-commit", nil)
+	result, err := runtime.Run(t.Context(), "pre-commit", nil)
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
@@ -257,7 +257,7 @@ func TestRuntime_Run_MultipleTargets_FailFast(t *testing.T) {
 		TargetRunner: mockRunner(0, 1, 0), // lint fails
 	}
 
-	result, err := runtime.Run(context.Background(), "pre-commit", nil)
+	result, err := runtime.Run(t.Context(), "pre-commit", nil)
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
@@ -293,7 +293,7 @@ func TestRuntime_Run_WithArgs(t *testing.T) {
 	}
 
 	hookArgs := []string{"origin", "main"}
-	_, err := runtime.Run(context.Background(), "pre-push", hookArgs)
+	_, err := runtime.Run(t.Context(), "pre-push", hookArgs)
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
@@ -330,7 +330,7 @@ func TestRuntime_Run_WithError(t *testing.T) {
 		TargetRunner: mockRunnerWithError(testErr),
 	}
 
-	result, err := runtime.Run(context.Background(), "pre-commit", nil)
+	result, err := runtime.Run(t.Context(), "pre-commit", nil)
 	if err != nil {
 		t.Fatalf("Run() error = %v (should not propagate target errors)", err)
 	}

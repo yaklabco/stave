@@ -4,7 +4,7 @@ package main
 
 import "fmt"
 
-var Aliases = map[string]interface{}{
+var Aliases = map[string]any{
 	"st":   Status,
 	"stat": Status,
 	"co":   Checkout,

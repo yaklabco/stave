@@ -38,7 +38,10 @@ func firstExternalCaller() *runtime.Frame {
 		//   "otherpkg.DoThing"
 		//   "github.com/me/foo/bar.Baz"
 		slog.Debug("checking the frame", slog.String("function", frame.Function), slog.String("pkg_prefix", pkgPrefix))
-		if !strings.HasPrefix(frame.Function, pkgPrefix) {
+		watchPkgPrefix := strings.TrimSuffix(pkgPrefix, "/st") + "/watch"
+		if !strings.HasPrefix(frame.Function, pkgPrefix) &&
+			!strings.HasPrefix(frame.Function, watchPkgPrefix+".") &&
+			!strings.HasPrefix(frame.Function, watchPkgPrefix+"/") {
 			return &frame
 		}
 
@@ -84,8 +87,14 @@ func checkForCycle(funcs []Fn) error {
 	depsByID[callerID] = depsNode{tpID: callerID, dependencyTPIDs: funcIDs}
 
 	_, err := toposort.Sort(lo.Values(depsByID), true)
-
 	return err
+}
+
+// ResetCycles clears the global dependency graph used for cycle detection.
+func ResetCycles() {
+	depsByIDMutex.Lock()
+	defer depsByIDMutex.Unlock()
+	depsByID = make(map[string]toposort.TopoSortable)
 }
 
 type depsNode struct {

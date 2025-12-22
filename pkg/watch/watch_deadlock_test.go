@@ -1,24 +1,24 @@
 package watch
 
 import (
-	"context"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/yaklabco/stave/pkg/stctx"
+	"github.com/yaklabco/stave/pkg/watch/mode"
+	"github.com/yaklabco/stave/pkg/watch/wctx"
 )
 
 func TestDeadlock(t *testing.T) {
 	name := "test-target"
-	stctx.SetOutermostTarget(name)
-	stctx.SetOverallWatchMode(true)
-	ctx := stctx.ContextWithTarget(context.Background(), name)
-	stctx.RegisterTargetContext(ctx, name)
-	defer stctx.UnregisterTargetContext(name)
+	mode.SetOutermostTarget(name)
+	mode.SetOverallWatchMode(true)
+	ctx := wctx.WithCurrent(t.Context(), name)
+	wctx.Register(name, ctx)
+	defer wctx.Unregister(name)
 
 	// Ensure the state exists
-	_ = getTargetState(name)
+	_ = GetTargetState(name)
 
 	// Create a dummy file for watcher
 	err := os.WriteFile("file.txt", []byte("hello"), 0644)

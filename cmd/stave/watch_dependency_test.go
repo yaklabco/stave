@@ -80,7 +80,9 @@ func Outermost() {
 }
 `, watchDir))
 
-		theWatchHandle := startWatch(t, staveBin, tmpDir, "-v", "outermost")
+		ctx := t.Context()
+
+		theWatchHandle := startWatch(t, ctx, staveBin, tmpDir, "-v", "outermost")
 		defer theWatchHandle.stop()
 
 		theWatchHandle.wait("RUNNING_SUB")
@@ -113,7 +115,9 @@ func Outermost() {
 }
 `, watchDir2, watchDir1))
 
-		theWatchHandle := startWatch(t, staveBin, tmpDir, "-v", "outermost")
+		ctx := t.Context()
+
+		theWatchHandle := startWatch(t, ctx, staveBin, tmpDir, "-v", "outermost")
 		defer theWatchHandle.stop()
 
 		theWatchHandle.wait("RUNNING_SUB")
@@ -150,7 +154,9 @@ func WatchDir() {
 }
 `, watchDir))
 
-		theWatchHandle := startWatch(t, staveBin, tmpDir, "-v", "watchdir")
+		ctx := t.Context()
+
+		theWatchHandle := startWatch(t, ctx, staveBin, tmpDir, "-v", "watchdir")
 		defer theWatchHandle.stop()
 
 		// Initial run
@@ -241,9 +247,9 @@ type watchHandle struct {
 	cancel    context.CancelFunc
 }
 
-func startWatch(t *testing.T, bin, dir string, args ...string) *watchHandle {
+func startWatch(t *testing.T, ctx context.Context, bin, dir string, args ...string) *watchHandle {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	cmd := exec.CommandContext(ctx, bin, args...)
 	cmd.Dir = dir
 

@@ -292,16 +292,16 @@ func main() {
 		return ctx, ctxCancel
 	}
 
-	runTarget := func(logger *_log.Logger, name string, fn func(context.Context) error) interface{} {
-		var err interface{}
+	runTarget := func(logger *_log.Logger, name string, fn func(context.Context) error) any {
+		var err any
 		ctx, _ := getContext()
 		{{- if $watchPkg }}
-		{{ $watchPkg }}.RegisterTargetContext(ctx, name)
-		defer {{ $watchPkg }}.UnregisterTargetContext(name)
+		{{ $watchPkg }}.RegisterContext(name, ctx)
+		defer {{ $watchPkg }}.UnregisterContext(name)
 		{{- end }}
-		d := make(chan interface{}, 2)
+		d := make(chan any, 2)
 		go func() {
-			var err interface{}
+			var err any
 			defer func() {
 				if r := recover(); r != nil {
 					err = r
@@ -340,7 +340,7 @@ func main() {
 	// variable error.
 	_ = runTarget
 
-	handleError := func(logger *_log.Logger, err interface{}) {
+	handleError := func(logger *_log.Logger, err any) {
 		if err != nil {
 			logger.Printf("Error: %+v\n", err)
 			type code interface {
@@ -447,7 +447,7 @@ func main() {
 			logger.Println("Error: STAVEFILE_IGNOREDEFAULT is on and no target specified.")
 			os.Exit(1)
 		}
-		run := func() interface{} {
+		run := func() any {
 			_targetArgs := []string{}
 			_ = _targetArgs
 			{{.DefaultFunc.ExecCode}}
@@ -459,7 +459,7 @@ func main() {
 			if ret != nil {
 				logger.Printf("Error: %+v\n", ret)
 			}
-			{{ $watchPkg }}.ReRunLoop(ctx, outermost, func() error {
+			{{ $watchPkg }}.RerunLoop(ctx, outermost, func() error {
 				{{ $watchPkg }}.ResetWatchDeps(outermost)
 				ret := run()
 				if ret != nil {
@@ -512,7 +512,7 @@ func main() {
 			}
 			_targetArgs := args.Args[iArg:expected]
 			iArg = expected
-			run := func() interface{} {
+			run := func() any {
 				_ = _targetArgs
 				{{.ExecCode}}
 				return ret
@@ -523,7 +523,7 @@ func main() {
 				if ret != nil {
 					logger.Printf("Error: %+v\n", ret)
 				}
-				{{ $watchPkg }}.ReRunLoop(ctx, target, func() error {
+				{{ $watchPkg }}.RerunLoop(ctx, target, func() error {
 					{{ $watchPkg }}.ResetWatchDeps(target)
 					ret := run()
 					if ret != nil {
@@ -554,7 +554,7 @@ func main() {
 			}
 			_targetArgs := args.Args[iArg:expected]
 			iArg = expected
-			run := func() interface{} {
+			run := func() any {
 				_ = _targetArgs
 				{{.ExecCode}}
 				return ret
@@ -565,7 +565,7 @@ func main() {
 				if ret != nil {
 					logger.Printf("Error: %+v\n", ret)
 				}
-				{{ $watchPkg }}.ReRunLoop(ctx, target, func() error {
+				{{ $watchPkg }}.RerunLoop(ctx, target, func() error {
 					{{ $watchPkg }}.ResetWatchDeps(target)
 					ret := run()
 					if ret != nil {

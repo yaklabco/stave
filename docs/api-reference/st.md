@@ -13,7 +13,7 @@ import "github.com/yaklabco/stave/pkg/st"
 ### Deps
 
 ```go
-func Deps(fns ...interface{})
+func Deps(fns ...any)
 ```
 
 Run dependencies in parallel. Each dependency runs exactly once per Stave invocation.
@@ -27,7 +27,7 @@ func Build() {
 ### CtxDeps
 
 ```go
-func CtxDeps(ctx context.Context, fns ...interface{})
+func CtxDeps(ctx context.Context, fns ...any)
 ```
 
 Run dependencies in parallel with a context.
@@ -41,7 +41,7 @@ func Build(ctx context.Context) {
 ### SerialDeps
 
 ```go
-func SerialDeps(fns ...interface{})
+func SerialDeps(fns ...any)
 ```
 
 Run dependencies sequentially.
@@ -55,7 +55,7 @@ func Deploy() {
 ### SerialCtxDeps
 
 ```go
-func SerialCtxDeps(ctx context.Context, fns ...interface{})
+func SerialCtxDeps(ctx context.Context, fns ...any)
 ```
 
 Run dependencies sequentially with a context.
@@ -65,7 +65,7 @@ Run dependencies sequentially with a context.
 ### F
 
 ```go
-func F(target interface{}, args ...interface{}) Fn
+func F(target any, args ...any) Fn
 ```
 
 Wrap a target function with arguments for use in `Deps`.
@@ -98,7 +98,7 @@ Interface implemented by `F()` results. Used for dependency identity and executi
 ### Fatal
 
 ```go
-func Fatal(code int, args ...interface{}) error
+func Fatal(code int, args ...any) error
 ```
 
 Return an error that causes Stave to exit with the given code.
@@ -112,7 +112,7 @@ if missing {
 ### Fatalf
 
 ```go
-func Fatalf(code int, format string, args ...interface{}) error
+func Fatalf(code int, format string, args ...any) error
 ```
 
 Formatted version of `Fatal`.

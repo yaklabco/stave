@@ -24,7 +24,7 @@ type exitStatus = ExitStatuser
 
 // Fatal returns an error that will cause stave to print out the
 // given args and exit with the given exit code.
-func Fatal(code int, args ...interface{}) error {
+func Fatal(code int, args ...any) error {
 	return fatalError{
 		code:  code,
 		error: errors.New(fmt.Sprint(args...)),
@@ -33,7 +33,7 @@ func Fatal(code int, args ...interface{}) error {
 
 // Fatalf returns an error that will cause stave to print out the
 // given message and exit with the given exit code.
-func Fatalf(code int, format string, args ...interface{}) error {
+func Fatalf(code int, format string, args ...any) error {
 	return fatalError{
 		code:  code,
 		error: fmt.Errorf(format, args...),

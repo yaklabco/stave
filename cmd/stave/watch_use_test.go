@@ -68,7 +68,7 @@ replace github.com/yaklabco/stave => %s
 	require.NoError(t, err, "failed to build stave: %s", string(out))
 
 	// 3. Run stave watch
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, staveBin, "watchtarget")
@@ -182,7 +182,7 @@ replace github.com/yaklabco/stave => %s
 	staveBin := filepath.Join(absRoot, "dist", "stave_test")
 
 	// 3. Run stave watch
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, staveBin, "watchtarget")

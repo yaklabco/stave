@@ -10,7 +10,7 @@ import (
 	"github.com/yaklabco/stave/pkg/st"
 )
 
-var Aliases = map[string]interface{}{
+var Aliases = map[string]any{
 	"speak": Say,
 }
 

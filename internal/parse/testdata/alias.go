@@ -2,7 +2,7 @@
 
 package main
 
-var Aliases = map[string]interface{}{
+var Aliases = map[string]any{
 	"void": ReturnsVoid,
 	"baz":  Build.Baz,
 }

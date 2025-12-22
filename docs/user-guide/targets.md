@@ -64,7 +64,7 @@ To ignore the default and list targets instead, set `STAVEFILE_IGNOREDEFAULT=1`.
 Define alternative names for targets:
 
 ```go
-var Aliases = map[string]interface{}{
+var Aliases = map[string]any{
     "b": Build,
     "t": Test,
 }
