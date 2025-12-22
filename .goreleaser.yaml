@@ -12,6 +12,11 @@ before:
   hooks:
     # Keep modules tidy before building artifacts
     - go mod tidy
+    # Generate completions for each shell into a temporary directory
+    - rm -rf completions && mkdir -p completions
+    - go run . completion bash > completions/stave.bash
+    - go run . completion zsh > completions/stave.zsh
+    - go run . completion fish > completions/stave.fish
 
 builds:
   - id: stave
@@ -54,6 +59,7 @@ archives:
     files:
       - LICENSE
       - NOTICE
+      - completions/* # Bundles generated completions into the tarball
 
 checksum:
   name_template: "checksums.txt"
@@ -70,10 +76,8 @@ changelog:
       - '^chore:'
       - '^test:'
 
-homebrew_casks:
+brews:
   - name: stave
-    ids:
-      - default
     repository:
       owner: yaklabco
       name: homebrew-tap
@@ -84,12 +88,21 @@ homebrew_casks:
     homepage: "https://github.com/yaklabco/stave"
     description: "Make(file) replacement that is pure Go based (a fork of `makefile/mage`)."
     license: "Apache 2.0"
-    # GoReleaser automatically generates the appropriate test block for the Cask.
+
+    # This block tells Homebrew how to install the binary and completions
+    install: |
+      bin.install "stave"
+      bash_completion.install "completions/stave.bash" => "stave"
+      zsh_completion.install "completions/stave.zsh" => "_stave"
+      fish_completion.install "completions/stave.fish"
+
+    test: |
+      system "#{bin}/stave --version"
 
 release:
   # By default, GoReleaser infers GitHub/GitLab repo from the git remote.
   # This section can be extended if needed (e.g., to set draft, discussion category, etc.).
   draft: false
-  github: 
+  github:
     owner: yaklabco
     name: stave

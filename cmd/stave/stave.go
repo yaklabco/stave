@@ -58,6 +58,18 @@ func NewRootCmd(ctx context.Context, opts ...Option) *cobra.Command {
 	# Manage configuration
 	stave --config show`,
 		Version: version.OverallVersionStringColorized(ctx),
+		ValidArgsFunction: func(cmd *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+			dir, err := cmd.PersistentFlags().GetString("dir")
+			if err != nil {
+				return nil, cobra.ShellCompDirectiveError
+			}
+
+			targets, err := stave.TargetNames(cmd.Context(), dir)
+			if err != nil {
+				return nil, cobra.ShellCompDirectiveError
+			}
+			return targets, cobra.ShellCompDirectiveNoFileComp
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			runParams.Args = args
 			runParams.WriterForLogger = os.Stdout
