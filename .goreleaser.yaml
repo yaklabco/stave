@@ -10,12 +10,14 @@ env:
 
 before:
   hooks:
+    # Keep modules tidy before building artifacts
     - go mod tidy
-    # Generate completions for each shell into a dedicated folder
-    - mkdir -p completions
-    - go run . completion bash > completions/stave.bash
-    - go run . completion zsh > completions/stave.zsh
-    - go run . completion fish > completions/stave.fish
+    # Generate completions into a hidden cache folder.
+    # This avoids the 'dist' cleanup and prevents parallel race conditions.
+    - mkdir -p .build_cache/completions
+    - sh -c "go run . completion bash > .build_cache/completions/stave.bash"
+    - sh -c "go run . completion zsh > .build_cache/completions/stave.zsh"
+    - sh -c "go run . completion fish > .build_cache/completions/stave.fish"
 
 builds:
   - id: stave
@@ -24,7 +26,9 @@ builds:
     flags:
       - -trimpath
     ldflags:
+      # Keep it minimal and safe; no package vars assumed.
       - -s -w
+      # Inject version metadata so the binary can print it without shelling out.
       - -X github.com/yaklabco/stave/cmd/stave/version.Version={{ .Version }}
       - -X github.com/yaklabco/stave/cmd/stave/version.Commit={{ .FullCommit }}
       - -X github.com/yaklabco/stave/cmd/stave/version.BuildDate={{ .Date }}
@@ -51,8 +55,9 @@ archives:
     files:
       - LICENSE
       - NOTICE
-      # Explicitly map the completions folder into the archive
-      - src: completions/*
+      # Map the completions from our cache into a 'completions' folder in the archive
+      - src: .build_cache/completions/*
+        dst: completions
         strip_parent: true
 
 checksum:
@@ -80,14 +85,23 @@ brews:
       email: official@yaklab.org
     homepage: "https://github.com/yaklabco/stave"
     description: "Make(file) replacement that is pure Go based (a fork of `makefile/mage`)."
-    license: "Apache 2.0"
+    license: "Apache-2.0"
 
-    # Because of strip_parent: true, files are in the archive root
+    # Installation logic for the binary and completions
+    # We point to the 'completions' folder created in the archive step above
     install: |
       bin.install "stave"
-      bash_completion.install "stave.bash" => "stave"
-      zsh_completion.install "stave.zsh" => "_stave"
-      fish_completion.install "stave.fish"
+      bash_completion.install "completions/stave.bash" => "stave"
+      zsh_completion.install "completions/stave.zsh" => "_stave"
+      fish_completion.install "completions/stave.fish"
+
+    # Useful information displayed after 'brew install'
+    caveats: |
+      To enable completions, you may need to add the following to your shell profile, and then open a new shell:
+        zsh:
+          autoload -U compinit && compinit
+        bash:
+          [[ -r "$(brew --prefix)/etc/profile.d/bash_completion.sh" ]] && . "$(brew --prefix)/etc/profile.d/bash_completion.sh"
 
     test: |
       system "#{bin}/stave --version"
