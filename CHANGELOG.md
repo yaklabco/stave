@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2025-12-22
+
+### Fixed
+
+- Homebrew release pipeline, including automated generation of completions.
+
 ## [0.5.0] - 2025-12-22
 
 ### Added
@@ -181,7 +187,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.5.0...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/yaklabco/stave/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/yaklabco/stave/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/yaklabco/stave/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/yaklabco/stave/compare/v0.3.4...v0.4.0
