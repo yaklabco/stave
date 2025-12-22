@@ -87,8 +87,14 @@ func checkForCycle(funcs []Fn) error {
 	depsByID[callerID] = depsNode{tpID: callerID, dependencyTPIDs: funcIDs}
 
 	_, err := toposort.Sort(lo.Values(depsByID), true)
-
 	return err
+}
+
+// ResetCycles clears the global dependency graph used for cycle detection.
+func ResetCycles() {
+	depsByIDMutex.Lock()
+	defer depsByIDMutex.Unlock()
+	depsByID = make(map[string]toposort.TopoSortable)
 }
 
 type depsNode struct {
