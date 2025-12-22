@@ -22,12 +22,12 @@ func TargetNames(ctx context.Context, dir string) ([]string, error) {
 		return nil, nil
 	}
 
-	fnames := make([]string, 0, len(files))
+	filenames := make([]string, 0, len(files))
 	for i := range files {
-		fnames = append(fnames, filepath.Base(files[i]))
+		filenames = append(filenames, filepath.Base(files[i]))
 	}
 
-	info, err := parse.PrimaryPackage(ctx, params.GoCmd, params.Dir, fnames)
+	info, err := parse.PrimaryPackage(ctx, params.GoCmd, params.Dir, filenames)
 	if err != nil {
 		return nil, err
 	}
