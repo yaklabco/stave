@@ -52,7 +52,7 @@ func TestDepWasNotInvoked(t *testing.T) {
 			t.Fatalf(`expected to get "%s" but got "%s"`, wantErr, gotErr)
 		}
 	}()
-	func(fns ...interface{}) {
+	func(fns ...any) {
 		checkFns(fns)
 	}(fn1())
 }

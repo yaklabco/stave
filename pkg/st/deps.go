@@ -28,12 +28,12 @@ func GetCurrentTarget(ctx context.Context) string {
 }
 
 // ContextWithTargetState returns a new context with the target state attached.
-func ContextWithTargetState(ctx context.Context, state interface{}) context.Context {
+func ContextWithTargetState(ctx context.Context, state any) context.Context {
 	return stctx.ContextWithTargetState(ctx, state)
 }
 
 // GetTargetState returns the target state from the context, or nil if not found.
-func GetTargetState(ctx context.Context) interface{} {
+func GetTargetState(ctx context.Context) any {
 	return stctx.GetTargetState(ctx)
 }
 
@@ -86,7 +86,7 @@ func (o *onceMap) LoadOrStore(theFunc Fn) *onceFun {
 // SerialDeps is like Deps except it runs each dependency serially, instead of
 // in parallel. This can be useful for resource intensive dependencies that
 // shouldn't be run at the same time.
-func SerialDeps(fns ...interface{}) {
+func SerialDeps(fns ...any) {
 	funcs := checkFns(fns)
 	ctx := stctx.GetActiveContext()
 	for i := range fns {
@@ -97,7 +97,7 @@ func SerialDeps(fns ...interface{}) {
 // SerialCtxDeps is like CtxDeps except it runs each dependency serially,
 // instead of in parallel. This can be useful for resource intensive
 // dependencies that shouldn't be run at the same time.
-func SerialCtxDeps(ctx context.Context, fns ...interface{}) {
+func SerialCtxDeps(ctx context.Context, fns ...any) {
 	funcs := checkFns(fns)
 	for i := range fns {
 		runDeps(ctx, funcs[i:i+1])
@@ -120,7 +120,7 @@ func SerialCtxDeps(ctx context.Context, fns ...interface{}) {
 // their own dependencies using Deps. Each dependency is run in their own
 // goroutines. Each function is given the context provided if the function
 // prototype allows for it.
-func CtxDeps(ctx context.Context, fns ...interface{}) {
+func CtxDeps(ctx context.Context, fns ...any) {
 	funcs := checkFns(fns)
 	runDeps(ctx, funcs)
 }
@@ -163,7 +163,7 @@ func runDeps(ctx context.Context, fns []Fn) {
 	}
 }
 
-func checkFns(fns []interface{}) []Fn {
+func checkFns(fns []any) []Fn {
 	funcs := make([]Fn, len(fns))
 	for iFunc, theFunc := range fns {
 		if fn, ok := theFunc.(Fn); ok {
@@ -201,7 +201,7 @@ func checkFns(fns []interface{}) []Fn {
 // This is a way to build up a tree of dependencies with each dependency
 // defining its own dependencies.  Functions must have the same signature as a
 // Stave target, i.e. optional context argument, optional error return.
-func Deps(fns ...interface{}) {
+func Deps(fns ...any) {
 	CtxDeps(stctx.GetActiveContext(), fns...)
 }
 
@@ -221,11 +221,11 @@ func changeExit(oldExitCode, newExitCode int) int {
 }
 
 // funcName returns the unique name for the function.
-func funcName(i interface{}) string {
+func funcName(i any) string {
 	return funcObj(i).Name()
 }
 
-func funcObj(i interface{}) *runtime.Func {
+func funcObj(i any) *runtime.Func {
 	return runtime.FuncForPC(reflect.ValueOf(i).Pointer())
 }
 
@@ -257,7 +257,7 @@ func (o *onceFun) run(ctx context.Context) error {
 }
 
 // RunFn runs the given function as a Stave target.
-func RunFn(ctx context.Context, theFunc interface{}) error {
+func RunFn(ctx context.Context, theFunc any) error {
 	var fn Fn
 	if f, ok := theFunc.(Fn); ok {
 		fn = f

@@ -78,12 +78,12 @@ func GetCurrentTarget(ctx context.Context) string {
 }
 
 // ContextWithTargetState returns a new context with the target state attached.
-func ContextWithTargetState(ctx context.Context, state interface{}) context.Context {
+func ContextWithTargetState(ctx context.Context, state any) context.Context {
 	return context.WithValue(ctx, targetStateKey, state)
 }
 
 // GetTargetState returns the target state from the context, or nil if not found.
-func GetTargetState(ctx context.Context) interface{} {
+func GetTargetState(ctx context.Context) any {
 	return ctx.Value(targetStateKey)
 }
 

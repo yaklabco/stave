@@ -88,7 +88,7 @@ func TestFuncCheck(t *testing.T) {
 		t.Error("func is  on a namespace")
 	}
 
-	hasContext, isNamespace, err = checkF(Foo.CtxErrorArgs, []interface{}{1, "s", true, time.Second})
+	hasContext, isNamespace, err = checkF(Foo.CtxErrorArgs, []any{1, "s", true, time.Second})
 	if err != nil {
 		t.Error(err)
 	}
@@ -101,7 +101,7 @@ func TestFuncCheck(t *testing.T) {
 
 	hasContext, isNamespace, err = checkF(
 		func(int, bool, string, time.Duration) {},
-		[]interface{}{1, true, "s", time.Second},
+		[]any{1, true, "s", time.Second},
 	)
 	if err != nil {
 		t.Error(err)
@@ -124,7 +124,7 @@ func TestFuncCheck(t *testing.T) {
 			t.Error("expected a nil function argument to be handled gracefully")
 		}
 	}()
-	_, _, err = checkF(nil, []interface{}{1, 2})
+	_, _, err = checkF(nil, []any{1, 2})
 	if err == nil {
 		t.Error("expected a nil function argument to be invalid")
 	}

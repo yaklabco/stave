@@ -29,7 +29,7 @@ type targetState struct {
 	name     string
 	patterns []string
 	globs    []glob.Glob
-	deps     []interface{}
+	deps     []any
 	watchers []string
 	depIDs   map[string]bool
 	cancels  []context.CancelFunc
@@ -170,7 +170,7 @@ func Watch(patterns ...string) {
 }
 
 // Deps registers watch-specific dependencies for the current target.
-func Deps(fns ...interface{}) {
+func Deps(fns ...any) {
 	ctx := stctx.GetActiveContext()
 	target := stctx.GetCurrentTarget(ctx)
 	if target == "" {
@@ -204,7 +204,7 @@ func Deps(fns ...interface{}) {
 		theState.watchers = append(theState.watchers, target)
 	}
 
-	toRun := make([]interface{}, 0, len(fns))
+	toRun := make([]any, 0, len(fns))
 	for _, theFunc := range fns {
 		id := st.F(theFunc).ID()
 		if !theState.depIDs[id] {
@@ -219,11 +219,11 @@ func Deps(fns ...interface{}) {
 	runDeps(ctx, toRun)
 }
 
-func runDeps(ctx context.Context, fns []interface{}) {
+func runDeps(ctx context.Context, fns []any) {
 	var wg sync.WaitGroup
 	for _, theFunc := range fns {
 		wg.Add(1)
-		go func(fn interface{}) {
+		go func(fn any) {
 			defer wg.Done()
 
 			depRunErr := st.RunFn(ctx, fn)

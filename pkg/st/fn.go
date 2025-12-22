@@ -34,7 +34,7 @@ type Fn interface {
 // are declared by the function. Note that you do not need to and should not pass a context.Context
 // to F, even if the target takes a context. Compatible args are int, bool, string, and
 // time.Duration.
-func F(target interface{}, args ...interface{}) Fn {
+func F(target any, args ...any) Fn {
 	hasContext, isNamespace, err := checkF(target, args)
 	if err != nil {
 		panic(err)
@@ -52,7 +52,7 @@ func F(target interface{}, args ...interface{}) Fn {
 }
 
 // buildRunner creates the runner function for a target with the given arguments.
-func buildRunner(target interface{}, args []interface{}, hasContext, isNamespace bool) func(context.Context) error {
+func buildRunner(target any, args []any, hasContext, isNamespace bool) func(context.Context) error {
 	return func(ctx context.Context) error {
 		vargs := buildCallArgs(ctx, args, hasContext, isNamespace)
 		return callAndHandleResult(reflect.ValueOf(target), vargs)
@@ -60,7 +60,7 @@ func buildRunner(target interface{}, args []interface{}, hasContext, isNamespace
 }
 
 // buildCallArgs constructs the reflect.Value slice for calling the target function.
-func buildCallArgs(ctx context.Context, args []interface{}, hasContext, isNamespace bool) []reflect.Value {
+func buildCallArgs(ctx context.Context, args []any, hasContext, isNamespace bool) []reflect.Value {
 	count := len(args)
 	if hasContext {
 		count++
@@ -128,7 +128,7 @@ func (f fn) Underlying() *runtime.Func {
 	return f.underlying
 }
 
-func checkF(target interface{}, args []interface{}) (bool, bool, error) {
+func checkF(target any, args []any) (bool, bool, error) {
 	theType := reflect.TypeOf(target)
 	if err := validateTargetType(theType, target); err != nil {
 		return false, false, err
@@ -146,7 +146,7 @@ func checkF(target interface{}, args []interface{}) (bool, bool, error) {
 }
 
 // validateTargetType checks that target is a function.
-func validateTargetType(theType reflect.Type, target interface{}) error {
+func validateTargetType(theType reflect.Type, target any) error {
 	if theType == nil || theType.Kind() != reflect.Func {
 		return fmt.Errorf(
 			"non-function passed to st.F: %T. "+
@@ -169,7 +169,7 @@ func validateReturnType(theType reflect.Type) error {
 }
 
 // validateArgCount checks the number of arguments is valid for the target.
-func validateArgCount(theType reflect.Type, args []interface{}) error {
+func validateArgCount(theType reflect.Type, args []any) error {
 	if len(args) > theType.NumIn() && !theType.IsVariadic() {
 		return fmt.Errorf("too many arguments for target, got %d", len(args))
 	}
@@ -177,7 +177,7 @@ func validateArgCount(theType reflect.Type, args []interface{}) error {
 }
 
 // validateArgs checks each argument matches the expected type and returns context/namespace flags.
-func validateArgs(theType reflect.Type, args []interface{}) (bool, bool, error) {
+func validateArgs(theType reflect.Type, args []any) (bool, bool, error) {
 	argIndex := 0
 	inputs := theType.NumIn()
 	isNamespace := false
@@ -211,7 +211,7 @@ func validateArgs(theType reflect.Type, args []interface{}) (bool, bool, error) 
 }
 
 // checkArgCountForVariadic validates argument count considering variadic functions.
-func checkArgCountForVariadic(theType reflect.Type, args []interface{}, inputs int) error {
+func checkArgCountForVariadic(theType reflect.Type, args []any, inputs int) error {
 	if theType.IsVariadic() {
 		if len(args) < inputs-1 {
 			return fmt.Errorf("too few arguments for target, got %d", len(args))
@@ -223,7 +223,7 @@ func checkArgCountForVariadic(theType reflect.Type, args []interface{}, inputs i
 }
 
 // checkArgTypes validates each argument matches its expected type.
-func checkArgTypes(theType reflect.Type, args []interface{}, startIndex int) error {
+func checkArgTypes(theType reflect.Type, args []any, startIndex int) error {
 	argIndex := startIndex
 	for _, arg := range args {
 		argType := theType.In(argIndex)

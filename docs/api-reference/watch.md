@@ -36,7 +36,7 @@ func WatchDir(dir string) error {
 ### Deps
 
 ```go
-func Deps(fns ...interface{})
+func Deps(fns ...any)
 ```
 
 Registers watch-specific dependencies for the current target. These dependencies are tracked and run in a way that respects the watch mode's cancellable context.
