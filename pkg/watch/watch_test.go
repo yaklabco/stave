@@ -8,19 +8,20 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yaklabco/stave/pkg/watch/target/wctx"
+	"github.com/yaklabco/stave/pkg/watch/mode"
+	"github.com/yaklabco/stave/pkg/watch/wctx"
 )
 
 func TestWatchRegistration(t *testing.T) {
 	name := wctx.DisplayName("github.com/yaklabco/stave/pkg/watch.TestWatchRegistration")
-	wctx.SetOutermostTarget(name)
+	mode.SetOutermostTarget(name)
 	ctx := wctx.ContextWithTarget(context.Background(), name)
-	wctx.RegisterTargetContext(ctx, name)
-	defer wctx.UnregisterTargetContext(name)
+	wctx.RegisterContext(name, ctx)
+	defer wctx.UnregisterContext(name)
 
 	Watch("*.txt")
 
-	assert.True(t, wctx.IsOverallWatchMode())
+	assert.True(t, mode.IsOverallWatchMode())
 	s := GetTargetState(name)
 	absTxt, err := filepath.Abs("*.txt")
 	require.NoError(t, err)
@@ -29,11 +30,11 @@ func TestWatchRegistration(t *testing.T) {
 
 func TestWatchDeps(t *testing.T) {
 	name := wctx.DisplayName("github.com/yaklabco/stave/pkg/watch.TestWatchDeps")
-	wctx.SetOverallWatchMode(true)
-	wctx.SetOutermostTarget(name)
+	mode.SetOverallWatchMode(true)
+	mode.SetOutermostTarget(name)
 	ctx := wctx.ContextWithTarget(context.Background(), name)
-	wctx.RegisterTargetContext(ctx, name)
-	defer wctx.UnregisterTargetContext(name)
+	wctx.RegisterContext(name, ctx)
+	defer wctx.UnregisterContext(name)
 
 	var runCount int
 	depFn := func() {
@@ -49,11 +50,11 @@ func TestWatchDeps(t *testing.T) {
 
 func TestWatchCancellation(t *testing.T) {
 	name := wctx.DisplayName("github.com/yaklabco/stave/pkg/watch.TestWatchCancellation")
-	wctx.SetOutermostTarget(name)
-	wctx.SetOverallWatchMode(true)
+	mode.SetOutermostTarget(name)
+	mode.SetOverallWatchMode(true)
 	ctx := wctx.ContextWithTarget(context.Background(), name)
-	wctx.RegisterTargetContext(ctx, name)
-	defer wctx.UnregisterTargetContext(name)
+	wctx.RegisterContext(name, ctx)
+	defer wctx.UnregisterContext(name)
 
 	Watch("*.go")
 

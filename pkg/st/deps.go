@@ -9,7 +9,8 @@ import (
 	"sync"
 
 	"github.com/yaklabco/stave/internal/log"
-	"github.com/yaklabco/stave/pkg/watch/target/wctx"
+	"github.com/yaklabco/stave/pkg/watch/mode"
+	"github.com/yaklabco/stave/pkg/watch/wctx"
 )
 
 type onceMap struct {
@@ -39,22 +40,22 @@ func GetTargetState(ctx context.Context) any {
 
 // SetOverallWatchMode sets whether we are in overall watch mode.
 func SetOverallWatchMode(b bool) {
-	wctx.SetOverallWatchMode(b)
+	mode.SetOverallWatchMode(b)
 }
 
 // IsOverallWatchMode returns whether we are in overall watch mode.
 func IsOverallWatchMode() bool {
-	return wctx.IsOverallWatchMode()
+	return mode.IsOverallWatchMode()
 }
 
 // SetOutermostTarget sets the name of the outermost target.
 func SetOutermostTarget(name string) {
-	wctx.SetOutermostTarget(name)
+	mode.SetOutermostTarget(name)
 }
 
 // GetOutermostTarget returns the name of the outermost target.
 func GetOutermostTarget() string {
-	return wctx.GetOutermostTarget()
+	return mode.GetOutermostTarget()
 }
 
 type onceKey struct {
@@ -245,8 +246,8 @@ type onceFun struct {
 // the same error output.
 func (o *onceFun) run(ctx context.Context) error {
 	ctx = ContextWithTarget(ctx, o.displayName)
-	wctx.RegisterTargetContext(ctx, o.displayName)
-	defer wctx.UnregisterTargetContext(o.displayName)
+	wctx.RegisterContext(o.displayName, ctx)
+	defer wctx.UnregisterContext(o.displayName)
 	o.once.Do(func() {
 		if Verbose() {
 			log.SimpleConsoleLogger.Println("Running dependency:", DisplayName(o.fn.Name()))
@@ -266,7 +267,7 @@ func RunFn(ctx context.Context, theFunc any) error {
 	}
 	displayName := DisplayName(fn.Name())
 	ctx = ContextWithTarget(ctx, displayName)
-	wctx.RegisterTargetContext(ctx, displayName)
-	defer wctx.UnregisterTargetContext(displayName)
+	wctx.RegisterContext(displayName, ctx)
+	defer wctx.UnregisterContext(displayName)
 	return fn.Run(ctx)
 }

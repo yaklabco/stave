@@ -9,24 +9,24 @@ import (
 	"github.com/yaklabco/stave/pkg/stack"
 )
 
-type contextKey string
+type contextKey int
 
 const (
-	currentTargetKey contextKey = "currentTarget"
-	targetStateKey   contextKey = "targetState"
+	targetKey contextKey = iota
+	currentTargetKey
 )
 
 var (
 	activeContexts sync.Map //nolint:gochecknoglobals // This is intentionally global, and part of a sync.Map pattern.
 )
 
-// RegisterTargetContext registers the current context for a target.
-func RegisterTargetContext(ctx context.Context, name string) {
+// RegisterContext registers the current context for a target.
+func RegisterContext(name string, ctx context.Context) { //nolint:revive // This is intentional, we are registering a context by name.
 	activeContexts.Store(name, ctx)
 }
 
-// UnregisterTargetContext unregisters the context for a target.
-func UnregisterTargetContext(name string) {
+// UnregisterContext unregisters the context for a target.
+func UnregisterContext(name string) {
 	activeContexts.Delete(name)
 }
 
@@ -79,46 +79,12 @@ func GetCurrentTarget(ctx context.Context) string {
 
 // ContextWithTargetState returns a new context with the target state attached.
 func ContextWithTargetState(ctx context.Context, state any) context.Context {
-	return context.WithValue(ctx, targetStateKey, state)
+	return context.WithValue(ctx, targetKey, state)
 }
 
 // GetTargetState returns the target state from the context, or nil if not found.
 func GetTargetState(ctx context.Context) any {
-	return ctx.Value(targetStateKey)
-}
-
-var (
-	overallWatchMode bool       //nolint:gochecknoglobals // These are intentionally global, and part of a sync.Mutex pattern.
-	outermostTarget  string     //nolint:gochecknoglobals // These are intentionally global, and part of a sync.Mutex pattern.
-	watchModeMu      sync.Mutex //nolint:gochecknoglobals // These are intentionally global, and part of a sync.Mutex pattern.
-)
-
-// SetOverallWatchMode sets whether we are in overall watch mode.
-func SetOverallWatchMode(b bool) {
-	watchModeMu.Lock()
-	overallWatchMode = b
-	watchModeMu.Unlock()
-}
-
-// IsOverallWatchMode returns whether we are in overall watch mode.
-func IsOverallWatchMode() bool {
-	watchModeMu.Lock()
-	defer watchModeMu.Unlock()
-	return overallWatchMode
-}
-
-// SetOutermostTarget sets the name of the outermost target.
-func SetOutermostTarget(name string) {
-	watchModeMu.Lock()
-	outermostTarget = name
-	watchModeMu.Unlock()
-}
-
-// GetOutermostTarget returns the name of the outermost target.
-func GetOutermostTarget() string {
-	watchModeMu.Lock()
-	defer watchModeMu.Unlock()
-	return outermostTarget
+	return ctx.Value(targetKey)
 }
 
 // DisplayName returns a human-readable name for the target.

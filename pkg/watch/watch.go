@@ -14,35 +14,25 @@ import (
 	"github.com/gobwas/glob"
 	"github.com/yaklabco/stave/pkg/st"
 	"github.com/yaklabco/stave/pkg/stack"
-	"github.com/yaklabco/stave/pkg/watch/target/wctx"
+	"github.com/yaklabco/stave/pkg/watch/mode"
+	"github.com/yaklabco/stave/pkg/watch/wctx"
+	"github.com/yaklabco/stave/pkg/watch/wtarget"
 )
 
 var (
-	stateMu sync.Mutex                      //nolint:gochecknoglobals // These are intentionally global, and part of a sync.Mutex pattern.
-	states  = make(map[string]*targetState) //nolint:gochecknoglobals // These are intentionally global, and part of a sync.Mutex pattern.
-	watcher *fsnotify.Watcher               //nolint:gochecknoglobals // These are intentionally global, and part of a sync.Mutex pattern.
+	stateMu sync.Mutex                         //nolint:gochecknoglobals // These are intentionally global, and part of a sync.Mutex pattern.
+	states  = make(map[string]*wtarget.Target) //nolint:gochecknoglobals // These are intentionally global, and part of a sync.Mutex pattern.
+	watcher *fsnotify.Watcher                  //nolint:gochecknoglobals // These are intentionally global, and part of a sync.Mutex pattern.
 )
 
-type targetState struct {
-	Name        string
-	Patterns    []string
-	Globs       []glob.Glob
-	Deps        []any
-	Watchers    []string
-	DepIDs      map[string]bool
-	CancelFuncs []context.CancelFunc
-	Mu          sync.Mutex
-	RerunChan   chan struct{}
-}
-
-func GetTargetState(name string) *targetState {
+func GetTargetState(name string) *wtarget.Target {
 	name = strings.ToLower(name)
 	stateMu.Lock()
 	defer stateMu.Unlock()
 	if s, ok := states[name]; ok {
 		return s
 	}
-	theState := &targetState{
+	theState := &wtarget.Target{
 		Name:      name,
 		RerunChan: make(chan struct{}, 1),
 		DepIDs:    make(map[string]bool),
@@ -84,13 +74,13 @@ func Watch(patterns ...string) {
 		return
 	}
 
-	outermost := wctx.GetOutermostTarget()
-	if !wctx.IsOverallWatchMode() {
+	outermost := mode.GetOutermostTarget()
+	if !mode.IsOverallWatchMode() {
 		if !strings.EqualFold(target, outermost) {
 			return
 		}
 
-		wctx.SetOverallWatchMode(true)
+		mode.SetOverallWatchMode(true)
 	}
 
 	// In overall watch mode, we always use the outermost target's state.
@@ -161,9 +151,9 @@ func Watch(patterns ...string) {
 	theState.CancelFuncs = append(theState.CancelFuncs, cancel)
 
 	// Register the new cancellable context as the active context for the target AND outermost target.
-	wctx.RegisterTargetContext(ctx, target)
+	wctx.RegisterContext(target, ctx)
 	if !strings.EqualFold(target, outermost) {
-		wctx.RegisterTargetContext(ctx, outermost)
+		wctx.RegisterContext(outermost, ctx)
 	}
 }
 
@@ -175,14 +165,14 @@ func Deps(fns ...any) {
 		target = callerTargetName()
 	}
 
-	outermost := wctx.GetOutermostTarget()
-	if !wctx.IsOverallWatchMode() {
+	outermost := mode.GetOutermostTarget()
+	if !mode.IsOverallWatchMode() {
 		if target != "" && strings.EqualFold(target, outermost) {
-			wctx.SetOverallWatchMode(true)
+			mode.SetOverallWatchMode(true)
 		}
 	}
 
-	if !wctx.IsOverallWatchMode() {
+	if !mode.IsOverallWatchMode() {
 		st.CtxDeps(ctx, fns...)
 		return
 	}
@@ -313,7 +303,7 @@ func handleFileChange(path string) error {
 		}
 	}
 
-	allStates := make([]*targetState, 0, len(states))
+	allStates := make([]*wtarget.Target, 0, len(states))
 	for _, s := range states {
 		allStates = append(allStates, s)
 	}
@@ -348,22 +338,22 @@ func handleFileChange(path string) error {
 
 // IsOverallWatchMode returns whether we are in overall watch mode.
 func IsOverallWatchMode() bool {
-	return wctx.IsOverallWatchMode()
+	return mode.IsOverallWatchMode()
 }
 
 // SetOutermostTarget sets the name of the outermost target.
 func SetOutermostTarget(name string) {
-	wctx.SetOutermostTarget(name)
+	mode.SetOutermostTarget(name)
 }
 
 // RegisterTargetContext registers the current context for a target.
 func RegisterTargetContext(ctx context.Context, name string) {
-	wctx.RegisterTargetContext(ctx, name)
+	wctx.RegisterContext(name, ctx)
 }
 
 // UnregisterTargetContext unregisters the context for a target.
 func UnregisterTargetContext(name string) {
-	wctx.UnregisterTargetContext(name)
+	wctx.UnregisterContext(name)
 }
 
 // ResetWatchDeps resets the once-cache for all dependencies registered via watch.Deps for the given target.

@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/yaklabco/stave/internal/ish"
-	"github.com/yaklabco/stave/pkg/watch/target/wctx"
+	"github.com/yaklabco/stave/pkg/watch/wctx"
 )
 
 func RunCmd(cmd string, args ...string) func(args ...string) error {
