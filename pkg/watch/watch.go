@@ -127,8 +127,6 @@ func Watch(patterns ...string) {
 
 // Deps registers watch-specific dependencies for the current target.
 func Deps(fns ...any) {
-	st.Deps(fns...)
-
 	ctx := wctx.GetActive()
 	target := wctx.GetCurrent(ctx)
 	if target == "" {
@@ -141,6 +139,8 @@ func Deps(fns ...any) {
 			mode.SetOverallWatchMode(true)
 		}
 	}
+
+	st.Deps(fns...)
 
 	if !mode.IsOverallWatchMode() {
 		return
