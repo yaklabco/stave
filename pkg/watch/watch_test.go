@@ -15,9 +15,9 @@ import (
 func TestWatchRegistration(t *testing.T) {
 	name := wctx.DisplayName("github.com/yaklabco/stave/pkg/watch.TestWatchRegistration")
 	mode.SetOutermostTarget(name)
-	ctx := wctx.ContextWithTarget(context.Background(), name)
-	wctx.RegisterContext(name, ctx)
-	defer wctx.UnregisterContext(name)
+	ctx := wctx.WithCurrent(context.Background(), name)
+	wctx.Register(name, ctx)
+	defer wctx.Unregister(name)
 
 	Watch("*.txt")
 
@@ -32,9 +32,9 @@ func TestWatchDeps(t *testing.T) {
 	name := wctx.DisplayName("github.com/yaklabco/stave/pkg/watch.TestWatchDeps")
 	mode.SetOverallWatchMode(true)
 	mode.SetOutermostTarget(name)
-	ctx := wctx.ContextWithTarget(context.Background(), name)
-	wctx.RegisterContext(name, ctx)
-	defer wctx.UnregisterContext(name)
+	ctx := wctx.WithCurrent(context.Background(), name)
+	wctx.Register(name, ctx)
+	defer wctx.Unregister(name)
 
 	var runCount int
 	depFn := func() {
@@ -52,14 +52,14 @@ func TestWatchCancellation(t *testing.T) {
 	name := wctx.DisplayName("github.com/yaklabco/stave/pkg/watch.TestWatchCancellation")
 	mode.SetOutermostTarget(name)
 	mode.SetOverallWatchMode(true)
-	ctx := wctx.ContextWithTarget(context.Background(), name)
-	wctx.RegisterContext(name, ctx)
-	defer wctx.UnregisterContext(name)
+	ctx := wctx.WithCurrent(context.Background(), name)
+	wctx.Register(name, ctx)
+	defer wctx.Unregister(name)
 
 	Watch("*.go")
 
 	// Get the updated context from registry
-	ctx = wctx.GetTargetContext(name)
+	ctx = wctx.Get(name)
 	require.NoError(t, ctx.Err())
 
 	// Simulate file change

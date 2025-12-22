@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/yaklabco/stave/pkg/stack"
+	"github.com/yaklabco/stave/pkg/watch/wtarget"
 )
 
 type contextKey int
@@ -20,18 +21,18 @@ var (
 	activeContexts sync.Map //nolint:gochecknoglobals // This is intentionally global, and part of a sync.Map pattern.
 )
 
-// RegisterContext registers the current context for a target.
-func RegisterContext(name string, ctx context.Context) { //nolint:revive // This is intentional, we are registering a context by name.
+// Register registers the current context for a target.
+func Register(name string, ctx context.Context) { //nolint:revive // This is intentional, we are registering a context by name.
 	activeContexts.Store(name, ctx)
 }
 
-// UnregisterContext unregisters the context for a target.
-func UnregisterContext(name string) {
+// Unregister unregisters the context for a target.
+func Unregister(name string) {
 	activeContexts.Delete(name)
 }
 
-// GetTargetContext returns the registered context for a target name.
-func GetTargetContext(name string) context.Context {
+// Get returns the registered context for a target name.
+func Get(name string) context.Context {
 	if v, ok := activeContexts.Load(name); ok {
 		resultCtx, ok := v.(context.Context)
 		if ok {
@@ -42,10 +43,10 @@ func GetTargetContext(name string) context.Context {
 	return nil
 }
 
-// GetActiveContext returns the context of the nearest active target in the call stack.
-func GetActiveContext() context.Context {
+// GetActive returns the context of the nearest active target in the call stack.
+func GetActive() context.Context {
 	pcs := make([]uintptr, stack.MaxStackDepthToCheck)
-	n := runtime.Callers(2, pcs) // skip GetActiveContext
+	n := runtime.Callers(2, pcs) // skip GetActive
 	if n == 0 {
 		return context.Background()
 	}
@@ -54,7 +55,7 @@ func GetActiveContext() context.Context {
 	for {
 		frame, more := frames.Next()
 		name := DisplayName(frame.Function)
-		if ctx := GetTargetContext(name); ctx != nil {
+		if ctx := Get(name); ctx != nil {
 			return ctx
 		}
 		if !more {
@@ -64,27 +65,32 @@ func GetActiveContext() context.Context {
 	return context.Background()
 }
 
-// ContextWithTarget returns a new context with the target name attached.
-func ContextWithTarget(ctx context.Context, name string) context.Context {
+// WithCurrent returns a new context with the target name attached.
+func WithCurrent(ctx context.Context, name string) context.Context {
 	return context.WithValue(ctx, currentTargetKey, name)
 }
 
-// GetCurrentTarget returns the target name from the context, or empty string if not found.
-func GetCurrentTarget(ctx context.Context) string {
+// GetCurrent returns the target name from the context, or empty string if not found.
+func GetCurrent(ctx context.Context) string {
 	if name, ok := ctx.Value(currentTargetKey).(string); ok {
 		return name
 	}
 	return ""
 }
 
-// ContextWithTargetState returns a new context with the target state attached.
-func ContextWithTargetState(ctx context.Context, state any) context.Context {
-	return context.WithValue(ctx, targetKey, state)
+// WithConfig returns a new context with the target state attached.
+func WithConfig(ctx context.Context, t *wtarget.Target) context.Context {
+	return context.WithValue(ctx, targetKey, t)
 }
 
-// GetTargetState returns the target state from the context, or nil if not found.
-func GetTargetState(ctx context.Context) any {
-	return ctx.Value(targetKey)
+// GetConfig returns the target state from the context, or nil if not found.
+func GetConfig(ctx context.Context) *wtarget.Target {
+	v := ctx.Value(targetKey)
+	if t, ok := v.(*wtarget.Target); ok {
+		return t
+	}
+
+	return nil
 }
 
 // DisplayName returns a human-readable name for the target.

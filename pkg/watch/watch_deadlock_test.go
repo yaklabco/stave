@@ -14,9 +14,9 @@ func TestDeadlock(t *testing.T) {
 	name := "test-target"
 	mode.SetOutermostTarget(name)
 	mode.SetOverallWatchMode(true)
-	ctx := wctx.ContextWithTarget(context.Background(), name)
-	wctx.RegisterContext(name, ctx)
-	defer wctx.UnregisterContext(name)
+	ctx := wctx.WithCurrent(context.Background(), name)
+	wctx.Register(name, ctx)
+	defer wctx.Unregister(name)
 
 	// Ensure the state exists
 	_ = GetTargetState(name)

@@ -11,6 +11,7 @@ import (
 	"github.com/yaklabco/stave/internal/log"
 	"github.com/yaklabco/stave/pkg/watch/mode"
 	"github.com/yaklabco/stave/pkg/watch/wctx"
+	"github.com/yaklabco/stave/pkg/watch/wtarget"
 )
 
 type onceMap struct {
@@ -20,22 +21,22 @@ type onceMap struct {
 
 // ContextWithTarget returns a new context with the target name attached.
 func ContextWithTarget(ctx context.Context, name string) context.Context {
-	return wctx.ContextWithTarget(ctx, name)
+	return wctx.WithCurrent(ctx, name)
 }
 
 // GetCurrentTarget returns the target name from the context, or empty string if not found.
 func GetCurrentTarget(ctx context.Context) string {
-	return wctx.GetCurrentTarget(ctx)
+	return wctx.GetCurrent(ctx)
 }
 
 // ContextWithTargetState returns a new context with the target state attached.
-func ContextWithTargetState(ctx context.Context, state any) context.Context {
-	return wctx.ContextWithTargetState(ctx, state)
+func ContextWithTargetState(ctx context.Context, t *wtarget.Target) context.Context {
+	return wctx.WithConfig(ctx, t)
 }
 
 // GetTargetState returns the target state from the context, or nil if not found.
-func GetTargetState(ctx context.Context) any {
-	return wctx.GetTargetState(ctx)
+func GetTargetState(ctx context.Context) *wtarget.Target {
+	return wctx.GetConfig(ctx)
 }
 
 // SetOverallWatchMode sets whether we are in overall watch mode.
@@ -89,7 +90,7 @@ func (o *onceMap) LoadOrStore(theFunc Fn) *onceFun {
 // shouldn't be run at the same time.
 func SerialDeps(fns ...any) {
 	funcs := checkFns(fns)
-	ctx := wctx.GetActiveContext()
+	ctx := wctx.GetActive()
 	for i := range fns {
 		runDeps(ctx, funcs[i:i+1])
 	}
@@ -203,7 +204,7 @@ func checkFns(fns []any) []Fn {
 // defining its own dependencies.  Functions must have the same signature as a
 // Stave target, i.e. optional context argument, optional error return.
 func Deps(fns ...any) {
-	CtxDeps(wctx.GetActiveContext(), fns...)
+	CtxDeps(wctx.GetActive(), fns...)
 }
 
 func changeExit(oldExitCode, newExitCode int) int {
@@ -246,8 +247,8 @@ type onceFun struct {
 // the same error output.
 func (o *onceFun) run(ctx context.Context) error {
 	ctx = ContextWithTarget(ctx, o.displayName)
-	wctx.RegisterContext(o.displayName, ctx)
-	defer wctx.UnregisterContext(o.displayName)
+	wctx.Register(o.displayName, ctx)
+	defer wctx.Unregister(o.displayName)
 	o.once.Do(func() {
 		if Verbose() {
 			log.SimpleConsoleLogger.Println("Running dependency:", DisplayName(o.fn.Name()))
@@ -267,7 +268,7 @@ func RunFn(ctx context.Context, theFunc any) error {
 	}
 	displayName := DisplayName(fn.Name())
 	ctx = ContextWithTarget(ctx, displayName)
-	wctx.RegisterContext(displayName, ctx)
-	defer wctx.UnregisterContext(displayName)
+	wctx.Register(displayName, ctx)
+	defer wctx.Unregister(displayName)
 	return fn.Run(ctx)
 }

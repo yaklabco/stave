@@ -65,8 +65,8 @@ func callerTargetName() string {
 
 // Watch registers glob patterns to watch for the current target.
 func Watch(patterns ...string) {
-	ctx := wctx.GetActiveContext()
-	target := wctx.GetCurrentTarget(ctx)
+	ctx := wctx.GetActive()
+	target := wctx.GetCurrent(ctx)
 	if target == "" {
 		target = callerTargetName()
 	}
@@ -151,16 +151,16 @@ func Watch(patterns ...string) {
 	theState.CancelFuncs = append(theState.CancelFuncs, cancel)
 
 	// Register the new cancellable context as the active context for the target AND outermost target.
-	wctx.RegisterContext(target, ctx)
+	wctx.Register(target, ctx)
 	if !strings.EqualFold(target, outermost) {
-		wctx.RegisterContext(outermost, ctx)
+		wctx.Register(outermost, ctx)
 	}
 }
 
 // Deps registers watch-specific dependencies for the current target.
 func Deps(fns ...any) {
-	ctx := wctx.GetActiveContext()
-	target := wctx.GetCurrentTarget(ctx)
+	ctx := wctx.GetActive()
+	target := wctx.GetCurrent(ctx)
 	if target == "" {
 		target = callerTargetName()
 	}
@@ -348,12 +348,12 @@ func SetOutermostTarget(name string) {
 
 // RegisterTargetContext registers the current context for a target.
 func RegisterTargetContext(ctx context.Context, name string) {
-	wctx.RegisterContext(name, ctx)
+	wctx.Register(name, ctx)
 }
 
 // UnregisterTargetContext unregisters the context for a target.
 func UnregisterTargetContext(name string) {
-	wctx.UnregisterContext(name)
+	wctx.Unregister(name)
 }
 
 // ResetWatchDeps resets the once-cache for all dependencies registered via watch.Deps for the given target.
