@@ -296,8 +296,8 @@ func main() {
 		var err any
 		ctx, _ := getContext()
 		{{- if $watchPkg }}
-		{{ $watchPkg }}.RegisterTargetContext(ctx, name)
-		defer {{ $watchPkg }}.UnregisterTargetContext(name)
+		{{ $watchPkg }}.RegisterContext(name, ctx)
+		defer {{ $watchPkg }}.UnregisterContext(name)
 		{{- end }}
 		d := make(chan any, 2)
 		go func() {
@@ -459,7 +459,7 @@ func main() {
 			if ret != nil {
 				logger.Printf("Error: %+v\n", ret)
 			}
-			{{ $watchPkg }}.ReRunLoop(ctx, outermost, func() error {
+			{{ $watchPkg }}.RerunLoop(ctx, outermost, func() error {
 				{{ $watchPkg }}.ResetWatchDeps(outermost)
 				ret := run()
 				if ret != nil {
@@ -523,7 +523,7 @@ func main() {
 				if ret != nil {
 					logger.Printf("Error: %+v\n", ret)
 				}
-				{{ $watchPkg }}.ReRunLoop(ctx, target, func() error {
+				{{ $watchPkg }}.RerunLoop(ctx, target, func() error {
 					{{ $watchPkg }}.ResetWatchDeps(target)
 					ret := run()
 					if ret != nil {
@@ -565,7 +565,7 @@ func main() {
 				if ret != nil {
 					logger.Printf("Error: %+v\n", ret)
 				}
-				{{ $watchPkg }}.ReRunLoop(ctx, target, func() error {
+				{{ $watchPkg }}.RerunLoop(ctx, target, func() error {
 					{{ $watchPkg }}.ResetWatchDeps(target)
 					ret := run()
 					if ret != nil {

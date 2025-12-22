@@ -334,28 +334,6 @@ func handleFileChange(path string) error {
 	return nil
 }
 
-// sh counterparts
-
-// IsOverallWatchMode returns whether we are in overall watch mode.
-func IsOverallWatchMode() bool {
-	return mode.IsOverallWatchMode()
-}
-
-// SetOutermostTarget sets the name of the outermost target.
-func SetOutermostTarget(name string) {
-	mode.SetOutermostTarget(name)
-}
-
-// RegisterTargetContext registers the current context for a target.
-func RegisterTargetContext(ctx context.Context, name string) {
-	wctx.Register(name, ctx)
-}
-
-// UnregisterTargetContext unregisters the context for a target.
-func UnregisterTargetContext(name string) {
-	wctx.Unregister(name)
-}
-
 // ResetWatchDeps resets the once-cache for all dependencies registered via watch.Deps for the given target.
 func ResetWatchDeps(target string) {
 	theState := GetTargetState(target)
@@ -365,8 +343,8 @@ func ResetWatchDeps(target string) {
 	st.ResetOncesByName(theState.Watchers...)
 }
 
-// ReRunLoop should be called by the main function for the outermost target if in watch mode.
-func ReRunLoop(ctx context.Context, targetName string, fn func() error) {
+// RerunLoop should be called by the main function for the outermost target if in watch mode.
+func RerunLoop(ctx context.Context, targetName string, fn func() error) {
 	theState := GetTargetState(targetName)
 	for {
 		select {
