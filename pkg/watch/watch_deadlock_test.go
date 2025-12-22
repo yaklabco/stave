@@ -1,7 +1,6 @@
 package watch
 
 import (
-	"context"
 	"os"
 	"testing"
 	"time"
@@ -14,7 +13,7 @@ func TestDeadlock(t *testing.T) {
 	name := "test-target"
 	mode.SetOutermostTarget(name)
 	mode.SetOverallWatchMode(true)
-	ctx := wctx.WithCurrent(context.Background(), name)
+	ctx := wctx.WithCurrent(t.Context(), name)
 	wctx.Register(name, ctx)
 	defer wctx.Unregister(name)
 

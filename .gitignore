@@ -62,6 +62,7 @@ stave_test_out
 
 # Junie
 .junie
+.output.txt
 
 # Unsynced notes
 .unsynced-notes

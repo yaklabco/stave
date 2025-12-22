@@ -147,7 +147,7 @@ func TestF(t *testing.T) {
 		return nil
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	iVal := 1776
 	sVal := "abc124"
 	bVal := true
@@ -196,7 +196,7 @@ func ExampleF() {
 }
 
 func TestFNamespace(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	i := 1776
 	s := "abc124"
 	b := true
@@ -211,33 +211,34 @@ func TestFNamespace(t *testing.T) {
 
 func TestFNilError(t *testing.T) {
 	fn := F(func() error { return nil })
-	err := fn.Run(context.Background())
+	err := fn.Run(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestFVariadic(t *testing.T) {
+	ctx := t.Context()
 	testFn := F(func(args ...string) {
 		if !reflect.DeepEqual(args, []string{"a", "b"}) {
 			t.Errorf("Wrong args, got %v, want [a b]", args)
 		}
 	}, "a", "b")
-	err := testFn.Run(context.Background())
+	err := testFn.Run(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//nolint:revive // Let's keep this as it is for the sake of the test.
 	testFn = F(func(a string, b ...string) {}, "a", "b1", "b2")
-	err = testFn.Run(context.Background())
+	err = testFn.Run(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//nolint:revive // Let's keep this as it is for the sake of the test.
 	testFn = F(func(a ...string) {})
-	err = testFn.Run(context.Background())
+	err = testFn.Run(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -18,6 +18,9 @@ func TestWatchWithArgs(t *testing.T) {
 		t.Skip("skipping watch test in short mode")
 	}
 
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+
 	absRoot, err := filepath.Abs("../..")
 	require.NoError(t, err)
 	tmpDir := t.TempDir()
@@ -38,9 +41,6 @@ func WatchDir(dir string) {
 	fmt.Printf("WATCHING_DIR: %s\n", dir)
 }
 `)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 
 	cmd := exec.CommandContext(ctx, staveBin, "-v", "watchdir", watchDir)
 	cmd.Dir = tmpDir
