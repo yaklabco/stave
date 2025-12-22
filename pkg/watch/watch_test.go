@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/yaklabco/stave/pkg/watch/mode"
 	"github.com/yaklabco/stave/pkg/watch/wctx"
+	"github.com/yaklabco/stave/pkg/watch/wstack"
 )
 
 func TestWatchRegistration(t *testing.T) {
@@ -73,7 +74,7 @@ func TestCallerTargetName(t *testing.T) {
 	var name string
 	var fullName string
 	MainTarget := func() { //nolint:gocritic,revive // Keeping realistic capitalization for test fidelity.
-		name = callerTargetName()
+		name = wstack.CallerTargetName()
 		pc, _, _, _ := runtime.Caller(1)
 		fullName = runtime.FuncForPC(pc).Name()
 	}
