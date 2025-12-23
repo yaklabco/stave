@@ -75,7 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Command-line completion of targets (via `stave completion <shell_name>`, , or by simply installing via Homebrew).
+- Command-line completion of targets (via `stave completion <shell_name>`, or by simply installing `stave` via Homebrew).
 
 ## [0.4.1] - 2025-12-22
 
