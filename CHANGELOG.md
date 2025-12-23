@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2025-12-23
+
+### Changed
+
+- Use `stave check:gitStateClean` in checks.yml workflow instead of cumbersome bash code.
+
 ## [0.6.1] - 2025-12-23
 
 ### Fixed
@@ -233,7 +239,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.6.1...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/yaklabco/stave/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/yaklabco/stave/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/yaklabco/stave/compare/v0.5.4...v0.6.0
 [0.5.4]: https://github.com/yaklabco/stave/compare/v0.5.3...v0.5.4
