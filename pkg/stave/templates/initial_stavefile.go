@@ -23,7 +23,7 @@ func init() {
 // If not set, running stave will list available targets
 // var Default = Build
 
-// A build step that requires additional params, or platform specific steps for example.
+// Build compiles the project and creates an executable named "MyApp"
 func Build() error {
 	st.Deps(InstallDeps)
 	_, _ = fmt.Fprintln(os.Stdout, "Building...")
@@ -31,14 +31,14 @@ func Build() error {
 	return cmd.Run()
 }
 
-// A custom install step if you need your bin someplace other than go/bin.
+// Install installs the built application to the target system directory
 func Install() error {
 	st.Deps(Build)
 	_, _ = fmt.Fprintln(os.Stdout, "Installing...")
 	return os.Rename("./MyApp", "/usr/bin/MyApp")
 }
 
-// Manage your deps, or running package managers.
+// InstallDeps installs the necessary dependencies for the project
 func InstallDeps() error {
 	_, _ = fmt.Fprintln(os.Stdout, "Installing Deps...")
 	cmd := exec.Command("go", "get", "github.com/stretchr/piglatin")
@@ -49,5 +49,5 @@ func InstallDeps() error {
 func Clean() error {
 	_, _ = fmt.Fprintln(os.Stdout, "Cleaning...")
 
-	return os.RemoveAll("MyApp")
+	return os.RemoveAll("./MyApp")
 }
