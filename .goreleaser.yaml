@@ -14,10 +14,10 @@ before:
     - go mod tidy
     # Generate completions into a hidden cache folder.
     # This avoids the 'dist' cleanup and prevents parallel race conditions.
-    - mkdir -p .build_cache/completions
-    - sh -c "go run . completion bash > .build_cache/completions/stave.bash"
-    - sh -c "go run . completion zsh > .build_cache/completions/stave.zsh"
-    - sh -c "go run . completion fish > .build_cache/completions/stave.fish"
+    - mkdir -p .buildcache/completions
+    - sh -c "go run . completion bash > .buildcache/completions/stave.bash"
+    - sh -c "go run . completion zsh > .buildcache/completions/stave.zsh"
+    - sh -c "go run . completion fish > .buildcache/completions/stave.fish"
 
 builds:
   - id: stave
@@ -26,7 +26,6 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      # Keep it minimal and safe; no package vars assumed.
       - -s -w
       # Inject version metadata so the binary can print it without shelling out.
       - -X github.com/yaklabco/stave/cmd/stave/version.Version={{ .Version }}
@@ -56,7 +55,7 @@ archives:
       - LICENSE
       - NOTICE
       # Map the completions from our cache into a 'completions' folder in the archive
-      - src: .build_cache/completions/*
+      - src: .buildcache/completions/*
         dst: completions
         strip_parent: true
 
@@ -67,12 +66,7 @@ snapshot:
   version_template: "{{ .Tag }}-dev"
 
 changelog:
-  sort: asc
-  filters:
-    exclude:
-      - '^docs:'
-      - '^chore:'
-      - '^test:'
+  disable: true
 
 brews:
   - name: stave
