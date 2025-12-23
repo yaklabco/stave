@@ -112,7 +112,7 @@ For more details on any of these features, please see the [stave documentation](
 - [x] Watch-mode, to re-run build targets when watched files change
 - [x] Dry-run support (print the command lines that would be executed, but don't run them)
 - [x] Modernized CLI, using the wonderful tools developed by the folks at <https://github.com/charmbracelet>, including pretty-printed `-l`/`--list` output
-- [x] Command-line completion of targets (via `stave completion <shell_name>`, or by simply installing via Homebrew)
+- [x] Command-line completion of targets (via `stave completion <shell_name>`, or by simply installing `stave` via Homebrew)
 - [x] Automatic detection of circular dependencies in build targets
 - [x] Support for native git-hooks management: no more need to use `husky` or other hooks-management tools; `stave` will manage your hooks for you, and you can specify stavefile targets directly as hooks
 - [x] Public functions, exported under `pkg/changelog`, for automatically generating next version & next build-tag based on [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/), using [svu](https://github.com/caarlos0/svu) (included in `stave` as a module dependency; no need to install separately)
