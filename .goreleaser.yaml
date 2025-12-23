@@ -65,9 +65,6 @@ checksum:
 snapshot:
   version_template: "{{ .Tag }}-dev"
 
-changelog:
-  disable: true
-
 brews:
   - name: stave
     repository:
