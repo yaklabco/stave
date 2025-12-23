@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2025-12-23
+
+### Fixed
+
+- Removed erroneous disabling of changelog functionality in .goreleaser.yaml, so that `--release-notes=...` command-line argument is respected.
+
 ## [0.6.0] - 2025-12-23
 
-## Added
+### Added
 
 - `ExtractSection(...)` function to extract a section from a changelog file, with ability to extract latest (numbered) section if no explicit section specified. Useful in generating release notes from manually-curated, _Keep a Changelog_-style changelog.
 
@@ -17,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Prep.GitStateClean` target in `stave`'s own stavefile.go
 
-## Changed
+### Changed
 
 - Generate `stave`'s own release notes from changelog using `ExtractSection(...)` function.
 
@@ -227,7 +233,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.6.0...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/yaklabco/stave/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/yaklabco/stave/compare/v0.5.4...v0.6.0
 [0.5.4]: https://github.com/yaklabco/stave/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/yaklabco/stave/compare/v0.5.2...v0.5.3
