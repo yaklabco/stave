@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2025-12-23
+
+## Added
+
+- `ExtractSection(...)` function to extract a section from a changelog file, with ability to extract latest (numbered) section if no explicit section specified. Useful in generating release notes from manually-curated, _Keep a Changelog_-style changelog.
+
+- `Snapshot` target in `stave`'s own stavefile.go
+
+- `Prep.GitStateClean` target in `stave`'s own stavefile.go
+
+## Changed
+
+- Generate `stave`'s own release notes from changelog using `ExtractSection(...)` function.
+
+- Some refactoring of `stave`'s own stavefile.go
+
+- `stave`'s own `Check.PrePush` now calls `Prep.LinkifyChangelog` (which is idempotent, so will no-op if changelog is already linkified), followed by `Check.GitStateClean`, as dependencies. This means that if changelog has not been linkified beforehand, attempting to push the branch will fail the `Check.PrePush` check on uncommitted changes.
+
 ## [0.5.4] - 2025-12-22
 
 ### Changed
@@ -209,7 +227,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.5.4...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/yaklabco/stave/compare/v0.5.4...v0.6.0
 [0.5.4]: https://github.com/yaklabco/stave/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/yaklabco/stave/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/yaklabco/stave/compare/v0.5.1...v0.5.2

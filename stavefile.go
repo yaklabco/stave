@@ -33,6 +33,13 @@ import (
 	"github.com/yaklabco/stave/pkg/watch"
 )
 
+const (
+	changelogFilename = "CHANGELOG.md"
+
+	buildCacheDirName    = ".buildcache"
+	releaseNotesFilename = "release-notes.md"
+)
+
 func init() {
 	logHandler := prettylog.SetupPrettyLogger(os.Stdout)
 	if st.Debug() {
@@ -47,6 +54,7 @@ func init() {
 
 var Aliases = map[string]any{
 	"LCL":   Prep.LinkifyChangelog,
+	"RN":    Prep.ReleaseNotes,
 	"Speak": Debug.Say,
 }
 
@@ -84,41 +92,31 @@ func Init() {
 func Build() error {
 	st.Deps(Init)
 
-	nCoresStr := cmp.Or(os.Getenv("STAVE_NUM_PROCESSORS"), "1")
-
 	if err := sh.RunV("goreleaser", "check"); err != nil {
 		return err
 	}
 
-	return sh.RunV("goreleaser", "--parallelism", nCoresStr, "build", "--snapshot", "--clean")
+	return sh.RunV("goreleaser", "--parallelism", numProcsAsString(), "build", "--snapshot", "--clean")
 }
 
 // Release tags the next version and runs goreleaser release
 func Release() error {
-	if err := setSkipNextVerChangelogCheck(); err != nil {
+	if err := releasePrepper(tagAndPush); err != nil {
 		return err
 	}
 
-	st.Deps(Init)
+	return sh.Run("goreleaser", "--parallelism", numProcsAsString(), "release", "--clean", "--release-notes="+filepath.Join(buildCacheDirName, releaseNotesFilename))
+}
 
-	nextTag, err := changelog.NextTag()
-	if err != nil {
+// Snapshot is like Release except it runs locally and does not push a new tag;
+// useful for debugging the release process.
+func Snapshot() error {
+	noopTaggingFunc := func(string) error { return nil }
+	if err := releasePrepper(noopTaggingFunc); err != nil {
 		return err
 	}
 
-	slog.Info("computed next tag", slog.String("next_tag", nextTag))
-
-	if err := sh.Run("git", "tag", nextTag); err != nil {
-		return err
-	}
-
-	if err := sh.Run("git", "push", "--tags"); err != nil {
-		return err
-	}
-
-	nCoresStr := cmp.Or(os.Getenv("STAVE_NUM_PROCESSORS"), "1")
-
-	return sh.Run("goreleaser", "--parallelism", nCoresStr, "release", "--clean")
+	return sh.Run("goreleaser", "--parallelism", numProcsAsString(), "release", "--snapshot", "--clean", "--release-notes="+filepath.Join(buildCacheDirName, releaseNotesFilename))
 }
 
 // Install builds and installs stave to GOBIN with version info embedded
@@ -145,8 +143,7 @@ func Install() error {
 	}
 	// specifically don't mkdirall, if you have an invalid gopath in the first
 	// place, that's not on us to fix.
-	const binDirPerm = 0o700
-	if err := os.Mkdir(bin, binDirPerm); err != nil && !os.IsExist(err) {
+	if err := os.Mkdir(bin, 0o700); err != nil && !os.IsExist(err) {
 		return fmt.Errorf("failed to create %q: %w", bin, err)
 	}
 	path := filepath.Join(bin, name)
@@ -306,19 +303,38 @@ func (Lint) Go() error {
 
 type Check st.Namespace
 
-// Changelog validates CHANGELOG.md format against 'Keep a Changelog' conventions
+// Changelog validates the changelog's format against 'Keep a Changelog' conventions
 func (Check) Changelog() error {
-	if err := changelog.ValidateFile("CHANGELOG.md"); err != nil {
-		return fmt.Errorf("CHANGELOG.md validation failed: %w", err)
+	if err := changelog.ValidateFile(changelogFilename); err != nil {
+		return fmt.Errorf("changelog validation failed: %w", err)
 	}
 
-	slog.Info("CHANGELOG.md validation passed")
+	slog.Info("changelog validation passed")
+
+	return nil
+}
+
+// GitStateClean checks that the git state is clean, i.e., that there are no
+// uncommitted changes or untracked files.
+func (Check) GitStateClean() error {
+	out, err := sh.Output("git", "status", "--porcelain")
+	if err != nil {
+		return fmt.Errorf("failed to check git state: %w", err)
+	}
+
+	if strings.TrimSpace(out) != "" {
+		return fmt.Errorf("git state is not clean; do you have uncommitted changes or untracked files?\n%s", out)
+	}
 
 	return nil
 }
 
 // PrePush runs pre-push validations including changelog checks
 func (Check) PrePush(remoteName, _remoteURL string) error {
+	st.Deps(Prep.LinkifyChangelog)
+	st.Deps(Lint.All)
+	st.Deps(Check.GitStateClean)
+
 	pushRefs, err := changelog.ReadPushRefs(os.Stdin)
 	if err != nil {
 		return fmt.Errorf("failed to read push refs: %w", err)
@@ -332,7 +348,7 @@ func (Check) PrePush(remoteName, _remoteURL string) error {
 	slog.Info("about to run changelog pre-push check", slog.String("remote_name", remoteName), slog.Any("push_refs", pushRefs))
 	result, err := changelog.PrePushCheck(changelog.PrePushCheckOptions{
 		RemoteName:    remoteName,
-		ChangelogPath: "CHANGELOG.md",
+		ChangelogPath: changelogFilename,
 		Refs:          pushRefs,
 	})
 	if err != nil {
@@ -351,7 +367,7 @@ func (Check) PrePush(remoteName, _remoteURL string) error {
 		return errors.New("changelog pre-push check failed: changelog has not been updated")
 	}
 
-	slog.Info("CHANGELOG.md next-version verification passed")
+	slog.Info("changelog next-version verification passed")
 
 	return nil
 }
@@ -368,11 +384,33 @@ type Prep st.Namespace
 
 // LinkifyChangelog ensures that heading links in changelog have Link Reference Definitions
 func (Prep) LinkifyChangelog() error {
-	if err := changelog.Linkify("CHANGELOG.md"); err != nil {
-		return fmt.Errorf("CHANGELOG.md linkification failed: %w", err)
+	if err := changelog.Linkify(changelogFilename); err != nil {
+		return fmt.Errorf("changelog linkification failed: %w", err)
 	}
 
-	slog.Info("CHANGELOG.md linkification complete")
+	slog.Info("changelog linkification complete")
+
+	return nil
+}
+
+// ReleaseNotes generates release notes from the changelog.
+func (Prep) ReleaseNotes() error {
+	st.Deps(Prep.BuildCacheDir)
+
+	err := changelog.ExtractSection(changelogFilename, filepath.Join(buildCacheDirName, releaseNotesFilename), "")
+	if err != nil {
+		return fmt.Errorf("failed to extract release notes: %w", err)
+	}
+
+	return nil
+}
+
+// BuildCacheDir creates the build cache directory.
+func (Prep) BuildCacheDir() error {
+	err := os.MkdirAll(buildCacheDirName, 0o700)
+	if err != nil {
+		return fmt.Errorf("failed to create .buildcache directory: %w", err)
+	}
 
 	return nil
 }
@@ -413,8 +451,7 @@ func (Test) All() error {
 func (Test) Go() error {
 	st.Deps(Init)
 
-	nCoresStr := cmp.Or(os.Getenv("STAVE_NUM_PROCESSORS"), "1")
-
+	nProcsStr := numProcsAsString()
 	if err := sh.RunWithV(
 		map[string]string{
 			st.DryRunPossibleEnv:     "",
@@ -422,7 +459,7 @@ func (Test) Go() error {
 		},
 		"go", "tool", "gotestsum", "-f", "pkgname-and-test-fails",
 		"--",
-		"-v", "-p", nCoresStr, "-parallel", nCoresStr, "./...", "-count", "1",
+		"-v", "-p", nProcsStr, "-parallel", nProcsStr, "./...", "-count", "1",
 		"-coverprofile=coverage.out", "-covermode=atomic",
 	); err != nil {
 		return err
@@ -608,6 +645,45 @@ hooks:
 	}
 
 	return nil
+}
+
+// releasePrepper prepares a release by generating release notes and tagging.
+// It computes the next version tag using `changelog.NextTag` and invokes the
+// provided `taggingFunc` with the computed tag. Dependencies such as release
+// notes generation and initialization are handled internally.
+func releasePrepper(taggingFunc func(nextTag string) error) error {
+	st.Deps(Prep.ReleaseNotes)
+
+	if err := setSkipNextVerChangelogCheck(); err != nil {
+		return err
+	}
+
+	st.Deps(Init)
+
+	nextTag, err := changelog.NextTag()
+	if err != nil {
+		return err
+	}
+
+	slog.Info("computed next tag", slog.String("next_tag", nextTag))
+
+	return taggingFunc(nextTag)
+}
+
+// tagAndPush creates a Git tag and pushes all tags to the remote repository.
+// It takes the tag name as a string argument and returns an error if any command fails.
+func tagAndPush(nextTag string) error {
+	if err := sh.Run("git", "tag", nextTag); err != nil {
+		return err
+	}
+
+	return sh.Run("git", "push", "--tags")
+}
+
+// numProcsAsString returns the number of processor cores as a string.
+// It checks the environment variable "STAVE_NUM_PROCESSORS" or defaults to "1".
+func numProcsAsString() string {
+	return cmp.Or(os.Getenv("STAVE_NUM_PROCESSORS"), "1")
 }
 
 // *
