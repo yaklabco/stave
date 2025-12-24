@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.4] - 2025-12-24
+
+### Removed
+
+- Any wiring-up of [Release Please](https://github.com/googleapis/release-please) in this project.
+
 ## [0.6.3] - 2025-12-23
 
 ### Changed
@@ -245,7 +251,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.6.3...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.6.4...HEAD
+[0.6.4]: https://github.com/yaklabco/stave/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/yaklabco/stave/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/yaklabco/stave/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/yaklabco/stave/compare/v0.6.0...v0.6.1
