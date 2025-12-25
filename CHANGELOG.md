@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.6] - 2025-12-25
+
+### Fixed
+
+- Type-validation on `st.F`-wrapped arguments passed to `watch.Deps`.
+
 ## [0.6.5] - 2025-12-25
 
 ### Added
@@ -277,7 +283,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.6.5...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.6.6...HEAD
+[0.6.6]: https://github.com/yaklabco/stave/compare/v0.6.5...v0.6.6
 [0.6.5]: https://github.com/yaklabco/stave/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/yaklabco/stave/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/yaklabco/stave/compare/v0.6.2...v0.6.3

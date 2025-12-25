@@ -35,6 +35,12 @@ type Fn interface {
 // to F, even if the target takes a context. Compatible args are int, bool, string, and
 // time.Duration.
 func F(target any, args ...any) Fn {
+	if f, ok := target.(Fn); ok {
+		if len(args) > 0 {
+			panic(fmt.Errorf("cannot pass arguments to an already wrapped st.Fn: %T", target))
+		}
+		return f
+	}
 	hasContext, isNamespace, err := checkF(target, args)
 	if err != nil {
 		panic(err)
@@ -133,6 +139,12 @@ func checkF(target any, args []any) (bool, bool, error) {
 	if err := validateTargetType(theType, target); err != nil {
 		return false, false, err
 	}
+	if _, ok := target.(Fn); ok {
+		if len(args) > 0 {
+			return false, false, fmt.Errorf("cannot pass arguments to an already wrapped st.Fn: %T", target)
+		}
+		return false, false, nil
+	}
 	if err := validateReturnType(theType); err != nil {
 		return false, false, err
 	}
@@ -147,7 +159,13 @@ func checkF(target any, args []any) (bool, bool, error) {
 
 // validateTargetType checks that target is a function.
 func validateTargetType(theType reflect.Type, target any) error {
-	if theType == nil || theType.Kind() != reflect.Func {
+	if theType == nil {
+		return errors.New("nil passed to st.F")
+	}
+	if _, ok := target.(Fn); ok {
+		return nil
+	}
+	if theType.Kind() != reflect.Func {
 		return fmt.Errorf(
 			"non-function passed to st.F: %T. "+
 				"The st.F function accepts function names, such as st.F(TargetA, \"arg1\", \"arg2\")",
