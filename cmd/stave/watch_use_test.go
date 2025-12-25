@@ -75,24 +75,25 @@ replace github.com/yaklabco/stave => %s
 	cmd.Dir = tmpDir
 
 	stderr := &strings.Builder{}
-	cmd.Stderr = stderr
 	stdout, err := cmd.StdoutPipe()
 	require.NoError(t, err)
+	cmd.Stderr = cmd.Stdout
 	require.NoError(t, cmd.Start())
 
-	// Read stdout to wait for output
+	// Read output to wait for expected strings
 	scanner := bufio.NewScanner(stdout)
 	waitForOutput := func(expected string) {
 		for scanner.Scan() {
 			line := scanner.Text()
+			stderr.WriteString(line + "\n")
 			if strings.Contains(line, expected) {
 				return
 			}
 		}
 		if err := scanner.Err(); err != nil {
-			t.Fatalf("error reading stdout: %v", err)
+			t.Fatalf("error reading output: %v", err)
 		}
-		t.Fatalf("reached EOF while waiting for %q. Stderr: %q", expected, stderr.String())
+		t.Fatalf("reached EOF while waiting for %q. Output: %q", expected, stderr.String())
 	}
 
 	waitForOutput("RUNNING_TARGET")
@@ -189,24 +190,25 @@ replace github.com/yaklabco/stave => %s
 	cmd.Dir = tmpDir
 
 	stderr := &strings.Builder{}
-	cmd.Stderr = stderr
 	stdout, err := cmd.StdoutPipe()
 	require.NoError(t, err)
+	cmd.Stderr = cmd.Stdout
 	require.NoError(t, cmd.Start())
 
-	// Read stdout to wait for output
+	// Read output to wait for expected strings
 	scanner := bufio.NewScanner(stdout)
 	waitForOutput := func(expected string) {
 		for scanner.Scan() {
 			line := scanner.Text()
+			stderr.WriteString(line + "\n")
 			if strings.Contains(line, expected) {
 				return
 			}
 		}
 		if err := scanner.Err(); err != nil {
-			t.Fatalf("error reading stdout: %v", err)
+			t.Fatalf("error reading output: %v", err)
 		}
-		t.Fatalf("reached EOF while waiting for %q. Stderr: %q", expected, stderr.String())
+		t.Fatalf("reached EOF while waiting for %q. Output: %q", expected, stderr.String())
 	}
 
 	waitForOutput("RUNNING_DEP")

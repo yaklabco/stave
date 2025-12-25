@@ -256,7 +256,7 @@ func startWatch(t *testing.T, ctx context.Context, bin, dir string, args ...stri
 	stdout, err := cmd.StdoutPipe()
 	require.NoError(t, err)
 	stderr := &strings.Builder{}
-	cmd.Stderr = stderr
+	cmd.Stderr = cmd.Stdout
 
 	require.NoError(t, cmd.Start())
 

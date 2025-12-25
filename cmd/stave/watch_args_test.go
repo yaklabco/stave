@@ -48,7 +48,7 @@ func WatchDir(dir string) {
 	stdout, err := cmd.StdoutPipe()
 	require.NoError(t, err)
 	stderr := &strings.Builder{}
-	cmd.Stderr = stderr
+	cmd.Stderr = cmd.Stdout
 	require.NoError(t, cmd.Start())
 
 	scanner := bufio.NewScanner(stdout)
@@ -58,6 +58,7 @@ func WatchDir(dir string) {
 		go func() {
 			for scanner.Scan() {
 				line := scanner.Text()
+				stderr.WriteString(line + "\n")
 				if strings.Contains(line, expected) {
 					done <- true
 					return
@@ -69,14 +70,14 @@ func WatchDir(dir string) {
 		select {
 		case ok := <-done:
 			if !ok {
-				t.Errorf("reached EOF waiting for %q. Stderr: %s", expected, stderr.String())
+				t.Errorf("reached EOF waiting for %q. Output: %s", expected, stderr.String())
 				return
 			}
 		case <-ctx.Done():
-			t.Errorf("context done waiting for %q. Stderr: %s", expected, stderr.String())
+			t.Errorf("context done waiting for %q. Output: %s", expected, stderr.String())
 			return
 		case <-time.After(15 * time.Second):
-			t.Errorf("timed out waiting for %q. Stderr: %s", expected, stderr.String())
+			t.Errorf("timed out waiting for %q. Output: %s", expected, stderr.String())
 			return
 		}
 	}

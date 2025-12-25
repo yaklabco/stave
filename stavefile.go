@@ -525,7 +525,7 @@ func (Debug) WatchDir(dir string) error {
 
 	watch.Watch(dir + "/**")
 
-	output, err := watch.Output("ls", dir)
+	output, err := sh.Output("ls", dir)
 	if err != nil {
 		return err
 	}

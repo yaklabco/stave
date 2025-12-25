@@ -11,7 +11,7 @@ import (
 
 func TestDeadlock(t *testing.T) {
 	name := "test-target"
-	mode.SetOutermostTarget(name)
+	mode.AddRequestedTarget(name)
 	mode.SetOverallWatchMode(true)
 	ctx := wctx.WithCurrent(t.Context(), name)
 	wctx.Register(name, ctx)

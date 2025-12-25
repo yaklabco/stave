@@ -109,7 +109,7 @@ For more details on any of these features, please see the [stave documentation](
 
 - [x] Modernized Go patterns (Go 1.24+)
 - [x] Additional shell helpers (`sh.Piper`, `sh.PiperWith`)
-- [x] Watch-mode, to re-run build targets when watched files change
+- [x] Watch-mode, to re-run one or more build targets when watched files change
 - [x] Dry-run support (print the command lines that would be executed, but don't run them)
 - [x] Modernized CLI, using the wonderful tools developed by the folks at <https://github.com/charmbracelet>, including pretty-printed `-l`/`--list` output
 - [x] Command-line completion of targets (via `stave completion <shell_name>`, or by simply installing `stave` via Homebrew)

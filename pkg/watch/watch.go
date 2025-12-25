@@ -44,7 +44,7 @@ func Watch(patterns ...string) {
 
 	outermost := mode.GetOutermostTarget()
 	if !mode.IsOverallWatchMode() {
-		if !strings.EqualFold(target, outermost) {
+		if !mode.IsRequestedTarget(target) {
 			return
 		}
 
@@ -135,7 +135,7 @@ func Deps(fns ...any) {
 
 	outermost := mode.GetOutermostTarget()
 	if !mode.IsOverallWatchMode() {
-		if target != "" && strings.EqualFold(target, outermost) {
+		if mode.IsRequestedTarget(target) {
 			mode.SetOverallWatchMode(true)
 		}
 	}
@@ -183,6 +183,7 @@ func ResetWatchDeps(target string) {
 // RerunLoop should be called by the main function for the outermost target if in watch mode.
 func RerunLoop(ctx context.Context, targetName string, fn func() error) {
 	theState := GetTargetState(targetName)
+	slog.Info("WATCH MODE: watching for changes...")
 	for {
 		select {
 		case <-ctx.Done():

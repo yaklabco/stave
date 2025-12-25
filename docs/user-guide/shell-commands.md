@@ -204,17 +204,22 @@ DRYRUN: go build ./...
 
 The `sh.Rm` and `sh.Copy` helpers also respect dry-run mode.
 
-## Watch Mode Counterparts
+## Watch Mode
 
-When using [Watch Mode](watch.md), it is recommended to use the shell helpers from the `pkg/watch` package instead of `pkg/sh`. These functions are identical in signature to their `sh` counterparts but are aware of the cancellable context used in watch mode.
+When using [Watch Mode](watch.md), shell commands need to be aware of the target's cancellable context so they can be terminated when a file change triggers a re-run.
+
+Unlike previous versions of Stave, the standard shell helpers in `pkg/sh` are now **automatically context-aware**. They use the active target's context, which means they will be automatically terminated when a re-run is triggered.
 
 ```go
-import "github.com/yaklabco/stave/pkg/watch"
+import (
+    "github.com/yaklabco/stave/pkg/sh"
+    "github.com/yaklabco/stave/pkg/watch"
+)
 
 func Dev() error {
     watch.Watch("**/*.go")
     // This command will be automatically terminated if a file changes
-    return watch.RunV("go", "run", "main.go")
+    return sh.RunV("go", "run", "main.go")
 }
 ```
 

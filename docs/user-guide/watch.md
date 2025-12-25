@@ -4,6 +4,8 @@
 
 Watch mode allows Stave to monitor your project's files and automatically re-run targets whenever changes are detected. This is particularly useful for development workflows like auto-testing or auto-rebuilding.
 
+Stave supports watching multiple targets simultaneously. If you specify multiple targets on the command line, each one will be monitored and re-run independently when its watched files change.
+
 In the target list (`stave -l`), watch targets are identified by a `[W]` suffix.
 
 ## Basic Usage
@@ -12,6 +14,7 @@ To enable watch mode for a target, use the `watch.Watch` function in your `stave
 
 ```go
 import (
+    "github.com/yaklabco/stave/pkg/sh"
     "github.com/yaklabco/stave/pkg/watch"
 )
 
@@ -19,7 +22,7 @@ import (
 func WatchTests() error {
     watch.Watch("**/*.go")
     
-    return watch.RunV("go", "test", "./...")
+    return sh.RunV("go", "test", "./...")
 }
 ```
 
@@ -28,6 +31,8 @@ When you run `stave WatchTests`, Stave will:
 1. Run the target once.
 2. Monitor all `.go` files in the project.
 3. If a `.go` file changes, it will cancel the current execution (if it's still running) and start it again.
+
+If you run multiple targets, e.g., `stave WatchTests WatchBuild`, both will be watched and re-run as needed.
 
 ## Glob Patterns
 
@@ -45,20 +50,18 @@ Stave's watch mode works by using Go's `context.Context`. When a file change is 
 2. Stave waits for the current execution to finish (handling the cancellation).
 3. Stave re-runs the target with a new context.
 
-### Watch-Aware Shell Helpers
+### Context-Aware Shell Helpers
 
-To properly support cancellation, you should use the shell helpers provided by `pkg/watch` instead of `pkg/sh`. These helpers automatically listen for context cancellation and terminate the underlying processes.
+To properly support cancellation, you should use shell helpers that are aware of the target's context.
+
+Historically, this required using helpers from `pkg/watch`. However, in the current version of Stave, the standard helpers in `pkg/sh` are now automatically context-aware and will use the active target's context. This means they will be automatically terminated when a re-run is triggered.
 
 ```go
-// GOOD: This will be terminated on re-run
-func Build() error {
-    watch.Watch("main.go")
-    return watch.Run("go", "build", "-o", "myapp", "main.go")
-}
+import "github.com/yaklabco/stave/pkg/sh"
 
-// BAD: This might keep running even after a re-run is triggered
 func Build() error {
     watch.Watch("main.go")
+    // This will now be automatically terminated on re-run
     return sh.Run("go", "build", "-o", "myapp", "main.go")
 }
 ```
@@ -85,11 +88,11 @@ func Dev() {
     // will be cancelled and restarted from the beginning.
     watch.Deps(Generate)
     
-    if err := watch.Run("go", "build", "."); err != nil {
+    if err := sh.Run("go", "build", "."); err != nil {
         return err
     }
     
-    return watch.Run("./myapp")
+    return sh.Run("./myapp")
 }
 ```
 

@@ -23,8 +23,8 @@ func IsOverallWatchMode() bool {
 	return mode.IsOverallWatchMode()
 }
 
-func SetOutermostTarget(name string) {
-	mode.SetOutermostTarget(name)
+func AddRequestedTarget(name string) {
+	mode.AddRequestedTarget(name)
 }
 
 func RegisterContext(name string, ctx context.Context) { //nolint:revive // This is intentional, we are registering a context by
