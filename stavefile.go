@@ -509,8 +509,13 @@ func (Debug) Say(msg string, i int, b bool, d time.Duration) error {
 
 // WatchFile watches the file specified in its single argument, and `cat`s its content any time it changes.
 func (Debug) WatchFile(file string) {
-	st.Deps(Build)
-	watch.Deps(Lint.Go)
+	st.Deps(
+		Build,
+	)
+	watch.Deps(
+		Lint.Go,
+		st.F(Debug.WatchDir, filepath.Dir(file)),
+	)
 
 	watch.Watch(file)
 
