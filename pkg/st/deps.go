@@ -49,14 +49,14 @@ func IsOverallWatchMode() bool {
 	return mode.IsOverallWatchMode()
 }
 
-// SetOutermostTarget sets the name of the outermost target.
-func SetOutermostTarget(name string) {
-	mode.SetOutermostTarget(name)
-}
-
 // GetOutermostTarget returns the name of the outermost target.
 func GetOutermostTarget() string {
 	return mode.GetOutermostTarget()
+}
+
+// ActiveContext returns the context of the nearest active target in the call stack.
+func ActiveContext() context.Context {
+	return wctx.GetActive()
 }
 
 type onceKey struct {
@@ -236,9 +236,10 @@ func DisplayName(name string) string {
 }
 
 type onceFun struct {
-	once *sync.Once
-	fn   Fn
-	err  error
+	once     *sync.Once
+	fn       Fn
+	err      error
+	panicVal any
 
 	displayName string
 }
@@ -250,11 +251,20 @@ func (o *onceFun) run(ctx context.Context) error {
 	wctx.Register(o.displayName, ctx)
 	defer wctx.Unregister(o.displayName)
 	o.once.Do(func() {
+		defer func() {
+			if r := recover(); r != nil {
+				o.panicVal = r
+				panic(r)
+			}
+		}()
 		if Verbose() {
 			log.SimpleConsoleLogger.Println("Running dependency:", DisplayName(o.fn.Name()))
 		}
 		o.err = o.fn.Run(ctx)
 	})
+	if o.panicVal != nil {
+		panic(o.panicVal)
+	}
 	return o.err
 }
 

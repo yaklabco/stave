@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.5] - 2025-12-25
+
+### Added
+
+- `st.ActiveContext()` function to retrieve the context of the nearest active target from the call stack.
+
+### Changed
+
+- Shell commands in `pkg/sh` (e.g., `sh.Run`, `sh.Output`) now automatically derive from Stave's active context, allowing them to be cancelled by timeouts or file changes in watch mode. The watch-specific shell helpers in `pkg/watch` have now been removed.
+
+### Fixed
+
+- Panic propagation in `st.Deps`: if a dependency panics, subsequent calls now correctly re-propagate the panic instead of silently returning a `nil` error.
+
+- Watch mode improvements:
+  - Support for multiple targets: all specified targets are now re-run upon file changes.
+  - Non-blocking re-runs: re-running one target no longer blocks others.
+  - Activation logic: fixed issues where watch mode wouldn't activate correctly depending on target order.
+  - Safety: restricted watch mode activation to explicitly requested targets to prevent infinite loops from transitive dependencies.
+
+- Fixed potential out-of-bounds panic when multiple variables are declared on a single line in a stavefile (e.g., `var A, Default = 1, Target`).
+
+### Removed
+
+- Redundant shell-helper functions from `pkg/watch` (`watch.Run`, `watch.Output`, etc.), as the standard helpers in `pkg/sh` are now automatically context-aware.
+
 ## [0.6.4] - 2025-12-24
 
 ### Removed
@@ -251,7 +277,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.6.4...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.6.5...HEAD
+[0.6.5]: https://github.com/yaklabco/stave/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/yaklabco/stave/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/yaklabco/stave/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/yaklabco/stave/compare/v0.6.1...v0.6.2

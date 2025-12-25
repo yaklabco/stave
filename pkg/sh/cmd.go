@@ -1,10 +1,10 @@
 package sh
 
 import (
-	"context"
 	"io"
 
 	"github.com/yaklabco/stave/internal/ish"
+	"github.com/yaklabco/stave/pkg/st"
 )
 
 // RunCmd returns a function that will call Run with the given command. This is
@@ -47,7 +47,7 @@ func Run(cmd string, args ...string) error {
 
 // RunV is like Run, but always sends the command's stdout to os.Stdout.
 func RunV(cmd string, args ...string) error {
-	return ish.RunV(context.Background(), nil, cmd, args...)
+	return ish.RunV(st.ActiveContext(), nil, cmd, args...)
 }
 
 // RunWith runs the given command, directing stderr to this program's stderr and
@@ -55,34 +55,34 @@ func RunV(cmd string, args ...string) error {
 // environment variables for the command being run. Environment variables should
 // be in the format name=value.
 func RunWith(env map[string]string, cmd string, args ...string) error {
-	return ish.Run(context.Background(), env, cmd, args...)
+	return ish.Run(st.ActiveContext(), env, cmd, args...)
 }
 
 // RunWithV is like RunWith, but always sends the command's stdout to os.Stdout.
 func RunWithV(env map[string]string, cmd string, args ...string) error {
-	return ish.RunV(context.Background(), env, cmd, args...)
+	return ish.RunV(st.ActiveContext(), env, cmd, args...)
 }
 
 // Output runs the command and returns the text from stdout.
 func Output(cmd string, args ...string) (string, error) {
-	return ish.Output(context.Background(), nil, cmd, args...)
+	return ish.Output(st.ActiveContext(), nil, cmd, args...)
 }
 
 // OutputWith is like RunWith, but returns what is written to stdout.
 func OutputWith(env map[string]string, cmd string, args ...string) (string, error) {
-	return ish.Output(context.Background(), env, cmd, args...)
+	return ish.Output(st.ActiveContext(), env, cmd, args...)
 }
 
 // Piper runs the given command, piping its stdin to the given reader, stdout to
 // the given writer, and stderr to the given writer.
 func Piper(stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) error {
-	return ish.Piper(context.Background(), nil, stdin, stdout, stderr, cmd, args...)
+	return ish.Piper(st.ActiveContext(), nil, stdin, stdout, stderr, cmd, args...)
 }
 
 // PiperWith is like Piper, but adds env to the environment variables for the
 // command being run.
 func PiperWith(env map[string]string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) error {
-	return ish.Piper(context.Background(), env, stdin, stdout, stderr, cmd, args...)
+	return ish.Piper(st.ActiveContext(), env, stdin, stdout, stderr, cmd, args...)
 }
 
 // Exec executes the command, piping its stdout and stderr to the given
@@ -98,7 +98,7 @@ func PiperWith(env map[string]string, stdin io.Reader, stdout, stderr io.Writer,
 // Code reports the exit code the command returned if it ran. If err == nil, ran
 // is always true and code is always 0.
 func Exec(env map[string]string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) (bool, error) {
-	return ish.Exec(context.Background(), env, stdin, stdout, stderr, cmd, args...)
+	return ish.Exec(st.ActiveContext(), env, stdin, stdout, stderr, cmd, args...)
 }
 
 // CmdRan examines the error to determine if it was generated as a result of a

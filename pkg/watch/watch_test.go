@@ -14,8 +14,9 @@ import (
 )
 
 func TestWatchRegistration(t *testing.T) {
+	mode.ResetForTest()
 	name := wctx.DisplayName("github.com/yaklabco/stave/pkg/watch.TestWatchRegistration")
-	mode.SetOutermostTarget(name)
+	mode.AddRequestedTarget(name)
 	ctx := wctx.WithCurrent(t.Context(), name)
 	wctx.Register(name, ctx)
 	defer wctx.Unregister(name)
@@ -30,9 +31,10 @@ func TestWatchRegistration(t *testing.T) {
 }
 
 func TestWatchDeps(t *testing.T) {
+	mode.ResetForTest()
 	name := wctx.DisplayName("github.com/yaklabco/stave/pkg/watch.TestWatchDeps")
 	mode.SetOverallWatchMode(true)
-	mode.SetOutermostTarget(name)
+	mode.AddRequestedTarget(name)
 	ctx := wctx.WithCurrent(t.Context(), name)
 	wctx.Register(name, ctx)
 	defer wctx.Unregister(name)
@@ -50,8 +52,9 @@ func TestWatchDeps(t *testing.T) {
 }
 
 func TestWatchCancellation(t *testing.T) {
+	mode.ResetForTest()
 	name := wctx.DisplayName("github.com/yaklabco/stave/pkg/watch.TestWatchCancellation")
-	mode.SetOutermostTarget(name)
+	mode.AddRequestedTarget(name)
 	mode.SetOverallWatchMode(true)
 	ctx := wctx.WithCurrent(t.Context(), name)
 	wctx.Register(name, ctx)

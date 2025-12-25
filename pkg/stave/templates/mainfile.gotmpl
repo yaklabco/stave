@@ -145,7 +145,15 @@ func main() {
 		{{- end}}
 	}
 	{{ if $watchPkg }}
-	{{ $watchPkg }}.SetOutermostTarget(outermost)
+	for _, target := range args.Args {
+		{{ $watchPkg }}.AddRequestedTarget(target)
+	}
+	{{ if .DefaultFunc.Name }}
+	if len(args.Args) == 0 {
+		{{ $watchPkg }}.AddRequestedTarget("{{ .DefaultFunc.TargetName }}")
+	}
+	{{ end }}
+	{{ $watchPkg }}.AddRequestedTarget(outermost)
 	{{ end }}
 
 	// color is ANSI color type
@@ -441,158 +449,124 @@ func main() {
 			os.Exit(2)
 		}
 	}
-	if len(args.Args) < 1 {
-		{{- if .DefaultFunc.Name}}
-		if parseBool("STAVEFILE_IGNOREDEFAULT") {
-			logger.Println("Error: STAVEFILE_IGNOREDEFAULT is on and no target specified.")
+	runAllTargets := func() any {
+		if len(args.Args) < 1 {
+			{{- if .DefaultFunc.Name}}
+			if parseBool("STAVEFILE_IGNOREDEFAULT") {
+				logger.Println("Error: STAVEFILE_IGNOREDEFAULT is on and no target specified.")
+				os.Exit(1)
+			}
+			run := func() any {
+				_targetArgs := []string{}
+				_ = _targetArgs
+				{{.DefaultFunc.ExecCode}}
+				return ret
+			}
+			return run()
+			{{- else}}
+			logger.Println("Error: no targets specified and no `Default` defined.")
 			os.Exit(1)
+			{{- end}}
 		}
-		run := func() any {
-			_targetArgs := []string{}
-			_ = _targetArgs
-			{{.DefaultFunc.ExecCode}}
-			return ret
-		}
-		ret := run()
-		{{ if $watchPkg }}
-		if {{ $watchPkg }}.IsOverallWatchMode() {
+
+		hooksAreRunning := parseBool("STAVEFILE_HOOKS_RUNNING")
+		for iArg := 0; iArg < len(args.Args); {
+			target := args.Args[iArg]
+			iArg++
+
+			// resolve aliases
+			switch _strings.ToLower(target) {
+				{{range $alias, $func := .Aliases}}
+			case "{{lower $alias}}":
+				target = "{{$func.TargetName}}"
+				{{- end}}
+			}
+
+			var ret any
+			switch _strings.ToLower(target) {
+				{{range .Funcs }}
+			case "{{lower .TargetName}}":
+				expected := iArg + {{len .Args}}
+				if expected > len(args.Args) {
+					// note that expected and args at this point include the arg for the target itself
+					// so we subtract 1 here to show the number of args without the target.
+					logger.Printf("not enough arguments for target \"{{.TargetName}}\", expected %v, got %v\n", expected-1, len(args.Args)-1)
+					os.Exit(2)
+				}
+				if args.Verbose {
+					logger.Println("Running target: <{{.TargetName}}>")
+				}
+				_targetArgs := args.Args[iArg:expected]
+				iArg = expected
+				run := func() any {
+					_ = _targetArgs
+					{{.ExecCode}}
+					return ret
+				}
+				ret = run()
+				{{- end}}
+				{{range .Imports}}
+				{{$imp := .}}
+				{{range .Info.Funcs }}
+			case "{{lower .TargetName}}":
+				expected := iArg + {{len .Args}}
+				if expected > len(args.Args) {
+					// note that expected and args at this point include the arg for the target itself
+					// so we subtract 1 here to show the number of args without the target.
+					logger.Printf("not enough arguments for target \"{{.TargetName}}\", expected %v, got %v\n", expected-1, len(args.Args)-1)
+					os.Exit(2)
+				}
+				if args.Verbose {
+					logger.Println("Running target: <{{.TargetName}}>")
+				}
+				_targetArgs := args.Args[iArg:expected]
+				iArg = expected
+				run := func() any {
+					_ = _targetArgs
+					{{.ExecCode}}
+					return ret
+				}
+				ret = run()
+				{{- end}}
+				{{- end}}
+			default:
+				logger.Printf("Unknown target specified: %q\n", target)
+				os.Exit(2)
+			}
+
 			if ret != nil {
-				logger.Printf("Error: %+v\n", ret)
-			}
-			{{ $watchPkg }}.RerunLoop(ctx, outermost, func() error {
-				{{ $watchPkg }}.ResetWatchDeps(outermost)
-				ret := run()
-				if ret != nil {
-					if err, ok := ret.(error); ok {
-						return err
-					}
-					return _fmt.Errorf("%v", ret)
-				}
-				return nil
-			})
-		}
-		{{ end }}
-		handleError(logger, ret)
-		return
-		{{- else}}
-		logger.Println("Error: no targets specified and no `Default` defined.")
-		os.Exit(1)
-		{{- end}}
-	}
-
-	hooksAreRunning := parseBool("STAVEFILE_HOOKS_RUNNING")
-	if args.Verbose {
-		logger.Println("STAVEFILE_HOOKS_RUNNING:", hooksAreRunning)
-	}
-
-	for iArg := 0; iArg < len(args.Args); {
-		target := args.Args[iArg]
-		iArg++
-
-		// resolve aliases
-		switch _strings.ToLower(target) {
-			{{range $alias, $func := .Aliases}}
-		case "{{lower $alias}}":
-			target = "{{$func.TargetName}}"
-			{{- end}}
-		}
-
-		switch _strings.ToLower(target) {
-			{{range .Funcs }}
-		case "{{lower .TargetName}}":
-			expected := iArg + {{len .Args}}
-			if expected > len(args.Args) {
-				// note that expected and args at this point include the arg for the target itself
-				// so we subtract 1 here to show the number of args without the target.
-				logger.Printf("not enough arguments for target \"{{.TargetName}}\", expected %v, got %v\n", expected-1, len(args.Args)-1)
-				os.Exit(2)
-			}
-			if args.Verbose {
-				logger.Println("Running target: <{{.TargetName}}>")
-			}
-			_targetArgs := args.Args[iArg:expected]
-			iArg = expected
-			run := func() any {
-				_ = _targetArgs
-				{{.ExecCode}}
 				return ret
 			}
-			ret := run()
-			{{ if $watchPkg }}
-			if _strings.EqualFold(target, outermost) && {{ $watchPkg }}.IsOverallWatchMode() {
-				if ret != nil {
-					logger.Printf("Error: %+v\n", ret)
-				}
-				{{ $watchPkg }}.RerunLoop(ctx, target, func() error {
-					{{ $watchPkg }}.ResetWatchDeps(target)
-					ret := run()
-					if ret != nil {
-						if err, ok := ret.(error); ok {
-							return err
-						}
-						return _fmt.Errorf("%v", ret)
-					}
-					return nil
-				})
-			}
-			{{ end }}
-			handleError(logger, ret)
-			{{- end}}
-			{{range .Imports}}
-			{{$imp := .}}
-			{{range .Info.Funcs }}
-		case "{{lower .TargetName}}":
-			expected := iArg + {{len .Args}}
-			if expected > len(args.Args) {
-				// note that expected and args at this point include the arg for the target itself
-				// so we subtract 1 here to show the number of args without the target.
-				logger.Printf("not enough arguments for target \"{{.TargetName}}\", expected %v, got %v\n", expected-1, len(args.Args)-1)
-				os.Exit(2)
-			}
-			if args.Verbose {
-				logger.Println("Running target: <{{.TargetName}}>")
-			}
-			_targetArgs := args.Args[iArg:expected]
-			iArg = expected
-			run := func() any {
-				_ = _targetArgs
-				{{.ExecCode}}
-				return ret
-			}
-			ret := run()
-			{{ if $watchPkg }}
-			if _strings.EqualFold(target, outermost) && {{ $watchPkg }}.IsOverallWatchMode() {
-				if ret != nil {
-					logger.Printf("Error: %+v\n", ret)
-				}
-				{{ $watchPkg }}.RerunLoop(ctx, target, func() error {
-					{{ $watchPkg }}.ResetWatchDeps(target)
-					ret := run()
-					if ret != nil {
-						if err, ok := ret.(error); ok {
-							return err
-						}
-						return _fmt.Errorf("%v", ret)
-					}
-					return nil
-				})
-			}
-			{{ end }}
-			handleError(logger, ret)
-			{{- end}}
-			{{- end}}
-		default:
-			logger.Printf("Unknown target specified: %q\n", target)
-			os.Exit(2)
-		}
 
-		// If hooks are running, the remainder of the command-line might just be unused hook arguments; instead of treating them as targets, we ignore them.
-		if hooksAreRunning {
-			if args.Verbose && iArg < len(args.Args) {
-				logger.Println(_fmt.Sprintf("Skipping unused arguments in target %s: %v", printName(target), args.Args[iArg:]))
+			// If hooks are running, the remainder of the command-line might just be unused hook arguments; instead of treating them as targets, we ignore them.
+			if hooksAreRunning {
+				if args.Verbose && iArg < len(args.Args) {
+					logger.Println(_fmt.Sprintf("Skipping unused arguments in target %s: %v", printName(target), args.Args[iArg:]))
+				}
+				break
 			}
-
-			break
 		}
+		return nil
 	}
+
+	ret := runAllTargets()
+	{{ if $watchPkg }}
+	if {{ $watchPkg }}.IsOverallWatchMode() {
+		if ret != nil {
+			logger.Printf("Error: %+v\n", ret)
+		}
+		{{ $watchPkg }}.RerunLoop(ctx, outermost, func() error {
+			{{ $watchPkg }}.ResetWatchDeps(outermost)
+			ret := runAllTargets()
+			if ret != nil {
+				if err, ok := ret.(error); ok {
+					return err
+				}
+				return _fmt.Errorf("%v", ret)
+			}
+			return nil
+		})
+	}
+	{{ end }}
+	handleError(logger, ret)
 }

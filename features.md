@@ -171,13 +171,13 @@ All features listed below are introduced in commits after that fork in `yaklabco
 
 ### Watch Mode for File Changes
 
-- **Summary**: Automatically re-run targets when watched files change.
+- **Summary**: Automatically re-run one or more targets when watched files change.
 - **Commits**: Introduced in `feat-watch` branch.
 - **Behavior**:
   - `pkg/watch` provides `Watch(patterns ...string)` to register glob patterns for a target.
   - When a watched file changes, the target's `context.Context` is cancelled, and the target is re-run.
-  - `pkg/watch` includes watch-aware shell helpers (`Run`, `Output`, etc.) that automatically use the cancellable context.
-  - Dependencies registered via `watch.Deps(...)` are also watch-aware.
+  - `stave` supports watching multiple targets simultaneously; all requested targets that call `Watch` will be monitored and re-run independently.
+  - **Context-aware shell helpers**: All shell helpers in `pkg/sh` (e.g., `sh.Run`, `sh.Output`) are now automatically context-aware. They use the active target's context, making them safe for use in watch mode (they will be terminated when a re-run is triggered) without the need for `watch`-specific shell helpers.
 - **Why this is new vs Mage**:
   - Mage does not have built-in watch functionality. Users typically rely on external tools like `entr` or `reflex`. Stave provides this natively within the Go-based build script.
 

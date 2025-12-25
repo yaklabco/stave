@@ -534,7 +534,7 @@ func setImports(ctx context.Context, gocmd string, pi *PkgInfo) error {
 	for _, imp := range imports {
 		// If it's one of our internal API packages, we don't want to expose its functions as targets
 		// unless they are explicitly tagged (which they aren't).
-		// This prevents conflicts like SetOutermostTarget being defined in both st and watch.
+		// This prevents conflicts like AddRequestedTarget being defined in both st and watch.
 		if imp.Path == stPkgPath || imp.Path == watchPkgPath {
 			imp.Info.Funcs = nil
 		}
@@ -689,32 +689,21 @@ func sanitizeSynopsis(theFunc *doc.Func) string {
 }
 
 func setDefault(pkgInfo *PkgInfo) {
-	for _, theValue := range pkgInfo.DocPkg.Vars {
-		for iName, theName := range theValue.Names {
-			if theName != "Default" {
-				continue
-			}
-			spec, isValueSpec := theValue.Decl.Specs[iName].(*ast.ValueSpec)
-			if !isValueSpec {
-				slog.Warn(
-					"expected *ast.ValueSpec, but got different type",
-					slog.String(log.Type, fmt.Sprintf("%T", theValue.Decl.Specs[iName])),
-				)
-				continue
-			}
-			if len(spec.Values) != 1 {
-				slog.Warn("default declaration has multiple values")
-			}
-
-			defaultFunc, err := getFunction(spec.Values[0], pkgInfo)
-			if err != nil {
-				slog.Warn("default declaration malformed", slog.Any(log.Error, err))
-				return
-			}
-			pkgInfo.DefaultFunc = defaultFunc
-			return
-		}
+	spec := findValueSpec(pkgInfo.DocPkg.Vars, "Default")
+	if spec == nil {
+		return
 	}
+
+	if len(spec.Values) != 1 {
+		slog.Warn("default declaration has multiple values")
+	}
+
+	defaultFunc, err := getFunction(spec.Values[0], pkgInfo)
+	if err != nil {
+		slog.Warn("default declaration malformed", slog.Any(log.Error, err))
+		return
+	}
+	pkgInfo.DefaultFunc = defaultFunc
 }
 
 func lit2string(l *ast.BasicLit) (string, bool) {
@@ -725,52 +714,72 @@ func lit2string(l *ast.BasicLit) (string, bool) {
 }
 
 func setAliases(pkgInfo *PkgInfo) {
-	for _, varDecl := range pkgInfo.DocPkg.Vars {
-		for idx, name := range varDecl.Names {
-			if name != "Aliases" {
-				continue
-			}
-			spec, isValueSpec := varDecl.Decl.Specs[idx].(*ast.ValueSpec)
-			if !isValueSpec {
-				slog.Warn("aliases declaration is not a value")
-				return
-			}
-			if len(spec.Values) != 1 {
-				slog.Warn("aliases declaration has multiple values")
-			}
-			comp, isCompLit := spec.Values[0].(*ast.CompositeLit)
-			if !isCompLit {
-				slog.Warn("aliases declaration is not a map")
-				return
-			}
-			pkgInfo.Aliases = map[string]*Function{}
-			for _, elem := range comp.Elts {
-				kvExpr, isKeyValue := elem.(*ast.KeyValueExpr)
-				if !isKeyValue {
-					slog.Warn("alias declaration is not a map element", slog.Any(log.Elem, elem))
-					continue
-				}
-				basicLit, isBasicLit := kvExpr.Key.(*ast.BasicLit)
-				if !isBasicLit || basicLit.Kind != token.STRING {
-					slog.Warn("alias key is not a string literal", slog.Any(log.Elem, elem))
-					continue
-				}
+	spec := findValueSpec(pkgInfo.DocPkg.Vars, "Aliases")
+	if spec == nil {
+		return
+	}
 
-				alias, isValid := lit2string(basicLit)
-				if !isValid {
-					slog.Warn("malformed name for alias", slog.Any(log.Elem, elem))
-					continue
+	if len(spec.Values) != 1 {
+		slog.Warn("aliases declaration has multiple values")
+	}
+
+	comp, isCompLit := spec.Values[0].(*ast.CompositeLit)
+	if !isCompLit {
+		slog.Warn("aliases declaration is not a map")
+		return
+	}
+
+	pkgInfo.Aliases = parseAliasMap(comp, pkgInfo)
+}
+
+func findValueSpec(pkgVars []*doc.Value, name string) *ast.ValueSpec {
+	for _, v := range pkgVars {
+		for _, n := range v.Names {
+			if n == name {
+				for _, s := range v.Decl.Specs {
+					vspec, ok := s.(*ast.ValueSpec)
+					if !ok {
+						continue
+					}
+					for _, sn := range vspec.Names {
+						if sn.Name == name {
+							return vspec
+						}
+					}
 				}
-				aliasFunc, err := getFunction(kvExpr.Value, pkgInfo)
-				if err != nil {
-					slog.Warn("alias malformed", slog.Any(log.Error, err))
-					continue
-				}
-				pkgInfo.Aliases[alias] = aliasFunc
 			}
-			return
 		}
 	}
+	return nil
+}
+
+func parseAliasMap(comp *ast.CompositeLit, pkgInfo *PkgInfo) map[string]*Function {
+	aliases := map[string]*Function{}
+	for _, elem := range comp.Elts {
+		kvExpr, isKeyValue := elem.(*ast.KeyValueExpr)
+		if !isKeyValue {
+			slog.Warn("alias declaration is not a map element", slog.Any(log.Elem, elem))
+			continue
+		}
+		basicLit, isBasicLit := kvExpr.Key.(*ast.BasicLit)
+		if !isBasicLit || basicLit.Kind != token.STRING {
+			slog.Warn("alias key is not a string literal", slog.Any(log.Elem, elem))
+			continue
+		}
+
+		alias, isValid := lit2string(basicLit)
+		if !isValid {
+			slog.Warn("malformed name for alias", slog.Any(log.Elem, elem))
+			continue
+		}
+		aliasFunc, err := getFunction(kvExpr.Value, pkgInfo)
+		if err != nil {
+			slog.Warn("alias malformed", slog.Any(log.Error, err))
+			continue
+		}
+		aliases[alias] = aliasFunc
+	}
+	return aliases
 }
 
 func getFunction(exp ast.Expr, pi *PkgInfo) (*Function, error) {

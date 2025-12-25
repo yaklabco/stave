@@ -213,13 +213,13 @@ func SetOverallWatchMode(b bool)
 
 Sets whether we are in overall watch mode.
 
-### SetOutermostTarget
+### ActiveContext
 
 ```go
-func SetOutermostTarget(name string)
+func ActiveContext() context.Context
 ```
 
-Sets the name of the outermost target being run.
+Returns the context of the nearest active target in the call stack. This is the context used by `pkg/sh` helpers to support cancellation in watch mode.
 
 ### GetOutermostTarget
 
@@ -227,7 +227,7 @@ Sets the name of the outermost target being run.
 func GetOutermostTarget() string
 ```
 
-Returns the name of the outermost target.
+Returns the name of the primary outermost target that was requested on the command line.
 
 ### ColorEnabled
 

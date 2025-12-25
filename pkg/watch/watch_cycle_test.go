@@ -15,7 +15,7 @@ func assertCyclePanic(t *testing.T, name string, fn func()) {
 	t.Helper()
 	st.ResetCycles()
 	st.ResetOnces()
-	mode.SetOutermostTarget(name)
+	mode.AddRequestedTarget(name)
 	mode.SetOverallWatchMode(true)
 	ctx := wctx.WithCurrent(t.Context(), name)
 	wctx.Register(name, ctx)

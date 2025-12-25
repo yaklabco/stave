@@ -18,6 +18,8 @@ func Watch(patterns ...string)
 
 Registers glob patterns to watch for the current target. When any file matching these patterns changes, the current target's context is cancelled, and the target is re-run.
 
+In order for a target to actually be watched, it must be explicitly requested on the command line (or be a dependency of a requested target that activates watch mode).
+
 Patterns can include wildcards:
 
 - `*` matches any character except path separators
@@ -46,88 +48,6 @@ func Build() {
     watch.Deps(Init, Generate)
     // ...
 }
-```
-
-## Watch-Aware Shell Helpers
-
-These functions are counterparts to the `sh` package functions but are aware of the cancellable context used in watch mode. When a re-run is triggered, any ongoing command started with these helpers will be terminated.
-
-### Run
-
-```go
-func Run(cmd string, args ...string) error
-```
-
-### RunV
-
-```go
-func RunV(cmd string, args ...string) error
-```
-
-### RunWith
-
-```go
-func RunWith(env map[string]string, cmd string, args ...string) error
-```
-
-### RunWithV
-
-```go
-func RunWithV(env map[string]string, cmd string, args ...string) error
-```
-
-### Output
-
-```go
-func Output(cmd string, args ...string) (string, error)
-```
-
-### OutputWith
-
-```go
-func OutputWith(env map[string]string, cmd string, args ...string) (string, error)
-```
-
-### Piper
-
-```go
-func Piper(stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) error
-```
-
-### PiperWith
-
-```go
-func PiperWith(env map[string]string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) error
-```
-
-### Exec
-
-```go
-func Exec(env map[string]string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) (bool, error)
-```
-
-### RunCmd
-
-```go
-func RunCmd(cmd string, args ...string) func(args ...string) error
-```
-
-### OutCmd
-
-```go
-func OutCmd(cmd string, args ...string) func(args ...string) (string, error)
-```
-
-### Rm
-
-```go
-func Rm(path string) error
-```
-
-### Copy
-
-```go
-func Copy(dst, src string) error
 ```
 
 ## Utility Functions
