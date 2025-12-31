@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2025-12-31
+
+### Added
+
+- Support for running a `Default` target in a namespace when only the namespace name is provided as an argument.
+
 ## [0.6.6] - 2025-12-25
 
 ### Fixed
@@ -283,7 +289,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.6.6...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/yaklabco/stave/compare/v0.6.6...v0.7.0
 [0.6.6]: https://github.com/yaklabco/stave/compare/v0.6.5...v0.6.6
 [0.6.5]: https://github.com/yaklabco/stave/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/yaklabco/stave/compare/v0.6.3...v0.6.4

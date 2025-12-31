@@ -18,7 +18,7 @@ func TestArgs(t *testing.T) {
 	dataDirForThisTest := testDataArgsDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -53,7 +53,7 @@ func TestBadIntArg(t *testing.T) {
 	dataDirForThisTest := testDataArgsDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -82,7 +82,7 @@ func TestBadBoolArg(t *testing.T) {
 	dataDirForThisTest := testDataArgsDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -109,7 +109,7 @@ func TestBadDurationArg(t *testing.T) {
 	dataDirForThisTest := testDataArgsDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -138,7 +138,7 @@ func TestBadFloat64Arg(t *testing.T) {
 	dataDirForThisTest := testDataArgsDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -167,7 +167,7 @@ func TestMissingArgs(t *testing.T) {
 	dataDirForThisTest := testDataArgsDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -196,7 +196,7 @@ func TestDocs(t *testing.T) {
 	dataDirForThisTest := testDataArgsDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -232,7 +232,7 @@ func TestMgF(t *testing.T) {
 	dataDirForThisTest := testDataArgsDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 

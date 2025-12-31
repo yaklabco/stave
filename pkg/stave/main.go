@@ -41,6 +41,8 @@ const (
 	curDir = "."
 
 	longAgoShift = -time.Hour * 24 * 365 * 10
+
+	defaultLabel = "Default"
 )
 
 // RunParams contains the args for invoking a run of Stave.
@@ -426,6 +428,7 @@ type mainfileTemplateData struct {
 	DefaultFunc  parse.Function
 	Aliases      map[string]*parse.Function
 	Imports      []*parse.Import
+	Namespaces   map[string]string
 	BinaryName   string
 	NoColorTERMs []string
 }
@@ -574,7 +577,7 @@ func Compile(ctx context.Context, params CompileParams) error {
 		params.Gofiles[i] = filepath.Base(params.Gofiles[i])
 	}
 
-	buildArgs := []string{"build", "-o", params.CompileTo}
+	buildArgs := []string{"build", "-tags", "stave", "-o", params.CompileTo}
 	if params.Ldflags != "" {
 		buildArgs = append(buildArgs, "-ldflags", params.Ldflags)
 	}
@@ -616,6 +619,37 @@ func GenerateMainFile(binaryName, path string, info *parse.PkgInfo) error {
 		Imports:      info.Imports,
 		BinaryName:   binaryName,
 		NoColorTERMs: st.NoColorTERMs(),
+		Namespaces:   make(map[string]string),
+	}
+
+	for _, f := range info.Funcs {
+		if f.Receiver != "" {
+			ns := strings.ToLower(f.Receiver)
+			if strings.EqualFold(f.Name, defaultLabel) {
+				data.Namespaces[ns] = f.TargetName()
+			} else if _, ok := data.Namespaces[ns]; !ok {
+				data.Namespaces[ns] = ""
+			}
+		}
+	}
+
+	for _, imp := range info.Imports {
+		for _, theFunc := range imp.Info.Funcs {
+			if theFunc.Receiver != "" {
+				ns := strings.ToLower(theFunc.TargetName())
+				// theFunc.TargetName() is "pkg:ns:target"
+				// we want "pkg:ns"
+				lastColon := strings.LastIndex(ns, ":")
+				if lastColon != -1 {
+					nsPrefix := ns[:lastColon]
+					if strings.EqualFold(theFunc.Name, defaultLabel) {
+						data.Namespaces[nsPrefix] = theFunc.TargetName()
+					} else if _, ok := data.Namespaces[nsPrefix]; !ok {
+						data.Namespaces[nsPrefix] = ""
+					}
+				}
+			}
+		}
 	}
 
 	if info.DefaultFunc != nil {

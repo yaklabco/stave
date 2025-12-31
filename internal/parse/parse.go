@@ -341,7 +341,12 @@ func getNamedImports(ctx context.Context, gocmd string, pkgs map[string]string) 
 func getImport(ctx context.Context, gocmd, importpath, alias string) (*Import, error) {
 	out, err := internal.OutputDebug(ctx, gocmd, "list", "-f", "{{.Dir}}||{{.Name}}", importpath)
 	if err != nil {
-		return nil, err
+		if strings.Contains(err.Error(), "build constraints exclude all Go files") {
+			out, err = internal.OutputDebug(ctx, gocmd, "list", "-tags", "stave", "-f", "{{.Dir}}||{{.Name}}", importpath)
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 	parts := strings.Split(out, "||")
 	if len(parts) != keyValueParts {
@@ -358,7 +363,12 @@ func getImport(ctx context.Context, gocmd, importpath, alias string) (*Import, e
 	// have more than one package in a folder because of build tags.
 	out, err = internal.OutputDebug(ctx, gocmd, "list", "-f", `{{join .GoFiles "||"}}`, importpath)
 	if err != nil {
-		return nil, err
+		if strings.Contains(err.Error(), "build constraints exclude all Go files") {
+			out, err = internal.OutputDebug(ctx, gocmd, "list", "-tags", "stave", "-f", `{{join .GoFiles "||"}}`, importpath)
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 	files := strings.Split(out, "||")
 

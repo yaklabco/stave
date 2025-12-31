@@ -76,6 +76,33 @@ func DeployAll() {
 }
 ```
 
+## Default Target in a Namespace
+
+A namespace can have its own `Default` target, which runs when only the namespace name is provided as an argument to `stave`.
+
+To define a default target for a namespace, add a method named `Default` to your namespace type:
+
+```go
+type Build st.Namespace
+
+func (Build) Default() {
+    st.Deps(Build.Binary)
+}
+
+func (Build) Binary() { /* ... */ }
+func (Build) Docker() { /* ... */ }
+```
+
+Now, running:
+
+```bash
+stave build
+```
+
+is equivalent to running `stave build:default`.
+
+If a namespace is provided but has no `Default` target defined, Stave will exit with an informative error message.
+
 ## Multiple Namespaces
 
 Define as many namespaces as needed:

@@ -91,6 +91,10 @@ import (
 
 The imported package must contain valid target functions.
 
+### Build Tags in Imported Packages
+
+Imported packages can use the `//go:build stave` build tag, just like your main stavefile. Stave will automatically detect and include these files during the build process. This is particularly useful for shared build logic that should not be included in normal Go builds.
+
 ## Exit Codes
 
 Return an error to indicate failure:
