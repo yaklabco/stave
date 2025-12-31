@@ -482,6 +482,21 @@ func main() {
 				{{- end}}
 			}
 
+			{{- if .Namespaces}}
+			// resolve namespaces
+			switch _strings.ToLower(target) {
+				{{- range $ns, $default := .Namespaces}}
+			case "{{$ns}}":
+				{{- if $default}}
+				target = "{{$default}}"
+				{{- else}}
+				logger.Printf("Target %q is a namespace, but it has no Default target.\n", target)
+				os.Exit(2)
+				{{- end}}
+				{{- end}}
+			}
+			{{- end}}
+
 			var ret any
 			switch _strings.ToLower(target) {
 				{{range .Funcs }}

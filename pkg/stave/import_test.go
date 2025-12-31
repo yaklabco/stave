@@ -22,7 +22,7 @@ func TestStaveImportsList(t *testing.T) {
 	dataDirForThisTest := testDataStaveImportDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -55,7 +55,7 @@ func TestStaveImportsHelp(t *testing.T) {
 	dataDirForThisTest := testDataStaveImportDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -90,7 +90,7 @@ func TestStaveImportsHelpNamed(t *testing.T) {
 	dataDirForThisTest := testDataStaveImportDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -125,7 +125,7 @@ func TestStaveImportsHelpNamedNS(t *testing.T) {
 	dataDirForThisTest := testDataStaveImportDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -162,7 +162,7 @@ func TestStaveImportsRoot(t *testing.T) {
 	dataDirForThisTest := testDataStaveImportDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -188,7 +188,7 @@ func TestStaveImportsNamedNS(t *testing.T) {
 	dataDirForThisTest := testDataStaveImportDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -214,7 +214,7 @@ func TestStaveImportsNamedRoot(t *testing.T) {
 	dataDirForThisTest := testDataStaveImportDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -251,7 +251,7 @@ func TestStaveImportsRootImportNS(t *testing.T) {
 	dataDirForThisTest := testDataStaveImportDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -277,7 +277,7 @@ func TestStaveImportsRootImport(t *testing.T) {
 	dataDirForThisTest := testDataStaveImportDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -303,7 +303,7 @@ func TestStaveImportsAliasToNS(t *testing.T) {
 	dataDirForThisTest := testDataStaveImportDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -329,7 +329,7 @@ func TestStaveImportsOneLine(t *testing.T) {
 	dataDirForThisTest := filepath.Join(testDataStaveImportDir, "oneline")
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -355,7 +355,7 @@ func TestStaveImportsTrailing(t *testing.T) {
 	dataDirForThisTest := filepath.Join(testDataStaveImportDir, "trailing")
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -381,7 +381,7 @@ func TestStaveImportsTaggedPackage(t *testing.T) {
 	dataDirForThisTest := filepath.Join(testDataStaveImportDir, "tagged")
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -397,15 +397,11 @@ func TestStaveImportsTaggedPackage(t *testing.T) {
 	}
 
 	err := Run(runParams)
-	require.Error(t, err)
+	require.NoError(t, err, "stderr was: %s", stderr.String())
 
-	actual := err.Error()
-	// Match a shorter version of the error message, since the output from go list differs between versions
-	expected := `
-parsing stavefiles: error running "go list -f {{.Dir}}||{{.Name}} github.com/yaklabco/stave/pkg/stave/testdata/staveimport/tagged/pkg": exit status 1`[1:]
-	actualShortened := lo.Substring(actual, 0, uint(len(expected)))
-
-	assert.Contains(t, expected, actualShortened)
+	out := stdout.String()
+	assert.Contains(t, out, "pkg")
+	assert.Contains(t, out, "build")
 }
 
 func TestStaveImportsSameNamespaceUniqueTargets(t *testing.T) {
@@ -413,7 +409,7 @@ func TestStaveImportsSameNamespaceUniqueTargets(t *testing.T) {
 	dataDirForThisTest := filepath.Join(testDataStaveImportSameNamespaceDir, "uniquetargets")
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -442,7 +438,7 @@ func TestStaveImportsSameNamespaceDupTargets(t *testing.T) {
 	dataDirForThisTest := filepath.Join(testDataStaveImportSameNamespaceDir, "duptargets")
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 

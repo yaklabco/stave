@@ -183,6 +183,30 @@ All features listed below are introduced in commits after that fork in `yaklabco
 
 ---
 
+### Namespace Default Targets
+
+- **Summary**: Support for running a `Default` target in a namespace when only the namespace name is provided.
+- **Commits**: `f473060 feat: support Default target in namespaces`
+- **Behavior**:
+  - If a namespace `NS` is defined (as `type NS st.Namespace`), and it has a method `Default()`, then running `stave ns` (case-insensitive) will execute `NS.Default`.
+  - If no `Default` target exists in that namespace, Stave returns an informative error message.
+- **Why this is new vs Mage**:
+  - Mage namespaces do not support fallback to a default target; only top-level default targets are supported in Mage.
+
+---
+
+### Improved `stave:import` support
+
+- **Summary**: Enhanced support for importing packages that use the `//go:build stave` constraint.
+- **Commits**: `f473060 feat: support Default target in namespaces` (includes improved import support)
+- **Behavior**:
+  - `stave:import` now correctly handles packages where all Go files are guarded by `//go:build stave`.
+  - It uses `-tags stave` during discovery (`go list`) and final compilation.
+- **Why this is new vs Mage**:
+  - Mage's equivalent import mechanism often struggled with build tags, requiring manual management of tags or avoiding them in imported packages. Stave automates this, allowing imported packages to stay consistent with the main stavefile's build constraints.
+
+---
+
 ## Implementation-Focused Changes (Not Counted as “New Functionality”)
 
 The following changes are important for maintainability and UX but are **not** counted as “new functionality” in the sense of capabilities that Mage did not have:

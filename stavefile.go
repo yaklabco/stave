@@ -249,9 +249,17 @@ func (Setup) Hooks() error {
 
 type Lint st.Namespace
 
-// All runs ling:go after lint:markdown and init
-func (Lint) All() {
+func (Lint) Default() error {
+	st.Deps(Lint.All)
+
+	return nil
+}
+
+// All runs lint:go after lint:markdown and init
+func (Lint) All() error {
 	st.Deps(Init, Lint.Markdown, Lint.Go)
+
+	return nil
 }
 
 // Markdown runs markdownlint-cli2 on all tracked Markdown files
@@ -424,6 +432,12 @@ func (Prep) BuildCacheDir() error {
 // *
 
 type Test st.Namespace
+
+func (Test) Default() error {
+	st.Deps(Test.All)
+
+	return nil
+}
 
 // All aggregate target runs lint:all and test:go
 func (Test) All() error {

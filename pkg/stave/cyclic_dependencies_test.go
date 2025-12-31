@@ -19,7 +19,7 @@ func TestCyclicDependencyDetection(t *testing.T) {
 	dataDirForThisTest := testDataCyclicDependenciesDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 

@@ -197,7 +197,7 @@ func TestTransitiveDepCache(t *testing.T) {
 	dataDirForThisTest := testDataTransitiveDepsDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -256,7 +256,7 @@ func TestTransitiveHashFast(t *testing.T) {
 	dataDirForThisTest := testDataTransitiveDepsDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -449,7 +449,7 @@ func TestMixedStaveImports(t *testing.T) {
 	dataDirForThisTest := testDataMixedLibFilesDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -478,7 +478,7 @@ func TestStavefilesFolder(t *testing.T) {
 	dataDirForThisTest := testDataWithStaveFilesFolderDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -544,7 +544,7 @@ func TestUntaggedStavefilesFolder(t *testing.T) {
 	dataDirForThisTest := testDataWithUntaggedStaveFilesFolderDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -578,7 +578,7 @@ func TestMixedTaggingStavefilesFolder(t *testing.T) {
 	dataDirForThisTest := testDataWithMixTaggedStaveFilesFolderDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -613,7 +613,7 @@ func TestSetDirWithStavefilesFolder(t *testing.T) {
 	dataDirForThisTest := testDataSetDirWithStaveFilesFolderDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -686,7 +686,7 @@ func TestList(t *testing.T) {
 	dataDirForThisTest := testDataListDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -804,7 +804,7 @@ func TestListNoColor(t *testing.T) {
 	// Acquire mutex for shared test directory to prevent races with parallel tests.
 	mu := mutexByDir(testDataListDir)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -841,7 +841,7 @@ func TestListFiltering(t *testing.T) {
 	dataDirForThisTest := testDataListDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -875,7 +875,7 @@ func TestNoArgNoDefaultList(t *testing.T) {
 	dataDirForThisTest := testDataNoDefaultDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -1034,7 +1034,7 @@ func TestKeepFlag(t *testing.T) {
 	dataDirForThisTest := testDataKeepFlagDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -1078,7 +1078,7 @@ func TestNoSelfDependencies(t *testing.T) {
 	dataDirForThisTest := filepath.Join(testDataDir, "onlyStdLib")
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -1197,7 +1197,7 @@ func TestSetDir(t *testing.T) {
 	dataDirForThisTest := filepath.Join(testDataDir, "setdir")
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -1245,7 +1245,7 @@ func TestTimeout(t *testing.T) {
 	dataDirForThisTest := filepath.Join(testDataDir, "context")
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -1296,7 +1296,7 @@ func TestInfoAlias(t *testing.T) {
 	dataDirForThisTest := testDataAliasDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -1341,7 +1341,7 @@ func TestAlias(t *testing.T) {
 	dataDirForThisTest := testDataAliasDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -1376,7 +1376,7 @@ func TestInvalidAlias(t *testing.T) {
 	dataDirForThisTest := testDataInvalidAliasDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -1415,7 +1415,7 @@ func TestCompiledFlags(t *testing.T) {
 	t.Parallel()
 	mu := mutexByDir(testDataCompiled)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -1486,7 +1486,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 	t.Parallel()
 	mu := mutexByDir(testDataCompiled)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -1568,7 +1568,7 @@ func TestCompiledVerboseFlag(t *testing.T) {
 	t.Parallel()
 	mu := mutexByDir(testDataCompiled)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -1882,7 +1882,7 @@ func TestNamespaceDep(t *testing.T) {
 	dataDirForThisTest := testDataNamespaces
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -1909,7 +1909,7 @@ func TestNamespace(t *testing.T) {
 	dataDirForThisTest := testDataNamespaces
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -1936,7 +1936,7 @@ func TestNamespaceDefault(t *testing.T) {
 	dataDirForThisTest := testDataNamespaces
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -1965,7 +1965,7 @@ func TestWrongDependency(t *testing.T) {
 	dataDirForThisTest := testDataWrongDepDir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -1994,7 +1994,7 @@ func TestBug508(t *testing.T) {
 	dataDirForThisTest := testDataBug508Dir
 	mu := mutexByDir(dataDirForThisTest)
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
