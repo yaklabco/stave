@@ -115,6 +115,7 @@ For more details on any of these features, please see the [stave documentation](
 - [x] Command-line completion of targets (via `stave completion <shell_name>`, or by simply installing `stave` via Homebrew)
 - [x] Automatic detection of circular dependencies in build targets
 - [x] Support for native git-hooks management: no more need to use `husky` or other hooks-management tools; `stave` will manage your hooks for you, and you can specify stavefile targets directly as hooks
+- [x] Integration with `direnv`: delegate environment variable management to `direnv` directly from `stave` using the `--direnv` flag
 - [x] Namespace-level `Default` targets: run a default target within a namespace by passing only the namespace name (e.g., `stave build` instead of `stave build:default`)
 - [x] Public functions, exported under `pkg/changelog`, for automatically generating next version & next build-tag based on [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/), using [svu](https://github.com/caarlos0/svu) (included in `stave` as a module dependency; no need to install separately)
 - [x] Public functions, also exported under `pkg/changelog`, for automatically enforcing [_keep-a-changelog_](https://keepachangelog.com/en/1.1.0/)-compliant CHANGELOG formatting; for enforcing that every push includes an update to the CHANGELOG; and for automatically linkifying your CHANGELOG headings to point to corresponding tag diffs (each can be used / not used separately from one another)

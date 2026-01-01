@@ -69,27 +69,32 @@ stave --dryrun build
 - `sh.Rm` and `sh.Copy` also print instead of acting
 - The stavefile itself still runs (only shell commands are skipped)
 
-### Environment Variables
+## direnv Integration
 
-| Variable                    | Description                                    |
-| --------------------------- | ---------------------------------------------- |
-| `STAVEFILE_DRYRUN`          | Set to `1` to enable dry-run                   |
-| `STAVEFILE_DRYRUN_POSSIBLE` | Set internally; indicates dry-run is supported |
+Delegate environment variable management to [direnv](https://direnv.net/) directly from Stave:
 
-### Checking Dry-Run in Code
-
-```go
-import "github.com/yaklabco/stave/internal/dryrun"
-
-func Deploy() error {
-    if dryrun.IsDryRun() {
-        fmt.Println("Would deploy to production")
-        return nil
-    }
-    // actual deployment
-    return nil
-}
+```bash
+stave --direnv [direnv-subcommand] [args...]
 ```
+
+### Examples
+
+#### Load environment from `.envrc`
+
+If you are using `direnv` to manage your environment variables, you can run `direnv` commands through Stave:
+
+```bash
+stave --direnv allow
+stave --direnv reload
+```
+
+This is particularly useful in CI environments where you might want to leverage `direnv`'s environment-loading capabilities without having to install the `direnv` binary separately, as Stave includes `direnv` as a library.
+
+### Behavior
+
+- Stave delegates the execution to the embedded `direnv` library.
+- Environment variables set via `direnv` are made available to the subsequent execution within that process (though typically you use `--direnv` as its own command).
+- The `--direnv` flag acts as a "pseudo-flag" that triggers a dedicated execution mode, similar to `--hooks` or `--config`.
 
 ## CI Integration
 
