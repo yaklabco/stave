@@ -6,6 +6,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/samber/lo"
 )
 
 const (
@@ -43,18 +45,18 @@ func LinkifyContent(content string) (string, error) {
 	}
 
 	// 1. Identify headings that need links (missing or update required)
-	toLinkify := make(map[string]bool)
+	toLinkify := make(map[string]struct{})
 	for _, h := range cl.Headings {
 		if !cl.HasLinkForVersion(h.Name) {
-			toLinkify[h.Name] = true
+			toLinkify[h.Name] = struct{}{}
 		}
 	}
 
 	// If the newly-linkified heading is the topmost one under "Unreleased",
 	// then the "Unreleased" Link Reference Definition should be updated.
 	if len(cl.Headings) > 1 && strings.ToLower(cl.Headings[0].Name) == unreleasedMarkerString {
-		if toLinkify[cl.Headings[1].Name] {
-			toLinkify[cl.Headings[0].Name] = true
+		if lo.HasKey(toLinkify, cl.Headings[1].Name) {
+			toLinkify[cl.Headings[0].Name] = struct{}{}
 		}
 	}
 
@@ -79,7 +81,7 @@ func LinkifyContent(content string) (string, error) {
 	// 3. Generate links
 	newLinks := make(map[string]string)
 	for iHeading, theHeading := range cl.Headings {
-		if !toLinkify[theHeading.Name] {
+		if !lo.HasKey(toLinkify, theHeading.Name) {
 			continue
 		}
 

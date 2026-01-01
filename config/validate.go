@@ -4,29 +4,31 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/samber/lo"
 )
 
 // validTargetColors is the set of valid ANSI color names for target output.
 //
 //nolint:gochecknoglobals // package-level lookup table for color validation
-var validTargetColors = map[string]bool{
-	"black":         true,
-	"red":           true,
-	"green":         true,
-	"yellow":        true,
-	"blue":          true,
-	"magenta":       true,
-	"cyan":          true,
-	"white":         true,
-	"brightblack":   true,
-	"brightred":     true,
-	"brightgreen":   true,
-	"brightyellow":  true,
-	"brightblue":    true,
-	"brightmagenta": true,
-	"brightcyan":    true,
-	"brightwhite":   true,
-}
+var validTargetColors = lo.Keyify([]string{
+	"black",
+	"red",
+	"green",
+	"yellow",
+	"blue",
+	"magenta",
+	"cyan",
+	"white",
+	"brightblack",
+	"brightred",
+	"brightgreen",
+	"brightyellow",
+	"brightblue",
+	"brightmagenta",
+	"brightcyan",
+	"brightwhite",
+})
 
 // ValidationError represents a configuration validation error.
 type ValidationError struct {
@@ -92,7 +94,7 @@ func (c *Config) Validate() ValidationResults {
 	// Validate target_color
 	if c.TargetColor != "" {
 		normalized := strings.ToLower(c.TargetColor)
-		if !validTargetColors[normalized] {
+		if !lo.HasKey(validTargetColors, normalized) {
 			result.Errors = append(result.Errors, ValidationError{
 				Field:   "target_color",
 				Message: fmt.Sprintf("invalid color %q, must be one of: %s", c.TargetColor, validColorList()),

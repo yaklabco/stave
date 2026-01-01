@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/yaklabco/stave/internal"
 	"github.com/yaklabco/stave/internal/log"
 	"golang.org/x/tools/go/packages"
@@ -218,7 +219,7 @@ func checkDupes(info *PkgInfo, imports []*Import) error {
 
 // buildFuncMap creates a map of target names to functions for duplicate detection.
 func buildFuncMap(info *PkgInfo, imports []*Import) map[string][]*Function {
-	funcs := map[string][]*Function{}
+	funcs := make(map[string][]*Function)
 
 	for _, f := range info.Funcs {
 		target := strings.ToLower(f.TargetName())
@@ -416,7 +417,7 @@ func (s Imports) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-func setFuncs(pkgInfo *PkgInfo, watchTargets map[string]bool) {
+func setFuncs(pkgInfo *PkgInfo, watchTargets map[string]struct{}) {
 	for _, theFunc := range pkgInfo.DocPkg.Funcs {
 		if theFunc.Recv != "" {
 			slog.Debug("skipping method", slog.String(log.Func, theFunc.Name), slog.String("recv", theFunc.Recv))
@@ -441,12 +442,12 @@ func setFuncs(pkgInfo *PkgInfo, watchTargets map[string]bool) {
 		funcInfo.Name = theFunc.Name
 		funcInfo.Comment = toOneLine(theFunc.Doc)
 		funcInfo.Synopsis = sanitizeSynopsis(theFunc)
-		funcInfo.IsWatch = watchTargets[theFunc.Name]
+		funcInfo.IsWatch = lo.HasKey(watchTargets, theFunc.Name)
 		pkgInfo.Funcs = append(pkgInfo.Funcs, funcInfo)
 	}
 }
 
-func setNamespaces(pkgInfo *PkgInfo, watchTargets map[string]bool) {
+func setNamespaces(pkgInfo *PkgInfo, watchTargets map[string]struct{}) {
 	for _, theType := range pkgInfo.DocPkg.Types {
 		if !isNamespace(theType) {
 			continue
@@ -481,7 +482,7 @@ func setNamespaces(pkgInfo *PkgInfo, watchTargets map[string]bool) {
 			funcInfo.Comment = toOneLine(theMethod.Doc)
 			funcInfo.Synopsis = sanitizeSynopsis(theMethod)
 			funcInfo.Receiver = theType.Name
-			funcInfo.IsWatch = watchTargets[theType.Name+"."+theMethod.Name]
+			funcInfo.IsWatch = lo.HasKey(watchTargets, theType.Name+"."+theMethod.Name)
 
 			pkgInfo.Funcs = append(pkgInfo.Funcs, funcInfo)
 		}
@@ -490,7 +491,7 @@ func setNamespaces(pkgInfo *PkgInfo, watchTargets map[string]bool) {
 
 func setImports(ctx context.Context, gocmd string, pi *PkgInfo) error {
 	var rootImports []string
-	importNames := map[string]string{}
+	importNames := make(map[string]string)
 	for _, f := range pi.Files {
 		for _, d := range f.Decls {
 			gen, ok := d.(*ast.GenDecl)
@@ -555,15 +556,15 @@ func setImports(ctx context.Context, gocmd string, pi *PkgInfo) error {
 	}
 
 	// have to set unique package names on imports
-	used := map[string]bool{}
+	used := make(map[string]struct{})
 	for _, imp := range imports {
 		unique := imp.Name + "_staveimport"
 		x := 1
-		for used[unique] {
+		for lo.HasKey(used, unique) {
 			unique = fmt.Sprintf("%s_staveimport%d", imp.Name, x)
 			x++
 		}
-		used[unique] = true
+		used[unique] = struct{}{}
 		imp.UniqueName = unique
 		for _, f := range imp.Info.Funcs {
 			f.Package = unique
@@ -663,17 +664,17 @@ func isNamespace(typeDecl *doc.Type) bool {
 // checkDupeTargets checks a package for duplicate target names.
 func checkDupeTargets(info *PkgInfo) (bool, map[string][]string) {
 	var hasDupes bool
-	names := map[string][]string{}
-	lowers := map[string]bool{}
+	names := make(map[string][]string)
+	lowers := make(map[string]struct{})
 	for _, theFunc := range info.Funcs {
 		low := strings.ToLower(theFunc.Name)
 		if theFunc.Receiver != "" {
 			low = strings.ToLower(theFunc.Receiver) + ":" + low
 		}
-		if lowers[low] {
+		if lo.HasKey(lowers, low) {
 			hasDupes = true
 		}
-		lowers[low] = true
+		lowers[low] = struct{}{}
 		names[low] = append(names[low], theFunc.Name)
 	}
 	return hasDupes, names
@@ -764,7 +765,7 @@ func findValueSpec(pkgVars []*doc.Value, name string) *ast.ValueSpec {
 }
 
 func parseAliasMap(comp *ast.CompositeLit, pkgInfo *PkgInfo) map[string]*Function {
-	aliases := map[string]*Function{}
+	aliases := make(map[string]*Function)
 	for _, elem := range comp.Elts {
 		kvExpr, isKeyValue := elem.(*ast.KeyValueExpr)
 		if !isKeyValue {
@@ -931,7 +932,7 @@ func getPackage(path string, files []string, fset *token.FileSet) (string, []*as
 	if err == nil && len(pkgs) > 0 && packages.PrintErrors(pkgs) == 0 {
 		// Collect unique, valid packages with syntax.
 		var outPkgs []*packages.Package
-		nameSet := map[string]struct{}{}
+		nameSet := make(map[string]struct{})
 		for _, p := range pkgs {
 			if p == nil || len(p.Syntax) == 0 {
 				continue
@@ -1087,8 +1088,8 @@ func toOneLine(s string) string {
 	return strings.TrimSpace(strings.ReplaceAll(s, "\n", " "))
 }
 
-func detectWatchTargets(files []*ast.File) map[string]bool {
-	watchTargets := make(map[string]bool)
+func detectWatchTargets(files []*ast.File) map[string]struct{} {
+	watchTargets := make(map[string]struct{})
 	for _, file := range files {
 		watchAlias := getWatchAlias(file)
 		if watchAlias == "" {
@@ -1103,10 +1104,11 @@ func detectWatchTargets(files []*ast.File) map[string]bool {
 
 			key := getFuncKey(fn)
 			if hasWatchCall(fn, watchAlias) {
-				watchTargets[key] = true
+				watchTargets[key] = struct{}{}
 			}
 		}
 	}
+
 	return watchTargets
 }
 

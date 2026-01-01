@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gobwas/glob"
+	"github.com/samber/lo"
 	"github.com/yaklabco/stave/pkg/st"
 	"github.com/yaklabco/stave/pkg/watch/mode"
 	"github.com/yaklabco/stave/pkg/watch/wctx"
@@ -25,7 +26,7 @@ func GetTargetState(name string) *wtarget.Target {
 	theState := &wtarget.Target{
 		Name:      name,
 		RerunChan: make(chan struct{}, 1),
-		DepIDs:    make(map[string]bool),
+		DepIDs:    make(map[string]struct{}),
 	}
 	targets[name] = theState
 	return theState
@@ -164,8 +165,8 @@ func Deps(fns ...any) {
 
 	for _, theFunc := range fns {
 		id := st.F(theFunc).ID()
-		if !theState.DepIDs[id] {
-			theState.DepIDs[id] = true
+		if !lo.HasKey(theState.DepIDs, id) {
+			theState.DepIDs[id] = struct{}{}
 			theState.Deps = append(theState.Deps, theFunc)
 		}
 	}

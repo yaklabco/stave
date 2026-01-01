@@ -521,18 +521,18 @@ func Stavefiles(stavePath, goos, goarch string, isStavefilesDirectory bool) ([]s
 	}
 
 	// convert non-Stave list to a map of files to exclude.
-	exclude := map[string]bool{}
+	exclude := make(map[string]struct{})
 	for _, f := range nonStaveFiles {
 		if f != "" {
 			slog.Debug("marked file as non-stave", slog.String(log.Path, f))
-			exclude[f] = true
+			exclude[f] = struct{}{}
 		}
 	}
 
 	// filter out the non-stave files from the stave files.
 	var files []string
 	for _, f := range staveFiles {
-		if f != "" && !exclude[f] {
+		if f != "" && !lo.HasKey(exclude, f) {
 			files = append(files, f)
 		}
 	}

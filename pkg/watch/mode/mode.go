@@ -3,13 +3,15 @@ package mode
 import (
 	"strings"
 	"sync"
+
+	"github.com/samber/lo"
 )
 
 var (
-	overallWatchMode bool            //nolint:gochecknoglobals // These are intentionally global, and part of a sync.Mutex pattern.
-	requestedTargets map[string]bool //nolint:gochecknoglobals // These are intentionally global, and part of a sync.Mutex pattern.
-	primaryTarget    string          //nolint:gochecknoglobals // These are intentionally global, and part of a sync.Mutex pattern.
-	watchModeMu      sync.Mutex      //nolint:gochecknoglobals // These are intentionally global, and part of a sync.Mutex pattern.
+	overallWatchMode bool                //nolint:gochecknoglobals // These are intentionally global, and part of a sync.Mutex pattern.
+	requestedTargets map[string]struct{} //nolint:gochecknoglobals // These are intentionally global, and part of a sync.Mutex pattern.
+	primaryTarget    string              //nolint:gochecknoglobals // These are intentionally global, and part of a sync.Mutex pattern.
+	watchModeMu      sync.Mutex          //nolint:gochecknoglobals // These are intentionally global, and part of a sync.Mutex pattern.
 )
 
 // SetOverallWatchMode sets whether we are in overall watch mode.
@@ -31,12 +33,12 @@ func AddRequestedTarget(name string) {
 	watchModeMu.Lock()
 	defer watchModeMu.Unlock()
 	if requestedTargets == nil {
-		requestedTargets = make(map[string]bool)
+		requestedTargets = make(map[string]struct{})
 	}
 	if primaryTarget == "" {
 		primaryTarget = name
 	}
-	requestedTargets[strings.ToLower(name)] = true
+	requestedTargets[strings.ToLower(name)] = struct{}{}
 }
 
 // ResetForTest resets the global state for testing purposes.
@@ -52,7 +54,8 @@ func ResetForTest() {
 func IsRequestedTarget(name string) bool {
 	watchModeMu.Lock()
 	defer watchModeMu.Unlock()
-	return requestedTargets[strings.ToLower(name)]
+
+	return lo.HasKey(requestedTargets, strings.ToLower(name))
 }
 
 // GetOutermostTarget returns the name of the primary outermost target.

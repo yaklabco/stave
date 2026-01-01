@@ -2,6 +2,8 @@ package changelog
 
 import (
 	"testing"
+
+	"github.com/samber/lo"
 )
 
 // mockGitOps implements GitOps for testing.
@@ -10,7 +12,7 @@ type mockGitOps struct {
 	changedErr    error
 	mergeBase     string
 	mergeBaseErr  error
-	refExists     map[string]bool
+	refExists     map[string]struct{}
 	currentBranch string
 	branchErr     error
 }
@@ -33,7 +35,7 @@ func (m *mockGitOps) RefExists(ref string) bool {
 	if m.refExists == nil {
 		return false
 	}
-	return m.refExists[ref]
+	return lo.HasKey(m.refExists, ref)
 }
 
 func (m *mockGitOps) CurrentBranch() (string, error) {
@@ -96,7 +98,7 @@ func TestMockGitOps(t *testing.T) {
 	mock := &mockGitOps{
 		changedFiles:  []string{"file1.go", "file2.go"},
 		mergeBase:     "abc123",
-		refExists:     map[string]bool{"refs/heads/main": true},
+		refExists:     lo.Keyify([]string{"refs/heads/main"}),
 		currentBranch: "feature-branch",
 	}
 
