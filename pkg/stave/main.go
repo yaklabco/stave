@@ -347,22 +347,22 @@ func stave(ctx context.Context, params RunParams) error {
 
 func howManyThingsToDo(params RunParams) int {
 	nThingsToDo := 0
+
 	switch {
-	case params.List:
+	case
+		params.Clean,
+		params.Config,
+		params.DirEnv,
+		params.Exec,
+		params.Hooks,
+		params.Init,
+		params.List:
 		nThingsToDo++
-	case params.Init:
-		nThingsToDo++
-	case params.Clean:
-		nThingsToDo++
-	case params.Exec:
-		nThingsToDo++
-	case params.Hooks:
-		nThingsToDo++
-	case params.Config:
-		nThingsToDo++
+
 	case len(params.Args) > 0:
 		nThingsToDo++
 	}
+
 	return nThingsToDo
 }
 
