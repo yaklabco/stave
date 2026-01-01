@@ -17,10 +17,12 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
+	github.com/yaklabco/direnv/v2 v2.37.2-0.20260101164019-34d2c1f0c4a7
 	golang.org/x/tools v0.40.0
 )
 
 require (
+	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/bitfield/gotestdox v0.2.2 // indirect
@@ -35,6 +37,7 @@ require (
 	github.com/clipperhouse/displaywidth v0.6.1 // indirect
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
+	github.com/direnv/direnv/v2 v2.37.1 // indirect
 	github.com/dnephin/pflag v1.0.7 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/go-logfmt/logfmt v0.6.1 // indirect

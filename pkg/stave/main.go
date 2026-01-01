@@ -115,15 +115,6 @@ func Run(params RunParams) error {
 		return errors.New("only one of --init, --clean, --list, --hooks, --config, or explicit targets may be specified")
 	}
 
-	if params.Init {
-		if err := generateInit(params.Dir); err != nil {
-			return err
-		}
-		slog.Info("created initial stavefile", slog.String(log.Filename, initFile))
-
-		return nil
-	}
-
 	if params.Clean {
 		if err := removeContents(params.CacheDir); err != nil {
 			return err
@@ -131,6 +122,14 @@ func Run(params RunParams) error {
 		slog.Info("cleaned cache dir", slog.String(log.Path, params.CacheDir))
 
 		return nil
+	}
+
+	if params.Config {
+		return runConfigMode(ctx, params)
+	}
+
+	if params.DirEnv {
+		return delegateToDirEnv(ctx, params)
 	}
 
 	if params.Exec {
@@ -141,8 +140,13 @@ func Run(params RunParams) error {
 		return runHooksMode(ctx, params)
 	}
 
-	if params.Config {
-		return runConfigMode(ctx, params)
+	if params.Init {
+		if err := generateInit(params.Dir); err != nil {
+			return err
+		}
+		slog.Info("created initial stavefile", slog.String(log.Filename, initFile))
+
+		return nil
 	}
 
 	if params.List {
