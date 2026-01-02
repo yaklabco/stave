@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/yaklabco/stave/pkg/watch"
 )
 
 func TestWatchMultiTarget(t *testing.T) {
@@ -43,7 +44,7 @@ func OtherTarget() {
 		handle := startWatch(t, ctx, staveBin, tmpDir, args...)
 		defer handle.stop()
 
-		timeout := time.After(7 * time.Second)
+		timeout := time.After(watch.WatchTestHalfDuration)
 		for {
 			select {
 			case line, ok := <-handle.lines:

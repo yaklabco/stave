@@ -13,7 +13,7 @@ type Target struct {
 	Globs       []glob.Glob
 	Deps        []any
 	Watchers    []string
-	DepIDs      map[string]bool
+	DepIDs      map[string]struct{}
 	CancelFuncs []context.CancelFunc
 	Mu          sync.Mutex
 	RerunChan   chan struct{}

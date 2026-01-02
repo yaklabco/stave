@@ -153,7 +153,7 @@ func renderTargetList(out io.Writer, binaryName string, info *parse.PkgInfo, fil
 }
 
 func buildTargetItems(binaryName string, info *parse.PkgInfo) []targetItem {
-	aliasByKey := map[targetKey][]string{}
+	aliasByKey := make(map[targetKey][]string)
 	for alias, fn := range info.Aliases {
 		if fn == nil {
 			continue
@@ -335,9 +335,9 @@ func buildGroups(byLabel map[string][]targetItem, metaByLabel map[string]string)
 
 func groupTargets(items []targetItem) targetSections {
 	var locals []targetItem
-	nsByName := map[string][]targetItem{}
-	impByLabel := map[string][]targetItem{}
-	impMetaByLabel := map[string]string{}
+	nsByName := make(map[string][]targetItem)
+	impByLabel := make(map[string][]targetItem)
+	impMetaByLabel := make(map[string]string)
 
 	for _, it := range items {
 		switch it.groupKind {

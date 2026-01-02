@@ -207,6 +207,18 @@ All features listed below are introduced in commits after that fork in `yaklabco
 
 ---
 
+### `direnv` Integration
+
+- **Summary**: Delegate environment variable management to `direnv` directly from `stave`.
+- **Commits**: `cc7a96e feat: initial wiring-up for direnv delegation`, `a74d837 feat: programmatic direnv support`.
+- **Behavior**:
+  - CLI flag: `--direnv`.
+  - Stave delegates the command execution to the `direnv` library, allowing users to use `direnv`'s features (like loading `.envrc` files) directly through the `stave` CLI.
+- **Why this is new vs Mage**:
+  - Mage does not have built-in integration with `direnv`.
+
+---
+
 ## Implementation-Focused Changes (Not Counted as “New Functionality”)
 
 The following changes are important for maintainability and UX but are **not** counted as “new functionality” in the sense of capabilities that Mage did not have:

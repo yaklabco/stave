@@ -49,7 +49,7 @@ func TestDeadlock(t *testing.T) {
 		done2 <- true
 	}()
 
-	timeout := time.After(10 * time.Second)
+	timeout := time.After(WatchTestFullDuration)
 	t1Finished := false
 	t2Finished := false
 

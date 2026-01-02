@@ -39,7 +39,7 @@ func assertCyclePanic(t *testing.T, name string, fn func()) {
 		} else {
 			t.Logf("Recovered from expected panic in %s: %v", t.Name(), panicVal)
 		}
-	case <-time.After(2 * time.Second):
+	case <-time.After(watch.WatchTestHalfDuration):
 		t.Errorf("Test %s timed out: circular dependency not detected (infinite loop)", t.Name())
 	}
 }

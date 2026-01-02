@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/samber/lo"
 )
 
 // HookTarget represents a single target to run for a Git hook.
@@ -22,37 +24,37 @@ type HooksConfig map[string][]HookTarget
 // Used to warn on unrecognized hook names.
 //
 //nolint:gochecknoglobals // package-level lookup table for hook validation
-var knownGitHooks = map[string]bool{
-	"applypatch-msg":        true,
-	"pre-applypatch":        true,
-	"post-applypatch":       true,
-	"pre-commit":            true,
-	"prepare-commit-msg":    true,
-	"commit-msg":            true,
-	"post-commit":           true,
-	"pre-rebase":            true,
-	"post-checkout":         true,
-	"post-merge":            true,
-	"pre-push":              true,
-	"pre-receive":           true,
-	"update":                true,
-	"post-receive":          true,
-	"post-update":           true,
-	"push-to-checkout":      true,
-	"pre-auto-gc":           true,
-	"post-rewrite":          true,
-	"sendemail-validate":    true,
-	"fsmonitor-watchman":    true,
-	"p4-pre-submit":         true,
-	"p4-changelist":         true,
-	"p4-prepare-changelist": true,
-	"p4-post-changelist":    true,
-	"post-index-change":     true,
-}
+var knownGitHooks = lo.Keyify([]string{
+	"applypatch-msg",
+	"pre-applypatch",
+	"post-applypatch",
+	"pre-commit",
+	"prepare-commit-msg",
+	"commit-msg",
+	"post-commit",
+	"pre-rebase",
+	"post-checkout",
+	"post-merge",
+	"pre-push",
+	"pre-receive",
+	"update",
+	"post-receive",
+	"post-update",
+	"push-to-checkout",
+	"pre-auto-gc",
+	"post-rewrite",
+	"sendemail-validate",
+	"fsmonitor-watchman",
+	"p4-pre-submit",
+	"p4-changelist",
+	"p4-prepare-changelist",
+	"p4-post-changelist",
+	"post-index-change",
+})
 
 // IsKnownGitHook returns true if the hook name is a recognized Git hook.
 func IsKnownGitHook(name string) bool {
-	return knownGitHooks[name]
+	return lo.HasKey(knownGitHooks, name)
 }
 
 // ValidateHooks validates the hooks configuration and returns any errors or warnings.

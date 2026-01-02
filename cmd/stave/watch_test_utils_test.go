@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/yaklabco/stave/pkg/watch"
 )
 
 type watchHandle struct {
@@ -28,7 +29,7 @@ type watchHandle struct {
 
 func (h *watchHandle) wait(expected string) {
 	h.t.Helper()
-	timeout := time.After(15 * time.Second)
+	timeout := time.After(watch.WatchTestFullDuration)
 	for {
 		select {
 		case line, ok := <-h.lines:

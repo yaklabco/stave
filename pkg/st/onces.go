@@ -1,7 +1,11 @@
 //nolint:gochecknoglobals // Once/mutex patterns.
 package st
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/samber/lo"
+)
 
 var onces = &onceMap{
 	mu: &sync.Mutex{},
@@ -40,12 +44,12 @@ func ResetSpecificOnces(fns ...any) {
 func ResetOncesByName(names ...string) {
 	onces.mu.Lock()
 	defer onces.mu.Unlock()
-	nameMap := make(map[string]bool)
+	nameMap := make(map[string]struct{})
 	for _, n := range names {
-		nameMap[n] = true
+		nameMap[n] = struct{}{}
 	}
 	for key := range onces.m {
-		if nameMap[DisplayName(key.Name)] {
+		if lo.HasKey(nameMap, DisplayName(key.Name)) {
 			delete(onces.m, key)
 		}
 	}

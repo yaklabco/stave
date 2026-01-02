@@ -55,30 +55,31 @@ type RunParams struct {
 
 	WriterForLogger io.Writer // writer for logger to write to
 
-	List   bool // tells the stavefile to print out a list of targets
-	Init   bool // create an initial stavefile from template
-	Clean  bool // clean out old generated binaries from cache dir
-	Exec   bool // tells the stavefile to treat the rest of the command-line as a command to execute
-	Hooks  bool // triggers hooks management mode
-	Config bool // triggers config management mode
+	Clean      bool   // clean out old generated binaries from cache dir
+	CompileOut string // tells stave to compile a static binary to this path, but not execute
+	Config     bool   // triggers config management mode
+	DirEnv     bool   // triggers direnv delegation mode
+	Exec       bool   // tells the stavefile to treat the rest of the command-line as a command to execute
+	Hooks      bool   // triggers hooks management mode
+	Init       bool   // create an initial stavefile from template
+	List       bool   // tells the stavefile to print out a list of targets
 
-	Debug      bool          // turn on debug messages
-	Dir        string        // directory to read stavefiles from
-	WorkDir    string        // directory where stavefiles will run
-	Force      bool          // forces recreation of the compiled binary
-	Verbose    bool          // tells the stavefile to print out log statements
-	Info       bool          // tells the stavefile to print out docstring for a specific target
-	Keep       bool          // tells stave to keep the generated main file after compiling
-	DryRun     bool          // tells stave that all sh.Run* commands should print, but not execute
-	Timeout    time.Duration // tells stave to set a timeout to running the targets
-	CompileOut string        // tells stave to compile a static binary to this path, but not execute
-	GOOS       string        // sets the GOOS when producing a binary with -compileout
-	GOARCH     string        // sets the GOARCH when producing a binary with -compileout
-	Ldflags    string        // sets the ldflags when producing a binary with -compileout
-	Args       []string      // args to pass to the compiled binary
-	GoCmd      string        // the go binary command to run
-	CacheDir   string        // the directory where we should store compiled binaries
-	HashFast   bool          // don't rely on GOCACHE, just hash the stavefiles
+	Debug    bool          // turn on debug messages
+	Dir      string        // directory to read stavefiles from
+	WorkDir  string        // directory where stavefiles will run
+	Force    bool          // forces recreation of the compiled binary
+	Verbose  bool          // tells the stavefile to print out log statements
+	Info     bool          // tells the stavefile to print out docstring for a specific target
+	Keep     bool          // tells stave to keep the generated main file after compiling
+	DryRun   bool          // tells stave that all sh.Run* commands should print, but not execute
+	Timeout  time.Duration // tells stave to set a timeout to running the targets
+	GOOS     string        // sets the GOOS when producing a binary with -compileout
+	GOARCH   string        // sets the GOARCH when producing a binary with -compileout
+	Ldflags  string        // sets the ldflags when producing a binary with -compileout
+	Args     []string      // args to pass to the compiled binary
+	GoCmd    string        // the go binary command to run
+	CacheDir string        // the directory where we should store compiled binaries
+	HashFast bool          // don't rely on GOCACHE, just hash the stavefiles
 
 	HooksAreRunning bool // indicates whether hooks are currently being executed
 }
@@ -114,15 +115,6 @@ func Run(params RunParams) error {
 		return errors.New("only one of --init, --clean, --list, --hooks, --config, or explicit targets may be specified")
 	}
 
-	if params.Init {
-		if err := generateInit(params.Dir); err != nil {
-			return err
-		}
-		slog.Info("created initial stavefile", slog.String(log.Filename, initFile))
-
-		return nil
-	}
-
 	if params.Clean {
 		if err := removeContents(params.CacheDir); err != nil {
 			return err
@@ -130,6 +122,14 @@ func Run(params RunParams) error {
 		slog.Info("cleaned cache dir", slog.String(log.Path, params.CacheDir))
 
 		return nil
+	}
+
+	if params.Config {
+		return runConfigMode(ctx, params)
+	}
+
+	if params.DirEnv {
+		return delegateToDirEnv(ctx, params)
 	}
 
 	if params.Exec {
@@ -140,8 +140,13 @@ func Run(params RunParams) error {
 		return runHooksMode(ctx, params)
 	}
 
-	if params.Config {
-		return runConfigMode(ctx, params)
+	if params.Init {
+		if err := generateInit(params.Dir); err != nil {
+			return err
+		}
+		slog.Info("created initial stavefile", slog.String(log.Filename, initFile))
+
+		return nil
 	}
 
 	if params.List {
@@ -346,22 +351,22 @@ func stave(ctx context.Context, params RunParams) error {
 
 func howManyThingsToDo(params RunParams) int {
 	nThingsToDo := 0
+
 	switch {
-	case params.List:
+	case
+		params.Clean,
+		params.Config,
+		params.DirEnv,
+		params.Exec,
+		params.Hooks,
+		params.Init,
+		params.List:
 		nThingsToDo++
-	case params.Init:
-		nThingsToDo++
-	case params.Clean:
-		nThingsToDo++
-	case params.Exec:
-		nThingsToDo++
-	case params.Hooks:
-		nThingsToDo++
-	case params.Config:
-		nThingsToDo++
+
 	case len(params.Args) > 0:
 		nThingsToDo++
 	}
+
 	return nThingsToDo
 }
 
@@ -521,18 +526,18 @@ func Stavefiles(stavePath, goos, goarch string, isStavefilesDirectory bool) ([]s
 	}
 
 	// convert non-Stave list to a map of files to exclude.
-	exclude := map[string]bool{}
+	exclude := make(map[string]struct{})
 	for _, f := range nonStaveFiles {
 		if f != "" {
 			slog.Debug("marked file as non-stave", slog.String(log.Path, f))
-			exclude[f] = true
+			exclude[f] = struct{}{}
 		}
 	}
 
 	// filter out the non-stave files from the stave files.
 	var files []string
 	for _, f := range staveFiles {
-		if f != "" && !exclude[f] {
+		if f != "" && !lo.HasKey(exclude, f) {
 			files = append(files, f)
 		}
 	}

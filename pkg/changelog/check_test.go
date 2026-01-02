@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/samber/lo"
 )
 
 const (
@@ -56,7 +58,7 @@ func TestPrePushCheck_ValidChangelog(t *testing.T) {
 	mock := &mockGitOps{
 		changedFiles:  []string{"README.md", "CHANGELOG.md", "main.go"},
 		mergeBase:     testMergeBase,
-		refExists:     map[string]bool{"refs/remotes/origin/main": true},
+		refExists:     lo.Keyify([]string{"refs/remotes/origin/main"}),
 		currentBranch: "feature-branch",
 	}
 
@@ -106,7 +108,7 @@ func TestPrePushCheck_MissingChangelog(t *testing.T) {
 	mock := &mockGitOps{
 		changedFiles:  []string{"README.md", "main.go"},
 		mergeBase:     testMergeBase,
-		refExists:     map[string]bool{"refs/remotes/origin/main": true},
+		refExists:     lo.Keyify([]string{"refs/remotes/origin/main"}),
 		currentBranch: "feature-branch",
 	}
 
@@ -159,7 +161,7 @@ func TestPrePushCheck_InvalidFormat(t *testing.T) {
 	mock := &mockGitOps{
 		changedFiles: []string{"CHANGELOG.md"},
 		mergeBase:    testMergeBase,
-		refExists:    map[string]bool{"refs/remotes/origin/main": true},
+		refExists:    lo.Keyify([]string{"refs/remotes/origin/main"}),
 	}
 
 	result, err := PrePushCheck(PrePushCheckOptions{
@@ -282,7 +284,7 @@ func TestPrePushCheck_SkipNextVerCheckEnvVars(t *testing.T) {
 			mock := &mockGitOps{
 				changedFiles: []string{"CHANGELOG.md"},
 				mergeBase:    testMergeBase,
-				refExists:    map[string]bool{"refs/remotes/origin/main": true},
+				refExists:    lo.Keyify([]string{"refs/remotes/origin/main"}),
 			}
 
 			result, err := PrePushCheck(PrePushCheckOptions{
@@ -320,7 +322,7 @@ func TestPrePushCheck_NewBranch(t *testing.T) {
 	mock := &mockGitOps{
 		changedFiles: []string{"CHANGELOG.md"},
 		mergeBase:    testMergeBase,
-		refExists:    map[string]bool{"refs/remotes/origin/main": true},
+		refExists:    lo.Keyify([]string{"refs/remotes/origin/main"}),
 	}
 
 	result, err := PrePushCheck(PrePushCheckOptions{
@@ -425,7 +427,7 @@ func TestFindDefaultBase(t *testing.T) {
 	t.Run("main exists", func(t *testing.T) {
 		mock := &mockGitOps{
 			mergeBase: testMergeBase,
-			refExists: map[string]bool{"refs/remotes/origin/main": true},
+			refExists: lo.Keyify([]string{"refs/remotes/origin/main"}),
 		}
 		base := findDefaultBase(mock, "origin", "def456")
 		if base != testMergeBase {
@@ -436,7 +438,7 @@ func TestFindDefaultBase(t *testing.T) {
 	t.Run("master fallback", func(t *testing.T) {
 		mock := &mockGitOps{
 			mergeBase: testMergeBase,
-			refExists: map[string]bool{"refs/remotes/origin/master": true},
+			refExists: lo.Keyify([]string{"refs/remotes/origin/master"}),
 		}
 		base := findDefaultBase(mock, "origin", "def456")
 		if base != testMergeBase {
@@ -447,7 +449,7 @@ func TestFindDefaultBase(t *testing.T) {
 	t.Run("no default branch", func(t *testing.T) {
 		mock := &mockGitOps{
 			mergeBase: testMergeBase,
-			refExists: map[string]bool{},
+			refExists: make(map[string]struct{}),
 		}
 		base := findDefaultBase(mock, "origin", "def456")
 		if base != "" {
