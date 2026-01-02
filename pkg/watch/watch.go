@@ -92,9 +92,10 @@ func Watch(patterns ...string) {
 
 		theState.Patterns = append(theState.Patterns, absP)
 		g, err := glob.Compile(absP)
-		if err == nil {
-			theState.Globs = append(theState.Globs, g)
+		if err != nil {
+			panic(fmt.Errorf("failed to compile glob pattern %q: %w", absP, err))
 		}
+		theState.Globs = append(theState.Globs, g)
 
 		// Add non-wildcard prefix to watcher
 		dir := absP

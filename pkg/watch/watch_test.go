@@ -73,6 +73,20 @@ func TestWatchCancellation(t *testing.T) {
 	assert.ErrorIs(t, ctx.Err(), context.Canceled)
 }
 
+func TestWatchInvalidGlob(t *testing.T) {
+	mode.ResetForTest()
+	name := "test"
+	mode.AddRequestedTarget(name)
+	mode.SetOverallWatchMode(true) // Ensure we don't return early
+	ctx := wctx.WithCurrent(context.Background(), name)
+	wctx.Register(name, ctx)
+	defer wctx.Unregister(name)
+
+	assert.Panics(t, func() {
+		Watch("[")
+	})
+}
+
 func TestCallerTargetName(t *testing.T) {
 	var name string
 	var fullName string

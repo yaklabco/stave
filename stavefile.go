@@ -446,7 +446,7 @@ func (Test) All() error {
 
 	// Print test header (unless in quiet/CI mode)
 	if !isQuietMode() {
-		outputln("🧪 Running tests (test:all: lint:all, test:go)")
+		outputln("🧪 Running tests...")
 	}
 
 	startTime := time.Now()
