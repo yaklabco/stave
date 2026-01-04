@@ -52,6 +52,8 @@ type targetItem struct {
 	groupMeta string // import path (when groupKind == import)
 }
 
+var nsDefaultSuffix = ":" + strings.ToLower(defaultLabel) //nolint:gochecknoglobals // Intended as a constant.
+
 // renderTargetList renders the output of `stave -l`.
 //
 // It is implemented in the Stave binary (not in the generated mainfile) so it can
@@ -312,6 +314,10 @@ type targetSections struct {
 
 // compareTargetItems returns a comparison function for sorting targetItems by display name.
 func compareTargetItems(a, b targetItem) int {
+	if a.isDefault {
+		return -1
+	}
+
 	return cmp.Compare(strings.ToLower(a.displayName), strings.ToLower(b.displayName))
 }
 
@@ -342,8 +348,17 @@ func groupTargets(items []targetItem) targetSections {
 	for _, it := range items {
 		switch it.groupKind {
 		case targetGroupLocal:
+			if it.isDefault {
+				it.usage = strings.TrimSuffix(it.usage, it.displayName)
+				it.usage += "(" + it.displayName + ")"
+			}
+
 			locals = append(locals, it)
 		case targetGroupNamespace:
+			if it.key.name == defaultLabel {
+				it.isDefault = true
+				it.usage = strings.TrimSuffix(it.usage, nsDefaultSuffix)
+			}
 			nsByName[it.groupName] = append(nsByName[it.groupName], it)
 		case targetGroupImport:
 			impByLabel[it.groupName] = append(impByLabel[it.groupName], it)
