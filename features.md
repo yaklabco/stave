@@ -146,10 +146,11 @@ All features listed below are introduced in commits after that fork in `yaklabco
 - Summary: Built-in management of Git hooks that can run Stave targets without external tools (no husky/pre-commit required).
 - Commits/Code: pkg/stave/hooks_cmd.go, internal/hooks/*, config/hooks.go; end-user docs at docs/user-guide/hooks.md.
 - Behavior:
-  - Declarative configuration in stave.yaml under hooks: mapping hook name → list of targets/args.
+  - Declarative configuration in stave.yaml under hooks: mapping hook name → list of targets/args/workdir.
   - CLI surface: `stave --hooks` (list), `stave --hooks install`, `stave --hooks uninstall`, `stave --hooks doctor`.
   - POSIX-compatible wrapper scripts installed into .git/hooks calling back into Stave.
   - Honors CI detection and can be disabled via env.
+  - Supports `workdir` per hook target, allowing targets to run in specific subdirectories (relative to the config file).
 - Why this is new vs Mage:
   - Mage does not ship built-in Git hooks management; typical workflows require third-party tooling. Stave integrates this capability natively.
 

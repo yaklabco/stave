@@ -79,6 +79,7 @@ type Runtime struct {
 // TargetRunnerFunc runs a Stave target and returns its exit code.
 type TargetRunnerFunc func(
 	ctx context.Context,
+	targetWorkDir string,
 	target string,
 	args []string,
 	stdin io.Reader,
@@ -272,7 +273,7 @@ func (r *Runtime) executeTarget(
 		slog.String("target", target.Target),
 		slog.Any("args", targetArgs))
 
-	exitCode, err := runner(ctx, target.Target, targetArgs, r.Stdin, r.Stdout, r.Stderr)
+	exitCode, err := runner(ctx, target.WorkDir, target.Target, targetArgs, r.Stdin, r.Stdout, r.Stderr)
 
 	result := TargetResult{
 		Name:     target.Target,
@@ -304,7 +305,7 @@ func IsDebugMode() bool {
 
 // defaultTargetRunner is a no-op stub for testing purposes only.
 // Production code should always inject a real runner via Runtime.TargetRunner.
-func defaultTargetRunner(_ context.Context, _ string, _ []string, _ io.Reader, _, _ io.Writer) (int, error) {
+func defaultTargetRunner(_ context.Context, _, _ string, _ []string, _ io.Reader, _, _ io.Writer) (int, error) {
 	return 0, nil
 }
 

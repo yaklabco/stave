@@ -64,7 +64,23 @@ Each hook entry supports the following options:
 | ----------- | -------- | ------------------------------------------------- |
 | `target`    | string   | Name of the Stave target to run (required)        |
 | `args`      | []string | Additional arguments passed to the target         |
+| `workdir`   | string   | Working directory for the target invocation       |
 | `passStdin` | bool     | Forward stdin from Git to the target (see below)  |
+
+### Working Directory
+
+The `workdir` option allows you to specify the directory in which the Stave target should be executed. This is useful if your project structure requires certain targets to run from a specific subdirectory.
+
+If `workdir` is a relative path, it is resolved relative to the directory containing the `stave.yaml` (or the configuration file being used). If no configuration file is used, it is resolved relative to the current working directory.
+
+Example:
+
+```yaml
+hooks:
+  pre-commit:
+    - target: Lint
+      workdir: ./frontend
+```
 
 ### Supported Git Hooks
 
