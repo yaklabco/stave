@@ -15,6 +15,9 @@ type HookTarget struct {
 
 	// Args are additional CLI arguments passed to the target invocation.
 	Args []string `mapstructure:"args,omitempty"`
+
+	// WorkDir is the working directory for the target invocation; if empty, current dir is assumed.
+	WorkDir string `mapstructure:"workdir,omitempty"`
 }
 
 // HooksConfig maps Git hook names to their configured targets.

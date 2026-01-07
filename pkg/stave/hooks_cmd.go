@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -54,20 +55,27 @@ type HooksParams struct {
 
 // newStaveTargetRunner creates a TargetRunnerFunc that executes targets using stave.Run.
 // This wires the hooks runtime to the real Stave execution engine.
-func newStaveTargetRunner(cfg *config.Config, workingDir string) hooks.TargetRunnerFunc {
+func newStaveTargetRunner(cfg *config.Config, generalWorkDir string) hooks.TargetRunnerFunc {
 	return func(
 		ctx context.Context,
+		targetWorkDir string,
 		target string,
 		args []string,
 		stdin io.Reader,
 		stdout, stderr io.Writer,
 	) (int, error) {
+		workDirForThisTarget, err := determineWorkDir(cfg, generalWorkDir, targetWorkDir)
+		if err != nil {
+			err = fmt.Errorf("error determining work dir for target: %w", err)
+			return st.ExitStatus(err), err
+		}
+
 		runParams := RunParams{
 			BaseCtx: ctx,
 			Stdin:   stdin,
 			Stdout:  stdout,
 			Stderr:  stderr,
-			Dir:     workingDir,
+			Dir:     workDirForThisTarget,
 
 			// Propagate config-level settings
 			Debug:    cfg.Debug,
@@ -82,9 +90,31 @@ func newStaveTargetRunner(cfg *config.Config, workingDir string) hooks.TargetRun
 			HooksAreRunning: true,
 		}
 
-		err := Run(runParams)
+		err = Run(runParams)
 		return st.ExitStatus(err), err
 	}
+}
+
+func determineWorkDir(cfg *config.Config, generalWorkDir string, targetWorkDir string) (string, error) {
+	workDir := strings.TrimSpace(targetWorkDir)
+	if workDir == "" {
+		return generalWorkDir, nil
+	}
+
+	if filepath.IsAbs(workDir) {
+		return workDir, nil
+	}
+
+	relPathBase := strings.TrimSpace(cfg.ConfigFile())
+	if relPathBase == "" {
+		var err error
+		relPathBase, err = os.Getwd()
+		if err != nil {
+			return "", fmt.Errorf("error getting current working directory: %w", err)
+		}
+	}
+
+	return filepath.Join(relPathBase, workDir), nil
 }
 
 // RunHooksCommand handles the `stave --hooks` subcommand with debug/verbose params.
@@ -410,6 +440,11 @@ func printConfiguredHooks(cfg *config.Config, out io.Writer) {
 				_, _ = fmt.Fprintf(out, "    - %s %s\n", target.Target, strings.Join(target.Args, " "))
 			} else {
 				_, _ = fmt.Fprintf(out, "    - %s\n", target.Target)
+			}
+
+			workDir := strings.TrimSpace(target.WorkDir)
+			if workDir != "" {
+				_, _ = fmt.Fprintf(out, "      working directory: %s\n", workDir)
 			}
 		}
 	}

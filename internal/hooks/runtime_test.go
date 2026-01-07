@@ -14,7 +14,7 @@ import (
 // in order for each invocation.
 func mockRunner(exitCodes ...int) TargetRunnerFunc {
 	idx := 0
-	return func(_ context.Context, _ string, _ []string, _ io.Reader, _, _ io.Writer) (int, error) {
+	return func(_ context.Context, _, _ string, _ []string, _ io.Reader, _, _ io.Writer) (int, error) {
 		if idx >= len(exitCodes) {
 			return 0, nil
 		}
@@ -26,7 +26,7 @@ func mockRunner(exitCodes ...int) TargetRunnerFunc {
 
 // mockRunnerWithError creates a TargetRunnerFunc that returns an error.
 func mockRunnerWithError(err error) TargetRunnerFunc {
-	return func(_ context.Context, _ string, _ []string, _ io.Reader, _, _ io.Writer) (int, error) {
+	return func(_ context.Context, _, _ string, _ []string, _ io.Reader, _, _ io.Writer) (int, error) {
 		return 0, err
 	}
 }
@@ -38,7 +38,7 @@ type targetCall struct {
 }
 
 func mockRunnerCapture(calls *[]targetCall) TargetRunnerFunc {
-	return func(_ context.Context, target string, args []string, _ io.Reader, _, _ io.Writer) (int, error) {
+	return func(_ context.Context, _, target string, args []string, _ io.Reader, _, _ io.Writer) (int, error) {
 		*calls = append(*calls, targetCall{target: target, args: args})
 		return 0, nil
 	}
