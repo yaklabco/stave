@@ -105,13 +105,16 @@ func determineWorkDir(cfg *config.Config, generalWorkDir string, targetWorkDir s
 		return workDir, nil
 	}
 
-	relPathBase := strings.TrimSpace(cfg.ConfigFile())
-	if relPathBase == "" {
+	var relPathBase string
+	cfgPath := strings.TrimSpace(cfg.ConfigFile())
+	if cfgPath == "" {
 		var err error
 		relPathBase, err = os.Getwd()
 		if err != nil {
 			return "", fmt.Errorf("error getting current working directory: %w", err)
 		}
+	} else {
+		relPathBase = filepath.Dir(cfgPath)
 	}
 
 	return filepath.Join(relPathBase, workDir), nil

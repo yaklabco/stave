@@ -31,15 +31,16 @@ func mockRunnerWithError(err error) TargetRunnerFunc {
 	}
 }
 
-// mockRunnerCapture creates a TargetRunnerFunc that captures the target name and args.
+// mockRunnerCapture creates a TargetRunnerFunc that captures the target name, args, and workdir.
 type targetCall struct {
-	target string
-	args   []string
+	target  string
+	args    []string
+	workDir string
 }
 
 func mockRunnerCapture(calls *[]targetCall) TargetRunnerFunc {
-	return func(_ context.Context, _, target string, args []string, _ io.Reader, _, _ io.Writer) (int, error) {
-		*calls = append(*calls, targetCall{target: target, args: args})
+	return func(_ context.Context, workDir, target string, args []string, _ io.Reader, _, _ io.Writer) (int, error) {
+		*calls = append(*calls, targetCall{target: target, args: args, workDir: workDir})
 		return 0, nil
 	}
 }
@@ -310,6 +311,35 @@ func TestRuntime_Run_WithArgs(t *testing.T) {
 		if calls[0].args[i] != arg {
 			t.Errorf("Args[%d] = %q, want %q", i, calls[0].args[i], arg)
 		}
+	}
+}
+
+func TestRuntime_Run_WithWorkDir(t *testing.T) {
+	t.Parallel()
+
+	var calls []targetCall
+	runtime := &Runtime{
+		Config: &config.Config{
+			Hooks: config.HooksConfig{
+				"pre-commit": {
+					{Target: "fmt", WorkDir: "internal/hooks"},
+				},
+			},
+		},
+		TargetRunner: mockRunnerCapture(&calls),
+	}
+
+	_, err := runtime.Run(t.Context(), "pre-commit", nil)
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	if len(calls) != 1 {
+		t.Fatalf("Expected 1 call, got %d", len(calls))
+	}
+
+	if calls[0].workDir != "internal/hooks" {
+		t.Errorf("WorkDir = %q, want %q", calls[0].workDir, "internal/hooks")
 	}
 }
 

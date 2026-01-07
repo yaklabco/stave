@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/yaklabco/stave/config"
 	"github.com/yaklabco/stave/internal/hooks"
 	"github.com/yaklabco/stave/pkg/fsutils"
@@ -749,5 +750,152 @@ hooks:
 	if code == 0 {
 		t.Errorf("RunHooksCommand run with failing target returned 0, want non-zero\nstdout: %s\nstderr: %s",
 			stdout.String(), stderr.String())
+	}
+}
+
+func TestDetermineWorkDir(t *testing.T) {
+	tmpDir := t.TempDir()
+	// Resolve symlinks
+	tmpDir, err := fsutils.TruePath(tmpDir)
+	if err != nil {
+		t.Fatalf("fsutils.TruePath failed: %v", err)
+	}
+
+	cfgFile := filepath.Join(tmpDir, "stave.yaml")
+
+	tests := []struct {
+		name           string
+		cfgFile        string
+		generalWorkDir string
+		targetWorkDir  string
+		want           string
+		wantErr        bool
+	}{
+		{
+			name:           "empty targetWorkDir",
+			generalWorkDir: "/tmp/gen",
+			targetWorkDir:  "",
+			want:           "/tmp/gen",
+		},
+		{
+			name:           "absolute targetWorkDir",
+			generalWorkDir: "/tmp/gen",
+			targetWorkDir:  "/abs/path",
+			want:           "/abs/path",
+		},
+		{
+			name:           "relative targetWorkDir with cfgFile",
+			cfgFile:        cfgFile,
+			generalWorkDir: "/tmp/gen",
+			targetWorkDir:  "sub",
+			want:           filepath.Join(filepath.Dir(cfgFile), "sub"),
+		},
+		{
+			name:           "relative targetWorkDir without cfgFile",
+			cfgFile:        "",
+			generalWorkDir: "/tmp/gen",
+			targetWorkDir:  "sub",
+			// Should be relative to current working directory
+			want:    "", // to be filled in test
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &config.Config{}
+			if tt.cfgFile != "" {
+				cfg.SetConfigFile(tt.cfgFile)
+			}
+
+			if tt.name == "relative targetWorkDir without cfgFile" {
+				cwd, err := os.Getwd()
+				require.NoError(t, err)
+				tt.want = filepath.Join(cwd, tt.targetWorkDir)
+			}
+
+			got, err := determineWorkDir(cfg, tt.generalWorkDir, tt.targetWorkDir)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("determineWorkDir() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("determineWorkDir() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRunHooksCommand_Run_WithWorkDir(t *testing.T) {
+	config.ResetGlobal()
+
+	// Create temp directory
+	tmpDir := t.TempDir()
+	tmpDir, err := fsutils.TruePath(tmpDir)
+	if err != nil {
+		t.Fatalf("fsutils.TruePath failed: %v", err)
+	}
+
+	// Create a subdirectory for the target
+	targetSubDir := filepath.Join(tmpDir, "sub")
+	if err := os.Mkdir(targetSubDir, 0o755); err != nil {
+		t.Fatalf("Mkdir sub failed: %v", err)
+	}
+
+	copyModFiles(t, tmpDir)
+
+	// Create a stavefile in the root that writes a file to the CURRENT working directory
+	stavefileContent := `
+//go:build stave
+
+package main
+import (
+	"fmt"
+	"os"
+)
+func HookWorkDir() {
+	cwd, _ := os.Getwd()
+	fmt.Printf("DEBUG: HookWorkDir CWD is %s\n", cwd)
+	_ = os.WriteFile("workdir_marker.txt", []byte("ok"), 0644)
+}
+`
+	if err := os.WriteFile(filepath.Join(targetSubDir, "stavefile.go"), []byte(stavefileContent), testConfigPerm); err != nil {
+		t.Fatalf("WriteFile stavefile failed: %v", err)
+	}
+
+	// Create stave.yaml with hooks config specifying WorkDir
+	configContent := `
+hooks:
+  pre-commit:
+    - target: HookWorkDir
+      workdir: sub
+`
+	configPath := filepath.Join(tmpDir, "stave.yaml")
+	if err := os.WriteFile(configPath, []byte(configContent), testConfigPerm); err != nil {
+		t.Fatalf("WriteFile config failed: %v", err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	ctx := t.Context()
+	code := RunHooksCommand(ctx, RunParams{
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Dir:    tmpDir,
+		Args:   []string{"run", "pre-commit"},
+		Debug:  true,
+		GoCmd:  "go",
+	})
+
+	assert.Equalf(t, 0, code, "STDOUT WAS:\n%s\n\nSTDERR WAS:\n%s\n\n", stdout.String(), stderr.String())
+
+	// Verify the marker file was created in the SUBDIRECTORY, not the root
+	markerInSub := filepath.Join(targetSubDir, "workdir_marker.txt")
+	if _, err := os.Stat(markerInSub); os.IsNotExist(err) {
+		t.Errorf("Marker file should have been created in %s", targetSubDir)
+	}
+
+	markerInRoot := filepath.Join(tmpDir, "workdir_marker.txt")
+	if _, err := os.Stat(markerInRoot); err == nil {
+		t.Error("Marker file should NOT have been created in the root directory")
 	}
 }

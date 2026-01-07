@@ -53,6 +53,12 @@ func (c *Config) ConfigFile() string {
 	return c.configFile
 }
 
+// SetConfigFile sets the path to the configuration file.
+// This is primarily for testing.
+func (c *Config) SetConfigFile(path string) {
+	c.configFile = path
+}
+
 // globalConfig holds the singleton global configuration.
 // These globals are intentional for the singleton pattern.
 //
