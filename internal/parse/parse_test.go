@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/yaklabco/stave/pkg/st"
 )
 
@@ -120,7 +121,9 @@ func TestParse(t *testing.T) {
 
 func TestGetImportSelf(t *testing.T) {
 	ctx := t.Context()
-	imp, err := getImport(ctx, "go", "github.com/yaklabco/stave/internal/parse/testdata/importself", "")
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	imp, err := getImport(ctx, "go", cwd, "github.com/yaklabco/stave/internal/parse/testdata/importself", "")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -198,7 +198,7 @@ func PrimaryPackage(ctx context.Context, gocmd, path string, files []string) (*P
 		return nil, err
 	}
 
-	if err := setImports(ctx, gocmd, info); err != nil {
+	if err := setImports(ctx, gocmd, path, info); err != nil {
 		return nil, err
 	}
 
@@ -325,11 +325,11 @@ func Package(path string, files []string) (*PkgInfo, error) {
 	return pkgInfo, nil
 }
 
-func getNamedImports(ctx context.Context, gocmd string, pkgs map[string]string) ([]*Import, error) {
+func getNamedImports(ctx context.Context, gocmd, path string, pkgs map[string]string) ([]*Import, error) {
 	theImports := make([]*Import, 0, len(pkgs))
 	for pkg, alias := range pkgs {
 		slog.Debug("getting import package", slog.String(log.Pkg, pkg), slog.String(log.Alias, alias))
-		imp, err := getImport(ctx, gocmd, pkg, alias)
+		imp, err := getImport(ctx, gocmd, path, pkg, alias)
 		if err != nil {
 			return nil, err
 		}
@@ -339,11 +339,11 @@ func getNamedImports(ctx context.Context, gocmd string, pkgs map[string]string) 
 }
 
 // getImport returns the metadata about a package that has been stave:import'ed.
-func getImport(ctx context.Context, gocmd, importpath, alias string) (*Import, error) {
-	out, err := internal.OutputDebug(ctx, gocmd, "list", "-f", "{{.Dir}}||{{.Name}}", importpath)
+func getImport(ctx context.Context, gocmd, path, importpath, alias string) (*Import, error) {
+	out, err := internal.OutputDebug(ctx, gocmd, "-C", path, "list", "-f", "{{.Dir}}||{{.Name}}", importpath)
 	if err != nil {
 		if strings.Contains(err.Error(), "build constraints exclude all Go files") {
-			out, err = internal.OutputDebug(ctx, gocmd, "list", "-tags", "stave", "-f", "{{.Dir}}||{{.Name}}", importpath)
+			out, err = internal.OutputDebug(ctx, gocmd, "-C", path, "list", "-tags", "stave", "-f", "{{.Dir}}||{{.Name}}", importpath)
 		}
 		if err != nil {
 			return nil, err
@@ -362,10 +362,10 @@ func getImport(ctx context.Context, gocmd, importpath, alias string) (*Import, e
 	// we use go list to get the list of files, since go/parser doesn't differentiate between
 	// go files with build tags etc, and go list does. This prevents weird problems if you
 	// have more than one package in a folder because of build tags.
-	out, err = internal.OutputDebug(ctx, gocmd, "list", "-f", `{{join .GoFiles "||"}}`, importpath)
+	out, err = internal.OutputDebug(ctx, gocmd, "-C", path, "list", "-f", `{{join .GoFiles "||"}}`, importpath)
 	if err != nil {
 		if strings.Contains(err.Error(), "build constraints exclude all Go files") {
-			out, err = internal.OutputDebug(ctx, gocmd, "list", "-tags", "stave", "-f", `{{join .GoFiles "||"}}`, importpath)
+			out, err = internal.OutputDebug(ctx, gocmd, "-C", path, "list", "-tags", "stave", "-f", `{{join .GoFiles "||"}}`, importpath)
 		}
 		if err != nil {
 			return nil, err
@@ -489,7 +489,7 @@ func setNamespaces(pkgInfo *PkgInfo, watchTargets map[string]struct{}) {
 	}
 }
 
-func setImports(ctx context.Context, gocmd string, pi *PkgInfo) error {
+func setImports(ctx context.Context, gocmd, path string, pi *PkgInfo) error {
 	var rootImports []string
 	importNames := make(map[string]string)
 	for _, f := range pi.Files {
@@ -530,12 +530,12 @@ func setImports(ctx context.Context, gocmd string, pi *PkgInfo) error {
 			}
 		}
 	}
-	imports, err := getNamedImports(ctx, gocmd, importNames)
+	imports, err := getNamedImports(ctx, gocmd, path, importNames)
 	if err != nil {
 		return err
 	}
 	for _, s := range rootImports {
-		imp, err := getImport(ctx, gocmd, s, "")
+		imp, err := getImport(ctx, gocmd, path, s, "")
 		if err != nil {
 			return err
 		}

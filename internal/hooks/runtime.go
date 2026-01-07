@@ -270,6 +270,7 @@ func (r *Runtime) executeTarget(
 
 	slog.Debug("target starting",
 		slog.String("hook", hookName),
+		slog.String("workdir", target.WorkDir),
 		slog.String("target", target.Target),
 		slog.Any("args", targetArgs))
 
