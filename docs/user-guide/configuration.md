@@ -179,6 +179,7 @@ Each hook entry supports:
 | ----------- | -------- | ------------------------------------------ |
 | `target`    | string   | Stave target name to run (required)        |
 | `args`      | []string | Additional arguments for the target        |
+| `workdir`   | string   | Working directory for the target           |
 | `passStdin` | bool     | Forward stdin from Git to the target       |
 
 After configuring hooks, install them with:
