@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-01-07
+
+### Added
+
+- Ability to set `workdir` field for hooks. See [documentation](docs/user-guide/hooks.md) for details.
+
 ## [0.8.3] - 2026-01-03
 
 ### Changed
@@ -313,7 +319,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.8.3...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/yaklabco/stave/compare/v0.8.3...v0.9.0
 [0.8.3]: https://github.com/yaklabco/stave/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/yaklabco/stave/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/yaklabco/stave/compare/v0.8.0...v0.8.1
