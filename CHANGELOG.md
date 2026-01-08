@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.6] - 2026-01-08
+
+### Changed
+
+- `ContainsFile` function, used in changelog validation, now uses `strings.Contains` for file matching. This means that as long as there is a file named `CHANGELOG.md` in the list, it will be considered a match, regardless of whether that files sits in the repo root or not.
+
 ## [0.9.5] - 2026-01-08
 
 ### Changed
@@ -353,7 +359,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.9.5...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.9.6...HEAD
+[0.9.6]: https://github.com/yaklabco/stave/compare/v0.9.5...v0.9.6
 [0.9.5]: https://github.com/yaklabco/stave/compare/v0.9.4...v0.9.5
 [0.9.4]: https://github.com/yaklabco/stave/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/yaklabco/stave/compare/v0.9.2...v0.9.3
