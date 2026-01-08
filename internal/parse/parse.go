@@ -240,7 +240,7 @@ func buildFuncMap(info *PkgInfo, imports []*Import) map[string][]*Function {
 func checkAliasConflicts(aliases map[string]*Function, funcs map[string][]*Function) error {
 	for aliasName, aliasFunc := range aliases {
 		if len(funcs[aliasName]) != 0 {
-			var ids []string
+			ids := make([]string, 0, len(funcs[aliasName]))
 			for _, f := range funcs[aliasName] {
 				ids = append(ids, f.ID())
 			}
