@@ -14,7 +14,7 @@ const (
 	unreleasedMarkerString = "unreleased"
 )
 
-var repoURLPattern = regexp.MustCompile(`https://github\.com/[^/]+/[^/]+`)
+var repoURLPattern = regexp.MustCompile(`(https://github\.com/[^/]+(/[^/]+)+)/compare/(([^/]+/)*)v[0-9]+\.[0-9]+\.[0-9]+`)
 
 // Linkify reads the content of the changelog file, runs LinkifyContent on it,
 // and saves the result back to the file.
@@ -66,9 +66,11 @@ func LinkifyContent(content string) (string, error) {
 
 	// 2. Determine base URL from existing links
 	baseURL := ""
+	tagPrefix := ""
 	for _, l := range cl.Links {
-		if matches := repoURLPattern.FindString(l.URL); matches != "" {
-			baseURL = matches
+		if matches := repoURLPattern.FindStringSubmatch(l.URL); len(matches) > 3 {
+			baseURL = matches[1]
+			tagPrefix = matches[3]
 			break
 		}
 	}
@@ -92,15 +94,15 @@ func LinkifyContent(content string) (string, error) {
 				continue
 			}
 			next := cl.Headings[iHeading+1].Name
-			link = fmt.Sprintf("%s/compare/v%s...HEAD", baseURL, next)
+			link = fmt.Sprintf("%s/compare/%sv%s...HEAD", baseURL, tagPrefix, next)
 		} else {
 			// It's a version. Compare to the next version underneath.
 			if iHeading+1 < len(cl.Headings) {
 				next := cl.Headings[iHeading+1].Name
-				link = fmt.Sprintf("%s/compare/v%s...v%s", baseURL, next, theHeading.Name)
+				link = fmt.Sprintf("%s/compare/%sv%s...%sv%s", baseURL, tagPrefix, next, tagPrefix, theHeading.Name)
 			} else {
 				// Last version. link to the tag.
-				link = fmt.Sprintf("%s/releases/tag/v%s", baseURL, theHeading.Name)
+				link = fmt.Sprintf("%s/releases/tag/%sv%s", baseURL, tagPrefix, theHeading.Name)
 			}
 		}
 		newLinks[theHeading.Name] = link

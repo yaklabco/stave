@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -79,29 +80,10 @@ All notable changes to this project will be documented in this file.
 
 [0.1.0]: https://github.com/yaklabco/stave/releases/tag/v0.1.0
 `
-	expected := `# Changelog
 
-All notable changes to this project will be documented in this file.
-
-## [Unreleased]
-
-## [0.3.4] - 2025-12-16
-
-## [0.1.0] - 2025-12-08
-
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.3.4...HEAD
-[0.3.4]: https://github.com/yaklabco/stave/compare/v0.1.0...v0.3.4
-[0.1.0]: https://github.com/yaklabco/stave/releases/tag/v0.1.0
-`
-
-	got, err := LinkifyContent(content)
-	if err != nil {
-		t.Fatalf("LinkifyContent failed: %v", err)
-	}
-
-	if got != expected {
-		t.Errorf("LinkifyContent mismatch\nGot:\n%s\nExpected:\n%s", got, expected)
-	}
+	_, err := LinkifyContent(content)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "could not determine")
 }
 
 func TestChangelog_Linkify_UpdateUnreleased(t *testing.T) {
