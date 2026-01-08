@@ -32,15 +32,19 @@ type Link struct {
 // HasVersion returns true if the changelog has a heading for the given version.
 // Comparison is case-insensitive to match validation behavior.
 func (c *Changelog) HasVersion(version string) bool {
+	parts := strings.Split(version, "/")
+	lastPart := parts[len(parts)-1]
 	return slices.ContainsFunc(c.Headings, func(h Heading) bool {
-		return strings.EqualFold(h.Name, version)
+		return strings.EqualFold(h.Name, version) || strings.EqualFold(h.Name, lastPart)
 	})
 }
 
 // HasLinkForVersion returns true if the changelog has a link reference for the given version.
 // Comparison is case-insensitive to match validation behavior.
 func (c *Changelog) HasLinkForVersion(version string) bool {
+	parts := strings.Split(version, "/")
+	lastPart := parts[len(parts)-1]
 	return slices.ContainsFunc(c.Links, func(l Link) bool {
-		return strings.EqualFold(l.Name, version)
+		return strings.EqualFold(l.Name, version) || strings.EqualFold(l.Name, lastPart)
 	})
 }
