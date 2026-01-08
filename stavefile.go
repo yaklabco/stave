@@ -686,6 +686,10 @@ func releasePrepper(taggingFunc func(nextTag string) error) error {
 		return err
 	}
 
+	if !strings.HasPrefix(nextTag, "v") {
+		nextTag = "v" + nextTag
+	}
+
 	slog.Info("computed next tag", slog.String("next_tag", nextTag))
 
 	return taggingFunc(nextTag)
