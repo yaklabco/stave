@@ -29,7 +29,8 @@ func delegateToDirEnv(ctx context.Context, params RunParams) error {
 		slog.SetDefault(origLogger)
 	}()
 
-	args := []string{os.Args[0]}
+	args := make([]string, 1, len(params.Args)+1)
+	args[0] = os.Args[0]
 	args = append(args, params.Args...)
 	if err := callable.CallableMain(ctx, args, env); err != nil {
 		return fmt.Errorf("direnv run failed: %w", err)

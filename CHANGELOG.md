@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.5] - 2026-01-08
+
+### Changed
+
+- "Double-dip" running of `golangci-lint` in stavefile.go: run once with `--fix` & without reporting exit code, then run a second time without `--fix` & report exit code as well as any output.
+
+- Change test `TestTransitiveHashFast` to not be parallelized.
+
 ## [0.9.4] - 2026-01-07
 
 ### Fixed
@@ -345,7 +353,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.9.4...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.9.5...HEAD
+[0.9.5]: https://github.com/yaklabco/stave/compare/v0.9.4...v0.9.5
 [0.9.4]: https://github.com/yaklabco/stave/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/yaklabco/stave/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/yaklabco/stave/compare/v0.9.1...v0.9.2

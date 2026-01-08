@@ -288,7 +288,12 @@ func (Lint) Markdown() error {
 // Go runs golangci-lint with auto-fix enabled
 func (Lint) Go() error {
 	st.Deps(Init)
-	out, err := sh.Output("golangci-lint", "run", "--fix", "--allow-parallel-runners", "--build-tags='!ignore'")
+
+	args := []string{"run", "--allow-parallel-runners", "--build-tags='!ignore'", "--fix"}
+
+	_ = sh.Run("golangci-lint", args...) //nolint:errcheck // Intentional; re-run without `--fix` on next line.
+
+	out, err := sh.Output("golangci-lint", lo.Slice(args, 0, len(args)-1)...)
 	if err != nil {
 		titleStyle, blockStyle := ui.GetBlockStyles()
 		outputln(titleStyle.Render("golangci-lint output"))
