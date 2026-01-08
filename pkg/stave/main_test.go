@@ -252,11 +252,7 @@ func TestTransitiveDepCache(t *testing.T) {
 }
 
 func TestTransitiveHashFast(t *testing.T) {
-	t.Parallel()
 	dataDirForThisTest := testDataTransitiveDepsDir
-	mu := mutexByDir(dataDirForThisTest)
-	mu.Lock()
-	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
