@@ -15,8 +15,22 @@ import (
 var ErrEmptyVersion = errors.New("tool returned empty version")
 
 // NextVersion returns the next semantic version.
-// It strips the leading 'v' prefix to match CHANGELOG heading format.
+// It strips off the leading 'v', if present, to match CHANGELOG heading format.
 func NextVersion() (string, error) {
+	version, err := NextTag()
+	if err != nil {
+		return "", err
+	}
+
+	// Strip leading 'v' to match CHANGELOG format
+	version = strings.TrimPrefix(version, "v")
+
+	return version, nil
+}
+
+// NextTag returns the next tag.
+// It does not strip off the leading 'v' if present.
+func NextTag() (string, error) {
 	viperInstance, err := loadSVUConfig()
 	if err != nil {
 		return "", fmt.Errorf("loading svu config: %w", err)
@@ -72,20 +86,7 @@ func NextVersion() (string, error) {
 		return "", fmt.Errorf("svu.Next: %w", ErrEmptyVersion)
 	}
 
-	// Strip leading 'v' to match CHANGELOG format
-	version = strings.TrimPrefix(version, "v")
-
 	return version, nil
-}
-
-// NextTag is like NextVersion except its return value *is* prefixed with 'v'.
-func NextTag() (string, error) {
-	version, err := NextVersion()
-	if err != nil {
-		return "", err
-	}
-
-	return "v" + version, err
 }
 
 func loadSVUConfig() (*viper.Viper, error) {
