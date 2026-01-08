@@ -1,7 +1,6 @@
 package changelog
 
 import (
-	"slices"
 	"strings"
 
 	"github.com/yaklabco/stave/pkg/sh"
@@ -87,5 +86,11 @@ func (g *ShellGitOps) gitOutput(args ...string) (string, error) {
 
 // ContainsFile checks if a file is in the list of changed files.
 func ContainsFile(files []string, target string) bool {
-	return slices.Contains(files, target)
+	for _, file := range files {
+		if strings.Contains(file, target) {
+			return true
+		}
+	}
+
+	return false
 }
