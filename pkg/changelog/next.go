@@ -41,12 +41,15 @@ func NextTag() (string, error) {
 	fnType := fn.Type()
 	optionType := fnType.In(fnType.NumIn() - 1).Elem()
 
-	svuOpts := make([]any, 0, 4) //nolint:mnd // This is the maximum number of options we expect to append (see below).
+	svuOpts := make([]any, 0, 5) //nolint:mnd // This is the maximum number of options we expect to append (see below).
 	svuOpts = append(
 		svuOpts,
 		svu.WithPrefix(viperInstance.GetString("prefix")),
 		svu.WithPattern(viperInstance.GetString("pattern")),
 	)
+	if len(viperInstance.GetStringSlice("log.directory")) > 0 {
+		svuOpts = append(svuOpts, svu.WithDirectories(viperInstance.GetStringSlice("log.directory")...))
+	}
 	if viperInstance.GetBool("always") {
 		svuOpts = append(svuOpts, svu.Always())
 	}
