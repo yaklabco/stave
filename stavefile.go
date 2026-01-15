@@ -707,7 +707,7 @@ func tagAndPush(nextTag string) error {
 		return err
 	}
 
-	return sh.Run("git", "push", "--tags")
+	return sh.Run("git", "push", "--tags", "--no-verify")
 }
 
 // numProcsAsString returns the number of processor cores as a string.
