@@ -23,13 +23,19 @@ permissions:
 jobs:
   release:
     timeout-minutes: 30
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
+
+      - name: Resolve Permission Issues
+        run: |
+          sudo chown -R $(id -u):$(id -g) $GITHUB_WORKSPACE
+          sudo chown -R $(id -u):$(id -g) /home/linuxbrew/.linuxbrew
+          git config --global --add safe.directory '*'
 
       - name: Set up Go
         uses: actions/setup-go@v5
