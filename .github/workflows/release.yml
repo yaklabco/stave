@@ -31,6 +31,11 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      - name: Resolve Permission Issues
+        run: |
+          sudo chown -R $(id -u):$(id -g) .
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
