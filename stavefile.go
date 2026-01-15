@@ -346,7 +346,7 @@ func (Check) GitStateClean() error {
 // PrePush runs pre-push validations including changelog checks
 func (Check) PrePush(remoteName, _remoteURL string) error {
 	st.Deps(Prep.LinkifyChangelog)
-	st.Deps(Lint.All)
+	st.Deps(Test.All, Build)
 	st.Deps(Check.GitStateClean)
 
 	pushRefs, err := changelog.ReadPushRefs(os.Stdin)
