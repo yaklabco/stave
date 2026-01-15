@@ -422,7 +422,8 @@ func TestRunHooksCommand_Install_Force(t *testing.T) {
 		Stdout: &stdout,
 		Stderr: &stderr,
 		Dir:    tmpDir,
-		Args:   []string{"install", "--force"},
+		Args:   []string{"install"},
+		Force:  true,
 	})
 
 	assert.Equalf(t, 0, code, "STDOUT WAS:\n%s\n\nSTDERR WAS:\n%s\n\n", stdout.String(), stderr.String())

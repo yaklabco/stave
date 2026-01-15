@@ -221,7 +221,7 @@ func printHooksInitInstructions(out io.Writer) {
 func runHooksInstall(ctx context.Context, params RunParams, args []string) int {
 	flagSet := flag.NewFlagSet("install", flag.ContinueOnError)
 	flagSet.SetOutput(params.Stdout)
-	force := flagSet.Bool("force", false, "overwrite existing non-Stave hooks")
+	force := params.Force
 
 	if err := flagSet.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -231,7 +231,7 @@ func runHooksInstall(ctx context.Context, params RunParams, args []string) int {
 	}
 
 	slog.Debug("hooks install starting",
-		slog.Bool("force", *force))
+		slog.Bool("force", force))
 
 	// Find Git repository
 	repo, err := hooks.FindGitRepoContext(ctx, params.Dir)
@@ -259,7 +259,7 @@ func runHooksInstall(ctx context.Context, params RunParams, args []string) int {
 		return exitError
 	}
 
-	return installHooks(repo, cfg, *force, params)
+	return installHooks(repo, cfg, force, params)
 }
 
 func installHooks(repo *hooks.GitRepo, cfg *config.Config, force bool, params RunParams) int {
