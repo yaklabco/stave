@@ -96,7 +96,7 @@ func Build() error {
 		return err
 	}
 
-	return sh.RunV("goreleaser", "--parallelism", numProcsAsString(), "build", "--snapshot", "--clean")
+	return sh.RunV("goreleaser", "--parallelism", numProcsAsString(), "build", "--clean", "--snapshot")
 }
 
 // Release tags the next version and runs goreleaser release
@@ -116,7 +116,7 @@ func Snapshot() error {
 		return err
 	}
 
-	return sh.Run("goreleaser", "--parallelism", numProcsAsString(), "release", "--snapshot", "--clean", "--release-notes="+filepath.Join(buildCacheDirName, releaseNotesFilename))
+	return sh.Run("goreleaser", "--parallelism", numProcsAsString(), "release", "--clean", "--snapshot", "--release-notes="+filepath.Join(buildCacheDirName, releaseNotesFilename))
 }
 
 // Install builds and installs stave to GOBIN with version info embedded
