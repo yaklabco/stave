@@ -429,9 +429,9 @@ func TestFindDefaultBase(t *testing.T) {
 			mergeBase: testMergeBase,
 			refExists: lo.Keyify([]string{"refs/remotes/origin/main"}),
 		}
-		base := findDefaultBase(mock, "origin", "def456")
+		base := FindDefaultBase(mock, "origin", "def456")
 		if base != testMergeBase {
-			t.Errorf("findDefaultBase() = %q, want abc123", base)
+			t.Errorf("FindDefaultBase() = %q, want abc123", base)
 		}
 	})
 
@@ -440,9 +440,9 @@ func TestFindDefaultBase(t *testing.T) {
 			mergeBase: testMergeBase,
 			refExists: lo.Keyify([]string{"refs/remotes/origin/master"}),
 		}
-		base := findDefaultBase(mock, "origin", "def456")
+		base := FindDefaultBase(mock, "origin", "def456")
 		if base != testMergeBase {
-			t.Errorf("findDefaultBase() = %q, want abc123", base)
+			t.Errorf("FindDefaultBase() = %q, want abc123", base)
 		}
 	})
 
@@ -451,9 +451,9 @@ func TestFindDefaultBase(t *testing.T) {
 			mergeBase: testMergeBase,
 			refExists: make(map[string]struct{}),
 		}
-		base := findDefaultBase(mock, "origin", "def456")
+		base := FindDefaultBase(mock, "origin", "def456")
 		if base != "" {
-			t.Errorf("findDefaultBase() = %q, want empty", base)
+			t.Errorf("FindDefaultBase() = %q, want empty", base)
 		}
 	})
 }

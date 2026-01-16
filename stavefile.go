@@ -236,6 +236,7 @@ func (Setup) Hooks() error {
 		outputf("  %s %s\n", labelStyle.Render("Directory:"), valueStyle.Render(filepath.Join(".git", "hooks")+string(filepath.Separator)))
 		outputf("  %s %s\n", labelStyle.Render("Config:"), valueStyle.Render("stave.yaml"))
 	}
+
 	return nil
 }
 
