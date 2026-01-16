@@ -214,7 +214,7 @@ func isMainBranch(remoteRef string) bool {
 func checkRefForChangelog(opts PrePushCheckOptions, ref PushRef, result *CheckResult) bool {
 	base := ref.RemoteSHA
 	if base == ZeroSHA {
-		base = findDefaultBase(opts.GitOps, opts.RemoteName, ref.LocalSHA)
+		base = FindDefaultBase(opts.GitOps, opts.RemoteName, ref.LocalSHA)
 	}
 
 	if base == "" {
@@ -275,8 +275,8 @@ func verifyNextVersionInChangelog(changelog *Changelog, path string, result *Che
 	}
 }
 
-// findDefaultBase attempts to find the merge base with the default branch.
-func findDefaultBase(gitOps GitOps, remoteName, localSHA string) string {
+// FindDefaultBase attempts to find the merge base with the default branch.
+func FindDefaultBase(gitOps GitOps, remoteName, localSHA string) string {
 	// Try main first, then master
 	for _, branch := range []string{"main", "master"} {
 		ref := fmt.Sprintf("refs/remotes/%s/%s", remoteName, branch)
