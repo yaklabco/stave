@@ -220,43 +220,15 @@ Multiple spellbooks coexist. Each project can import different sets. User-level 
 
 ## Registry & Discovery
 
-### Architecture
+> **Note:** The registry and discovery system will be a hosted website and API. This is the subject of a separate design document.
 
-A hybrid approach:
+### Overview
 
-- **Central index** - Git repository containing searchable catalog of known spellbooks
-- **Source repos** - Spells fetched directly from their home repositories
+The registry provides:
 
-The index doesn't host spells, just metadata for discovery.
-
-### Index Structure
-
-```
-stave-registry/
-  index.yml
-  official/
-    go-spells.yml
-    node-spells.yml
-  community/
-    rust-spells.yml
-    gitlab-spells.yml
-```
-
-Each entry:
-
-```yaml
-# official/go-spells.yml
-name: go-spells
-repository: github.com/yaklabco/go-spells
-description: Production-ready spells for Go projects
-keywords: [go, golang, ci, github-actions, linting]
-tier: official
-spells:
-  - ci-go
-  - linting-go
-  - testing-go
-  - release-go
-```
+- **Website** - Browse, search, and discover spells with documentation
+- **API** - Programmatic access for `stave spells find` and related commands
+- **Tiered curation** - Official (✓) and community (☆) spells with quality indicators
 
 ### Tiered Display
 
@@ -271,10 +243,15 @@ $ stave spells find ci
 ✓ = official    ☆ = community
 ```
 
-### Adding to Registry
+### Scope for Separate Design
 
-- **Official tier** - Curated by yaklabco, quality reviewed
-- **Community tier** - Submit PR to registry repo, basic validation (valid spellbook.yml, spells parse correctly)
+The registry design document will cover:
+
+- Website architecture and hosting
+- API design and authentication
+- Spellbook submission and validation workflow
+- Search, ratings, and discovery features
+- Curation process for official vs community tiers
 
 ---
 
