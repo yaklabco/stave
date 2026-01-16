@@ -25,27 +25,29 @@ Crafted with ❤️ by a human!
 
 ### CLI Entry Points
 
+Because stave targets can be named anything, traditional subcommands would conflict with target names. Instead, spells use **pseudo-flags** (like `stave --hooks`):
+
 ```bash
-stave cast <spell>              # Execute a spell
-stave spells <verb>             # Manage spells and spellbooks
+stave --cast <spell>            # Execute a spell
+stave --spells <verb>            # Manage spells and spellbooks
 ```
 
-The two-command structure keeps `cast` as the quick action while `spells` provides the full management interface.
+The two-flag structure keeps `--cast` as the quick action while `--spells` provides the full management interface.
 
 ---
 
 ## CLI Interface
 
-### `stave cast`
+### `stave --cast`
 
-The primary action command. Executes a spell with optional customization.
+The primary action flag. Executes a spell with optional customization.
 
 ```bash
-stave cast <spell>                      # Interactive prompts for options
-stave cast <spell> --with a,b           # Include overlays
-stave cast <spell> --without c          # Exclude default overlays
-stave cast <spell> --yes                # Skip confirmation, use defaults
-stave cast <spell> --dry-run            # Preview only, don't prompt
+stave --cast <spell>                    # Interactive prompts for options
+stave --cast <spell> --with a,b         # Include overlays
+stave --cast <spell> --without c        # Exclude default overlays
+stave --cast <spell> --yes              # Skip confirmation, use defaults
+stave --cast <spell> --dry-run          # Preview only, don't prompt
 ```
 
 When cast is invoked:
@@ -55,7 +57,7 @@ When cast is invoked:
 3. Stage all changes in memory
 4. Apply atomically if staging succeeds
 
-### `stave spells`
+### `stave --spells`
 
 Management interface with these verbs:
 
@@ -75,14 +77,14 @@ Management interface with these verbs:
 Short names work when unambiguous. On conflict:
 
 ```text
-$ stave cast ci-go
+$ stave --cast ci-go
 Multiple spells match 'ci-go':
   go-spells/ci-go
   internal/ci-go
 Use fully qualified name or set an alias.
 ```
 
-Aliasing: `stave spells import go-spells --alias go` enables `stave cast go:ci-go`
+Aliasing: `stave --spells import go-spells --alias go` enables `stave --cast go:ci-go`
 
 ---
 
@@ -205,9 +207,9 @@ spells:
 ### Importing Spellbooks
 
 ```bash
-stave spells import github.com/yaklabco/go-spells
-stave spells import github.com/mycompany/internal-spells --alias internal
-stave spells import ./local-spells                      # Local path
+stave --spells import github.com/yaklabco/go-spells
+stave --spells import github.com/mycompany/internal-spells --alias internal
+stave --spells import ./local-spells                     # Local path
 ```
 
 Spellbooks are cloned/cached locally. Stave tracks:
@@ -229,13 +231,13 @@ Multiple spellbooks coexist. Each project can import different sets. User-level 
 The registry provides:
 
 - **Website** - Browse, search, and discover spells with documentation
-- **API** - Programmatic access for `stave spells find` and related commands
+- **API** - Programmatic access for `stave --spells find` and related commands
 - **Tiered curation** - Official (✓) and community (☆) spells with quality indicators
 
 ### Tiered Display
 
 ```text
-$ stave spells find ci
+$ stave --spells find ci
 
 ✓ ci-go          GitHub Actions CI for Go          go-spells
 ✓ ci-node        GitHub Actions CI for Node.js     node-spells
@@ -314,7 +316,7 @@ ci-go:
     - coverage
 ```
 
-Next time: `stave cast ci-go` uses these defaults, prompts only for new variables.
+Next time: `stave --cast ci-go` uses these defaults, prompts only for new variables.
 
 ---
 
@@ -323,7 +325,7 @@ Next time: `stave cast ci-go` uses these defaults, prompts only for new variable
 ### Detecting Available Upgrades
 
 ```bash
-$ stave spells upgrade --check
+$ stave --spells upgrade --check
 
 Upgrades available:
   ci-go      1.2.0 → 1.3.0   (go-spells)
@@ -335,9 +337,9 @@ Stave compares the recorded cast version against the current spellbook version.
 ### Upgrade Commands
 
 ```bash
-stave spells upgrade ci-go        # Upgrade specific spell
-stave spells upgrade --all        # Upgrade all cast spells
-stave cast ci-go                  # Also detects and offers upgrade
+stave --spells upgrade ci-go       # Upgrade specific spell
+stave --spells upgrade --all       # Upgrade all cast spells
+stave --cast ci-go                # Also detects and offers upgrade
 ```
 
 ### Three-Way Merge
@@ -355,7 +357,7 @@ Stave uses the original generated content (reconstructed from spell + recorded o
 ### Conflict Handling
 
 ```text
-$ stave spells upgrade ci-go
+$ stave --spells upgrade ci-go
 
 Upgrading ci-go 1.2.0 → 1.3.0...
 
@@ -368,7 +370,7 @@ Upgrading ci-go 1.2.0 → 1.3.0...
   timeout: 5m
 >>>>>>> spell v1.3.0
 
-Resolve conflicts and run 'stave spells upgrade --continue'
+Resolve conflicts and run 'stave --spells upgrade --continue'
 ```
 
 Standard git-style conflict markers. User resolves, then continues.
@@ -381,7 +383,7 @@ All output is colorized using stave's charmbracelet-based styling.
 
 ### Staging Phase
 
-When `stave cast ci-go` runs:
+When `stave --cast ci-go` runs:
 
 1. **Resolve** - Load spell, resolve variables (from prompts, config, or flags)
 2. **Render** - Process all templates and patches in memory
@@ -407,7 +409,7 @@ If any step fails -> full rollback to original state.
 ### Error Output
 
 ```text
-$ stave cast ci-go
+$ stave --cast ci-go
 
 🔮 Spell: ci-go v1.2.0
    GitHub Actions CI for Go projects
@@ -436,10 +438,10 @@ All output uses stave's existing color/styling via charmbracelet libraries.
 
 ### The Compose Wizard
 
-`stave spells compose` guides users through creating a new spell interactively.
+`stave --spells compose` guides users through creating a new spell interactively.
 
 ```text
-$ stave spells compose
+$ stave --spells compose
 
 🔮 Spell Composer
 
@@ -480,7 +482,7 @@ Path: ~/projects/python-spells/ci-python
   spell.yml
   templates/ci.yml.tmpl
 
-Next: Edit templates, then 'stave cast ci-python' to test.
+Next: Edit templates, then 'stave --cast ci-python' to test.
 ```
 
 ### Template Scaffolding
@@ -511,12 +513,12 @@ jobs:
 Stave ships with no built-in spells. The `setup` command guides new users:
 
 ```text
-$ stave spells list
+$ stave --spells list
 
 No spellbooks installed.
-Run 'stave spells setup' to get started.
+Run 'stave --spells setup' to get started.
 
-$ stave spells setup
+$ stave --spells setup
 
 🔮 Welcome to Stave Spells!
 
@@ -550,7 +552,7 @@ Available spells:
   testing-go   Test infrastructure with coverage
   release-go   GoReleaser with changelog automation
 
-Try: stave cast ci-go
+Try: stave --cast ci-go
 ```
 
 ### Subsequent Projects
@@ -559,7 +561,7 @@ Spellbooks imported at user level (`~/.stave/spellbooks/`) are available everywh
 
 ```bash
 cd new-project
-stave cast ci-go    # Works immediately
+stave --cast ci-go    # Works immediately
 ```
 
 ---
@@ -578,8 +580,8 @@ pkg/spells/
   compose.go        # Authoring wizard
 
 cmd/stave/
-  spells_cmd.go     # CLI commands for 'stave spells'
-  cast_cmd.go       # CLI command for 'stave cast'
+  spells_cmd.go     # CLI commands for 'stave --spells'
+  cast_cmd.go       # CLI command for 'stave --cast'
 ```
 
 ### Dependencies
