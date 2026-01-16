@@ -1,6 +1,9 @@
 # Stave Spells Design
 
+
 A scaffolding and code generation system for stave.
+
+Crafted with ❤️ by a human!
 
 ## Overview & Core Concepts
 
