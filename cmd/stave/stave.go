@@ -62,7 +62,7 @@ func NewRootCmd(ctx context.Context, opts ...Option) *cobra.Command {
 	stave --config show`,
 		Version: version.OverallVersionStringColorized(ctx),
 		ValidArgsFunction: func(cmd *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-			dir, err := cmd.PersistentFlags().GetString("dir")
+			dir, err := cmd.Root().PersistentFlags().GetString("dir")
 			if err != nil {
 				return nil, cobra.ShellCompDirectiveError
 			}

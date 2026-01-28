@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.11] - 2026-01-28
+
+### Fixed
+
+- Reference to root-command flags in `spf13/cobra` usage.
+
 ### Added
 
 - Design document for Stave Spells - a scaffolding and code generation system.
@@ -387,7 +393,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.9.10...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.9.11...HEAD
+[0.9.11]: https://github.com/yaklabco/stave/compare/v0.9.10...v0.9.11
 [0.9.10]: https://github.com/yaklabco/stave/compare/v0.9.9...v0.9.10
 [0.9.9]: https://github.com/yaklabco/stave/compare/v0.9.8...v0.9.9
 [0.9.8]: https://github.com/yaklabco/stave/compare/v0.9.7...v0.9.8
