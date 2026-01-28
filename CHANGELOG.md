@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.9.11] - 2026-01-28
+## [0.10.1] - 2026-01-28
+
+### Changed
+
+- CHANGELOG.md correction.
+
+## [0.10.0] - 2026-01-28
 
 ### Fixed
 
@@ -393,8 +399,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.9.11...HEAD
-[0.9.11]: https://github.com/yaklabco/stave/compare/v0.9.10...v0.9.11
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/yaklabco/stave/compare/v0.10.0...v0.10.1
+[0.10.0]: https://github.com/yaklabco/stave/compare/v0.9.10...v0.10.0
 [0.9.10]: https://github.com/yaklabco/stave/compare/v0.9.9...v0.9.10
 [0.9.9]: https://github.com/yaklabco/stave/compare/v0.9.8...v0.9.9
 [0.9.8]: https://github.com/yaklabco/stave/compare/v0.9.7...v0.9.8
