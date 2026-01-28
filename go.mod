@@ -4,7 +4,7 @@ go 1.24.12
 
 require (
 	charm.land/lipgloss/v2 v2.0.0-beta.3.0.20251106193318-19329a3e8410
-	github.com/caarlos0/svu/v3 v3.3.0
+	github.com/caarlos0/svu/v3 v3.2.4
 	github.com/charmbracelet/fang v0.4.4
 	github.com/charmbracelet/log v0.4.2
 	github.com/charmbracelet/x/term v0.2.2
@@ -79,5 +79,3 @@ tool (
 	golang.org/x/tools/cmd/stringer
 	gotest.tools/gotestsum
 )
-
-replace github.com/caarlos0/svu/v3 => github.com/caarlos0/svu/v3 v3.2.4 // pinned because newer versions are incompatible with Go 1.24; remove this line once we upgrade to Go 1.25
