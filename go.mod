@@ -4,7 +4,7 @@ go 1.24.12
 
 require (
 	charm.land/lipgloss/v2 v2.0.0-beta.3.0.20251106193318-19329a3e8410
-	github.com/caarlos0/svu/v3 v3.2.4
+	github.com/caarlos0/svu/v3 v3.3.0
 	github.com/charmbracelet/fang v0.4.4
 	github.com/charmbracelet/log v0.4.2
 	github.com/charmbracelet/x/term v0.2.2
@@ -28,15 +28,15 @@ require (
 	github.com/bitfield/gotestdox v0.2.2 // indirect
 	github.com/charmbracelet/colorprofile v0.4.1 // indirect
 	github.com/charmbracelet/lipgloss v1.1.0 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20260113215839-fa031ff101a1 // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20260123224754-f434aada8dbd // indirect
 	github.com/charmbracelet/x/ansi v0.11.4 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.14 // indirect
-	github.com/charmbracelet/x/exp/charmtone v0.0.0-20260115165445-03f2dd3d42f8 // indirect
+	github.com/charmbracelet/x/exp/charmtone v0.0.0-20260127155452-b72a9a918687 // indirect
 	github.com/charmbracelet/x/termios v0.1.1 // indirect
 	github.com/charmbracelet/x/windows v0.2.2 // indirect
-	github.com/clipperhouse/displaywidth v0.7.0 // indirect
+	github.com/clipperhouse/displaywidth v0.8.0 // indirect
 	github.com/clipperhouse/stringish v0.1.1 // indirect
-	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
+	github.com/clipperhouse/uax29/v2 v2.4.0 // indirect
 	github.com/direnv/direnv/v2 v2.37.1 // indirect
 	github.com/dnephin/pflag v1.0.7 // indirect
 	github.com/fatih/color v1.18.0 // indirect
@@ -68,13 +68,16 @@ require (
 	golang.org/x/mod v0.32.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/term v0.38.0 // indirect
+	golang.org/x/term v0.39.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/gotestsum v1.13.0 // indirect
 )
 
-tool golang.org/x/tools/cmd/stringer
+tool (
+	golang.org/x/tools/cmd/stringer
+	gotest.tools/gotestsum
+)
 
-tool gotest.tools/gotestsum
+replace github.com/caarlos0/svu/v3 => github.com/caarlos0/svu/v3 v3.2.4 // pinned because newer versions are incompatible with Go 1.24; remove this line once we upgrade to Go 1.25
