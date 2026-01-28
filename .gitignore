@@ -70,3 +70,6 @@ stave_test_out
 # Build artifacts
 .buildcache
 /completions
+
+# gomdlint
+*.gomdlint.bak
