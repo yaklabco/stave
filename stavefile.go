@@ -345,8 +345,8 @@ func (Check) GitStateClean() error {
 	return nil
 }
 
-// ScanForSecrets scans the repository for secrets using trufflehog.
-func (Check) ScanForSecrets() error {
+// Secrets scans the repository for secrets using trufflehog.
+func (Check) Secrets() error {
 	st.Deps(Prereq.Brew)
 
 	repoRoot, err := sh.Output("git", "rev-parse", "--show-toplevel")
