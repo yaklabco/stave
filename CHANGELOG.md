@@ -7,25 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.10.9] - 2026-02-18
+## [0.10.10] - 2026-02-19
+
+### Changed
+
+- Change pre-push [trufflehog](https://github.com/trufflesecurity/trufflehog) hook to only scan _changes_, rather than entire repo.
+
+## [0.10.9] - 2026-02-19
 
 ### Fixed
 
 - Downgrade dependencies to preserve compatibility with Go `1.24`.
 
-## [0.10.8] - 2026-02-18
+## [0.10.8] - 2026-02-19
 
 ### Changed
 
 - Bump all updatable Go dependencies to their latest versions as of this date.
 
-## [0.10.7] - 2026-02-18
+## [0.10.7] - 2026-02-19
 
 ### Fixed
 
 - Maintenance release to fix homebrew tap issue.
 
-## [0.10.6] - 2026-02-18
+## [0.10.6] - 2026-02-19
 
 ### Added
 
@@ -449,7 +455,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.10.9...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.10.10...HEAD
+[0.10.10]: https://github.com/yaklabco/stave/compare/v0.10.9...v0.10.10
 [0.10.9]: https://github.com/yaklabco/stave/compare/v0.10.8...v0.10.9
 [0.10.8]: https://github.com/yaklabco/stave/compare/v0.10.7...v0.10.8
 [0.10.7]: https://github.com/yaklabco/stave/compare/v0.10.6...v0.10.7
