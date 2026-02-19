@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.6] - 2026-02-18
+
+### Added
+
+- Secrets scanning (based on [trufflehog](https://github.com/trufflesecurity/trufflehog) GitHub action) in CI.
+
+- Wire in [trufflehog](https://github.com/trufflesecurity/trufflehog) to project's stavefile.gp
+
 ## [0.10.5] - 2026-01-31
 
 ### Changed
@@ -423,7 +431,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.10.5...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.10.6...HEAD
+[0.10.6]: https://github.com/yaklabco/stave/compare/v0.10.5...v0.10.6
 [0.10.5]: https://github.com/yaklabco/stave/compare/v0.10.4...v0.10.5
 [0.10.4]: https://github.com/yaklabco/stave/compare/v0.10.3...v0.10.4
 [0.10.3]: https://github.com/yaklabco/stave/compare/v0.10.2...v0.10.3

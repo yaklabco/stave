@@ -9,6 +9,7 @@ on:
   push:
     branches: [ main ]
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: checks-${{ github.ref }}
@@ -33,6 +34,11 @@ jobs:
           # If your repo has a go.mod, this will pick the version from it.
           go-version-file: go.mod
           cache: true
+
+      - name: Scan for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --results=verified,unknown
 
       - name: Cache Homebrew downloads
         id: brew_dl

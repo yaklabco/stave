@@ -10,5 +10,6 @@ brew "goimports"
 brew "golangci-lint"
 brew "golangci-lint-langserver"
 brew "goreleaser"
+brew "trufflehog"
 
 brew "markdownlint-cli2"
