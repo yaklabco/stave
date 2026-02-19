@@ -349,6 +349,7 @@ func (Check) GitStateClean() error {
 func (Check) Secrets() error {
 	st.Deps(Prereq.Brew)
 
+	slog.Info("Scanning for secrets using trufflehog...")
 	repoRoot, err := sh.Output("git", "rev-parse", "--show-toplevel")
 	if err != nil {
 		return fmt.Errorf("failed to determine repository root: %w", err)
@@ -379,6 +380,8 @@ func (Check) Secrets() error {
 		return err
 	}
 
+	slog.Info("No secrets found.")
+
 	return nil
 }
 
@@ -386,6 +389,7 @@ func (Check) Secrets() error {
 func (Check) PrePush(remoteName, _remoteURL string) error {
 	st.Deps(Prep.LinkifyChangelog)
 	st.Deps(Test.All, Build)
+	st.Deps(Check.Secrets)
 	st.Deps(Check.GitStateClean)
 
 	pushRefs, err := changelog.ReadPushRefs(os.Stdin)
