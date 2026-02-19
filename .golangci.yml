@@ -128,6 +128,11 @@ linters:
               recommendations:
                 - github.com/google/uuid
               reason: gofrs' package is not go module
+    gosec:
+      excludes:
+        - G703 # This rule is about enabling arbitrary path traversal via injected user input; which, yeah, this is stave and it can do that.
+        - G705 # This rule is about enabling arbitrary Xss ingestion via injected user input; which, yeah, this is stave and it can do that.
+        - G706 # This rule is about enabling arbitrary log ingestion via injected user input; which, yeah, this is stave and it can do that.
     govet:
       disable:
         - fieldalignment
@@ -411,6 +416,9 @@ linters:
       - linters:
           - gocritic
         source: //noinspection
+      - linters:
+        - revive
+        text: "var-naming: avoid package names that conflict with Go standard library"
       - linters:
           - bodyclose
           - dupl

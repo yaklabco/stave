@@ -7,6 +7,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"cmp"
 	"errors"
 	"fmt"
@@ -339,6 +340,43 @@ func (Check) GitStateClean() error {
 
 	if strings.TrimSpace(out) != "" {
 		return fmt.Errorf("git state is not clean; do you have uncommitted changes or untracked files?\n%s", out)
+	}
+
+	return nil
+}
+
+// ScanForSecrets scans the repository for secrets using trufflehog.
+func (Check) ScanForSecrets() error {
+	st.Deps(Prereq.Brew)
+
+	repoRoot, err := sh.Output("git", "rev-parse", "--show-toplevel")
+	if err != nil {
+		return fmt.Errorf("failed to determine repository root: %w", err)
+	}
+
+	repoRoot, err = filepath.Abs(strings.TrimSpace(repoRoot))
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path for repository root: %w", err)
+	}
+
+	var stdoutBuf bytes.Buffer
+	var stderrBuf bytes.Buffer
+
+	err = sh.Piper(
+		nil, &stdoutBuf, &stderrBuf,
+		"trufflehog", "git",
+		"--no-update", "--no-verification",
+		"file://"+repoRoot,
+	)
+	if err != nil {
+		titleStyle, blockStyle := ui.GetBlockStyles()
+		outputln(titleStyle.Render("trufflehog stdout:"))
+		outputln(blockStyle.Render(stdoutBuf.String()))
+		outputln("")
+		outputln(titleStyle.Render("trufflehog stderr:"))
+		outputln(blockStyle.Render(stderrBuf.String()))
+		outputln("")
+		return err
 	}
 
 	return nil
