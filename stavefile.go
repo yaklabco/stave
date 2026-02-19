@@ -386,6 +386,7 @@ func (Check) Secrets() error {
 func (Check) PrePush(remoteName, _remoteURL string) error {
 	st.Deps(Prep.LinkifyChangelog)
 	st.Deps(Test.All, Build)
+	st.Deps(Check.Secrets)
 	st.Deps(Check.GitStateClean)
 
 	pushRefs, err := changelog.ReadPushRefs(os.Stdin)
