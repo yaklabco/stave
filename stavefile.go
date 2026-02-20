@@ -41,10 +41,25 @@ const (
 	releaseNotesFilename = "release-notes.md"
 )
 
+var (
+	repoRoot string
+)
+
 func init() {
 	logHandler := prettylog.SetupPrettyLogger(os.Stdout)
 	if st.Debug() {
 		logHandler.SetLevel(log.DebugLevel)
+	}
+
+	var err error
+	repoRoot, err = sh.Output("git", "rev-parse", "--show-toplevel")
+	if err != nil {
+		panic(fmt.Errorf("failed to determine repository root: %w", err))
+	}
+
+	repoRoot, err = filepath.Abs(strings.TrimSpace(repoRoot))
+	if err != nil {
+		panic(fmt.Errorf("failed to get absolute path for repository root: %w", err))
 	}
 }
 
@@ -345,38 +360,25 @@ func (Check) GitStateClean() error {
 	return nil
 }
 
+// SecretsHook scans for secrets using trufflehog, but only scans the changes being pushed.
+// It expects the push refs to provided via stdin, in the standard git hook format.
+func (Check) SecretsHook() error {
+	st.Deps(Prereq.Brew)
+
+	pushRefs, err := changelog.ReadPushRefs(os.Stdin)
+	if err != nil {
+		return fmt.Errorf("failed to read push refs from stdin: %w", err)
+	}
+
+	return secretsHookWorker(pushRefs)
+}
+
 // Secrets scans the repository for secrets using trufflehog.
 func (Check) Secrets() error {
 	st.Deps(Prereq.Brew)
 
 	slog.Info("Scanning for secrets using trufflehog...")
-	repoRoot, err := sh.Output("git", "rev-parse", "--show-toplevel")
-	if err != nil {
-		return fmt.Errorf("failed to determine repository root: %w", err)
-	}
-
-	repoRoot, err = filepath.Abs(strings.TrimSpace(repoRoot))
-	if err != nil {
-		return fmt.Errorf("failed to get absolute path for repository root: %w", err)
-	}
-
-	var stdoutBuf bytes.Buffer
-	var stderrBuf bytes.Buffer
-
-	err = sh.Piper(
-		nil, &stdoutBuf, &stderrBuf,
-		"trufflehog", "git",
-		"--no-update", "--no-verification",
-		"file://"+repoRoot,
-	)
-	if err != nil {
-		titleStyle, blockStyle := ui.GetBlockStyles()
-		outputln(titleStyle.Render("trufflehog stdout:"))
-		outputln(blockStyle.Render(stdoutBuf.String()))
-		outputln("")
-		outputln(titleStyle.Render("trufflehog stderr:"))
-		outputln(blockStyle.Render(stderrBuf.String()))
-		outputln("")
+	if err := runTrufflehog(); err != nil {
 		return err
 	}
 
@@ -389,12 +391,16 @@ func (Check) Secrets() error {
 func (Check) PrePush(remoteName, _remoteURL string) error {
 	st.Deps(Prep.LinkifyChangelog)
 	st.Deps(Test.All, Build)
-	st.Deps(Check.Secrets)
 	st.Deps(Check.GitStateClean)
 
 	pushRefs, err := changelog.ReadPushRefs(os.Stdin)
 	if err != nil {
 		return fmt.Errorf("failed to read push refs: %w", err)
+	}
+
+	err = secretsHookWorker(pushRefs)
+	if err != nil {
+		return err
 	}
 
 	if len(pushRefs) == 0 {
@@ -757,6 +763,71 @@ func tagAndPush(nextTag string) error {
 // It checks the environment variable "STAVE_NUM_PROCESSORS" or defaults to "1".
 func numProcsAsString() string {
 	return cmp.Or(os.Getenv("STAVE_NUM_PROCESSORS"), "1")
+}
+
+func runTrufflehog(extraFlags ...string) error {
+	var stdoutBuf bytes.Buffer
+	var stderrBuf bytes.Buffer
+
+	args := make([]string, 0, 4+len(extraFlags)) //nolint:mnd // This is just the number of args in the next statement.
+	args = append(args,
+		"git",
+		"--no-update", "--no-verification",
+		"file://"+repoRoot,
+	)
+	args = append(args, extraFlags...)
+	err := sh.Piper(
+		nil, &stdoutBuf, &stderrBuf,
+		"trufflehog", args...,
+	)
+	if err != nil {
+		titleStyle, blockStyle := ui.GetBlockStyles()
+		outputln(titleStyle.Render("trufflehog stdout:"))
+		outputln(blockStyle.Render(stdoutBuf.String()))
+		outputln("")
+		outputln(titleStyle.Render("trufflehog stderr:"))
+		outputln(blockStyle.Render(stderrBuf.String()))
+		outputln("")
+		return err
+	}
+
+	return nil
+}
+
+func secretsHookWorker(pushRefs []changelog.PushRef) error {
+	if len(pushRefs) == 0 {
+		slog.Warn("no refs pushed, skipping secrets hook")
+		return nil
+	}
+
+	slog.Info("Scanning for secrets using trufflehog...")
+	for _, ref := range pushRefs {
+		// Skip deleted refs - nothing to scan.
+		if ref.LocalSHA == changelog.ZeroSHA {
+			continue
+		}
+
+		slog.Info(
+			"Scanning for secrets in pushed changes using trufflehog",
+			slog.String("local_ref", ref.LocalRef),
+			slog.String("remote_sha", ref.RemoteSHA),
+		)
+
+		extraFlags := []string{"--branch=" + ref.LocalRef}
+
+		// When the remote SHA is non-zero (existing branch), limit the scan to only the commits after the remote's current tip.
+		if ref.RemoteSHA != changelog.ZeroSHA {
+			extraFlags = append(extraFlags, "--since-commit="+ref.RemoteSHA)
+		}
+
+		if err := runTrufflehog(extraFlags...); err != nil {
+			return err
+		}
+	}
+
+	slog.Info("No secrets found.")
+
+	return nil
 }
 
 // *
