@@ -1034,7 +1034,11 @@ func TestKeepFlag(t *testing.T) {
 
 	ctx := t.Context()
 
-	buildFile := filepath.Join(testDataKeepFlagDir, mainFile)
+	files, err := Stavefiles(dataDirForThisTest, runtime.GOOS, runtime.GOARCH, false)
+	require.NoError(t, err)
+	exe, err := ExeName(ctx, "go", st.CacheDir(), files)
+	require.NoError(t, err)
+	buildFile := mainFilePathFromExePath(testDataKeepFlagDir, exe)
 	_ = os.Remove(buildFile)
 	defer func() {
 		assert.NoError(t, os.Remove(buildFile))
@@ -1052,7 +1056,7 @@ func TestKeepFlag(t *testing.T) {
 		Force:   true, // need force so we always regenerate
 	}
 
-	err := Run(runParams)
+	err = Run(runParams)
 	require.NoError(t, err)
 	_, err = os.Stat(buildFile)
 	require.NoError(t, err)
@@ -1067,7 +1071,7 @@ func (t tLogWriter) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-// TestNoSelfDependencies checks that the generated `stave_output_file.go` code
+// TestNoSelfDependencies checks that the generated mainfile code
 // does not have dependencies on Stave itself.
 func TestNoSelfDependencies(t *testing.T) {
 	t.Parallel()
@@ -1078,7 +1082,11 @@ func TestNoSelfDependencies(t *testing.T) {
 
 	ctx := t.Context()
 
-	buildFile := filepath.Join(dataDirForThisTest, mainFile)
+	files, err := Stavefiles(dataDirForThisTest, runtime.GOOS, runtime.GOARCH, false)
+	require.NoError(t, err)
+	exe, err := ExeName(ctx, "go", st.CacheDir(), files)
+	require.NoError(t, err)
+	buildFile := mainFilePathFromExePath(dataDirForThisTest, exe)
 	_ = os.Remove(buildFile)
 	defer func() {
 		assert.NoError(t, os.Remove(buildFile))
@@ -1097,7 +1105,7 @@ func TestNoSelfDependencies(t *testing.T) {
 		Verbose: true,
 	}
 
-	err := Run(runParams)
+	err = Run(runParams)
 	require.NoError(t, err)
 	_, err = os.Stat(buildFile)
 	require.NoError(t, err)
@@ -1730,7 +1738,11 @@ func TestCompiledDeterministic(t *testing.T) {
 	require.NoError(t, err)
 
 	var exp string
-	outFile := filepath.Join(dir, mainFile)
+	files, err := Stavefiles(dir, runtime.GOOS, runtime.GOARCH, false)
+	require.NoError(t, err)
+	exe, err := ExeName(t.Context(), "go", st.CacheDir(), files)
+	require.NoError(t, err)
+	outFile := mainFilePathFromExePath(dir, exe)
 
 	// compile a couple times to be sure
 	for iRun, runLabel := range []string{"one", "two", "three", "four"} {

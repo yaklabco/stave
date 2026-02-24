@@ -63,8 +63,7 @@ type Function struct {
 
 var _ sort.Interface = (Functions)(nil)
 
-// Functions implements sort interface to optimize compiled output with
-// deterministic generated mainfile.
+// Functions implements sort interface to optimize compiled output.
 type Functions []*Function
 
 func (s Functions) Len() int {
@@ -401,8 +400,7 @@ type Import struct {
 
 var _ sort.Interface = (Imports)(nil)
 
-// Imports implements sort interface to optimize compiled output with
-// deterministic generated mainfile.
+// Imports implements sort interface to optimize compiled output.
 type Imports []*Import
 
 func (s Imports) Len() int {

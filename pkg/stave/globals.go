@@ -2,11 +2,19 @@
 package stave
 
 import (
+	"fmt"
 	"math"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"text/template"
 
 	"github.com/samber/lo"
+)
+
+const (
+	hashLengthLimit = 16
 )
 
 func lowerFirstWord(str string) string {
@@ -37,6 +45,23 @@ var mainfileTemplate = template.Must(template.New("").Funcs(map[string]any{
 var initOutput = template.Must(template.New("").Parse(staveTpl))
 
 const (
-	mainFile = "stave_output_file.go"
-	initFile = "stavefile.go"
+	// mainFileBase is the base prefix used for generated mainfile names.
+	mainFileBase = "stave_output_file"
+	initFile     = "stavefile.go"
 )
+
+// mainFilePathFromExePath derives a generated main filename from the
+// computed executable path. It uses a short hash prefix from the exe name,
+// and the current process ID.
+func mainFilePathFromExePath(dir, exePath string) string {
+	base := filepath.Base(exePath)
+	if runtime.GOOS == "windows" && strings.HasSuffix(base, ".exe") {
+		base = strings.TrimSuffix(base, ".exe")
+	}
+	// keep it reasonably short while still unique enough
+	hash := base
+	if len(hash) > hashLengthLimit {
+		hash = hash[:hashLengthLimit]
+	}
+	return filepath.Join(dir, fmt.Sprintf("%s_%s_%d.go", mainFileBase, hash, os.Getpid()))
+}

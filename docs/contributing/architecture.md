@@ -82,7 +82,7 @@ Core runtime that orchestrates stavefile compilation and execution.
 2. `ExeName()`: Compute cache path by hashing file contents
 3. Check cache; if hit and not `--force`, run cached binary
 4. `parse.PrimaryPackage()`: Parse AST, extract targets
-5. `GenerateMainfile()`: Render template to `stave_output_file.go`
+5. `GenerateMainfile()`: Render template to a temporary Go file (e.g., `stave_output_file_<hash>_<pid>.go`)
 6. `Compile()`: Run `go build`
 7. `RunCompiled()`: Execute the binary with environment setup
 
@@ -242,7 +242,7 @@ stateDiagram-v2
 
     stavefile: Source Files
     PkgInfo: AST + Metadata
-    mainfile: stave_output_file.go
+    mainfile: stave_output_file_<hash>_<pid>.go
     build: Compilation
     cache: Cached Binary
 ```
