@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-02-19
+
+### Changed
+
+- Instead of the main Go file template being used to always generate a file called `stave_output_file.go`, switch to deduped filenames (based on a content hash and the current PID).
+
 ## [0.10.10] - 2026-02-19
 
 ### Changed
@@ -455,7 +461,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.10.10...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/yaklabco/stave/compare/v0.10.10...v0.11.0
 [0.10.10]: https://github.com/yaklabco/stave/compare/v0.10.9...v0.10.10
 [0.10.9]: https://github.com/yaklabco/stave/compare/v0.10.8...v0.10.9
 [0.10.8]: https://github.com/yaklabco/stave/compare/v0.10.7...v0.10.8

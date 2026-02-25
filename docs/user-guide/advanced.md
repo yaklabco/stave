@@ -211,7 +211,7 @@ Retain the generated mainfile for inspection:
 stave --keep build
 ```
 
-The generated file is `stave_output_file.go` in the stavefile directory.
+The generated file is `stave_output_file_<hash>_<pid>.go` in the stavefile directory.
 
 ### Force Recompilation
 

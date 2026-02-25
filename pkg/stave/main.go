@@ -304,17 +304,25 @@ func stave(ctx context.Context, params RunParams) error {
 	sort.Sort(info.Funcs)
 	sort.Sort(info.Imports)
 
-	main := filepath.Join(params.Dir, mainFile)
+	// Use the content-based exe hash (not CompileOut) to derive the mainfile name.
+	hashPath, hashErr := ExeName(ctx, params.GoCmd, params.CacheDir, files)
+	if hashErr != nil {
+		return fmt.Errorf("getting exe hash for mainfile: %w", hashErr)
+	}
+	main := mainFilePathFromExePath(params.Dir, hashPath)
 	binaryName := "stave"
 	if params.CompileOut != "" {
 		binaryName = filepath.Base(params.CompileOut)
 	}
 
-	err = GenerateMainFile(binaryName, main, info)
-	if err != nil {
-		return err
+	createdByMe := false
+	if _, statErr := os.Stat(main); errors.Is(statErr, os.ErrNotExist) {
+		if genErr := GenerateMainFile(binaryName, main, info); genErr != nil {
+			return genErr
+		}
+		createdByMe = true
 	}
-	if !params.Keep {
+	if !params.Keep && createdByMe {
 		defer func() { _ = os.RemoveAll(main) }()
 	}
 
@@ -333,12 +341,12 @@ func stave(ctx context.Context, params RunParams) error {
 	}); err != nil {
 		return err
 	}
-	if !params.Keep {
+	if !params.Keep && createdByMe {
 		// move aside this file before we run the compiled version, in case the
 		// compiled file screws things up.  Yes this doubles up with the above
 		// defer, that's ok.
 		_ = os.RemoveAll(main)
-	} else {
+	} else if params.Keep {
 		slog.Debug("keeping mainfile")
 	}
 
@@ -612,8 +620,12 @@ func Compile(ctx context.Context, params CompileParams) error {
 func GenerateMainFile(binaryName, path string, info *parse.PkgInfo) error {
 	slog.Debug("generating mainfile", slog.String(log.Path, path))
 
-	outputFile, err := os.Create(path)
+	outputFile, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
 	if err != nil {
+		// If the file already exists, assume another concurrent run created it; do nothing.
+		if errors.Is(err, os.ErrExist) {
+			return nil
+		}
 		return fmt.Errorf("error creating generated mainfile: %w", err)
 	}
 	defer func() { _ = outputFile.Close() }()
