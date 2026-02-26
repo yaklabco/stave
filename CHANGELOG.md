@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-02-26
+
+### Changed
+
+- Bump Go version to `1.25.7` (and update dependencies).
+
 ## [0.11.1] - 2026-02-21
 
 ### Changed
@@ -467,7 +473,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.11.1...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/yaklabco/stave/compare/v0.11.1...v0.12.0
 [0.11.1]: https://github.com/yaklabco/stave/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/yaklabco/stave/compare/v0.10.10...v0.11.0
 [0.10.10]: https://github.com/yaklabco/stave/compare/v0.10.9...v0.10.10
