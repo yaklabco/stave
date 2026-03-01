@@ -73,3 +73,6 @@ stave_test_out
 
 # gomdlint
 *.gomdlint.bak
+
+# Worktrees
+.worktrees/
