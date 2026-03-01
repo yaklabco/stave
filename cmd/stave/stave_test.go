@@ -167,3 +167,16 @@ func TestConfigFlagNoSubcommand(t *testing.T) {
 	rootCmd.SetArgs([]string{"--config"})
 	require.NoError(t, ExecuteWithFang(ctx, rootCmd))
 }
+
+func TestCheckUpdateFlag(t *testing.T) {
+	ctx := t.Context()
+	var captured stave.RunParams
+	runFunc := func(params stave.RunParams) error {
+		captured = params
+		return nil
+	}
+	rootCmd := NewRootCmd(ctx, withRunFunc(runFunc))
+	rootCmd.SetArgs([]string{"--check-update"})
+	require.NoError(t, ExecuteWithFang(ctx, rootCmd))
+	assert.True(t, captured.CheckUpdate)
+}

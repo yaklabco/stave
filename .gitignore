@@ -73,3 +73,9 @@ stave_test_out
 
 # gomdlint
 *.gomdlint.bak
+
+# Worktrees
+.worktrees/
+
+# Local design drafts
+docs/plans/2026-03-01-version-check-design.md

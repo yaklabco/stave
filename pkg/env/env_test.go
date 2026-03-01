@@ -2,7 +2,11 @@ package env
 
 import (
 	"errors"
+	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseBool(t *testing.T) {
@@ -179,6 +183,89 @@ func TestFailsafeParseBoolEnvDefaultTrue(t *testing.T) {
 			if got := FailsafeParseBoolEnv(envVar, true); got != tt.want {
 				t.Errorf("FailsafeParseBoolEnv(%q, true) = %v, want %v", envVar, got, tt.want)
 			}
+		})
+	}
+}
+
+// clearCIEnv unsets all CI environment variables for test isolation.
+// It uses t.Setenv to register cleanup (restoring original values),
+// then os.Unsetenv to actually remove them from the environment.
+func clearCIEnv(t *testing.T) {
+	t.Helper()
+
+	for _, v := range CIEnvVarNames() {
+		t.Setenv(v, "")
+		require.NoError(t, os.Unsetenv(v))
+	}
+}
+
+func TestInCI(t *testing.T) {
+	tests := []struct {
+		name string
+		env  map[string]string
+		want bool
+	}{
+		{
+			name: "no CI env vars",
+			env:  nil,
+			want: false,
+		},
+		{
+			name: "CI=true",
+			env:  map[string]string{"CI": "true"},
+			want: true,
+		},
+		{
+			name: "CI=1",
+			env:  map[string]string{"CI": "1"},
+			want: true,
+		},
+		{
+			name: "CI=false",
+			env:  map[string]string{"CI": "false"},
+			want: false,
+		},
+		{
+			name: "CI empty",
+			env:  map[string]string{"CI": ""},
+			want: false,
+		},
+		{
+			name: "GITHUB_ACTIONS=true",
+			env:  map[string]string{"GITHUB_ACTIONS": "true"},
+			want: true,
+		},
+		{
+			name: "GITLAB_CI=true",
+			env:  map[string]string{"GITLAB_CI": "true"},
+			want: true,
+		},
+		{
+			name: "JENKINS_URL set",
+			env:  map[string]string{"JENKINS_URL": "http://jenkins.example.com"},
+			want: true,
+		},
+		{
+			name: "CIRCLECI=true",
+			env:  map[string]string{"CIRCLECI": "true"},
+			want: true,
+		},
+		{
+			name: "BUILDKITE=true",
+			env:  map[string]string{"BUILDKITE": "true"},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clearCIEnv(t)
+
+			for k, v := range tt.env {
+				t.Setenv(k, v)
+			}
+
+			assert.Equal(t, tt.want, InCI())
 		})
 	}
 }

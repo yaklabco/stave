@@ -5,6 +5,10 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestResolveXDGPaths(t *testing.T) {
@@ -263,4 +267,43 @@ func TestValidationResults_WriteWarnings(t *testing.T) {
 	if output == "" {
 		t.Error("WriteWarnings should produce output")
 	}
+}
+
+func TestLoad_UpdateCheckDefaults(t *testing.T) {
+	ResetGlobal()
+	cfg, err := Load(&LoadOptions{
+		SkipUserConfig:    true,
+		SkipProjectConfig: true,
+		SkipEnv:           true,
+	})
+	require.NoError(t, err)
+	assert.True(t, cfg.UpdateCheck.Enabled)
+	assert.Equal(t, 24*time.Hour, cfg.UpdateCheck.Interval)
+}
+
+func TestLoad_UpdateCheckFromProjectConfig(t *testing.T) {
+	ResetGlobal()
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "stave.yaml")
+	content := "update_check:\n  enabled: false\n  interval: 12h\n"
+	require.NoError(t, os.WriteFile(configPath, []byte(content), 0o600))
+	cfg, err := Load(&LoadOptions{
+		ProjectDir:     tmpDir,
+		SkipUserConfig: true,
+		SkipEnv:        true,
+	})
+	require.NoError(t, err)
+	assert.False(t, cfg.UpdateCheck.Enabled)
+	assert.Equal(t, 12*time.Hour, cfg.UpdateCheck.Interval)
+}
+
+func TestLoad_StaveNoUpdateCheckEnv(t *testing.T) {
+	ResetGlobal()
+	t.Setenv("STAVE_NO_UPDATE_CHECK", "1")
+	cfg, err := Load(&LoadOptions{
+		SkipUserConfig:    true,
+		SkipProjectConfig: true,
+	})
+	require.NoError(t, err)
+	assert.False(t, cfg.UpdateCheck.Enabled)
 }

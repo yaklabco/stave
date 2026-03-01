@@ -67,6 +67,51 @@ func ParseBoolEnv(envVar string) (bool, error) {
 	return ParseBool(v)
 }
 
+// boolCIVars are CI environment variables checked with ParseBool (truthy/falsy).
+var boolCIVars = []string{ //nolint:gochecknoglobals // package-level lookup table for CI detection
+	"CI",
+	"GITHUB_ACTIONS",
+	"GITLAB_CI",
+	"CIRCLECI",
+	"BUILDKITE",
+}
+
+// presenceCIVars are CI environment variables where non-empty presence indicates CI.
+var presenceCIVars = []string{ //nolint:gochecknoglobals // package-level lookup table for CI detection
+	"JENKINS_URL",
+}
+
+// CIEnvVarNames returns every environment variable that InCI checks.
+// This is exported so that test helpers in other packages can clear these
+// variables for isolation without maintaining their own copies.
+func CIEnvVarNames() []string {
+	names := make([]string, 0, len(boolCIVars)+len(presenceCIVars))
+	names = append(names, boolCIVars...)
+	names = append(names, presenceCIVars...)
+
+	return names
+}
+
+// InCI returns true if the process appears to be running in a CI environment.
+// It checks common CI environment variables: boolean vars (CI, GITHUB_ACTIONS,
+// GITLAB_CI, CIRCLECI, BUILDKITE) are parsed for truthiness, while presence
+// vars (JENKINS_URL) only need to be set and non-empty.
+func InCI() bool {
+	for _, v := range boolCIVars {
+		if val, err := ParseBoolEnv(v); err == nil && val {
+			return true
+		}
+	}
+
+	for _, v := range presenceCIVars {
+		if os.Getenv(v) != "" {
+			return true
+		}
+	}
+
+	return false
+}
+
 // FailsafeParseBoolEnv reads an environment variable and parses it as a boolean.
 // It returns defaultValue if the variable is unset, empty, or contains an invalid
 // value. This provides a fail-safe default where invalid configuration does not
