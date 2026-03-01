@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sync/atomic"
@@ -70,6 +71,28 @@ func newCountingServer(t *testing.T, tagName string, counter *atomic.Int32) *htt
 	}))
 }
 
+// ciEnvVars lists every CI environment variable that env.InCI checks.
+// Tests that call CheckAndNotify must clear these so InCI() doesn't
+// short-circuit the test when running in GitHub Actions or other CI.
+var ciEnvVars = []string{
+	"CI",
+	"GITHUB_ACTIONS",
+	"GITLAB_CI",
+	"CIRCLECI",
+	"BUILDKITE",
+	"JENKINS_URL",
+}
+
+// clearCIEnv unsets all CI environment variables for test isolation.
+func clearCIEnv(t *testing.T) {
+	t.Helper()
+
+	for _, v := range ciEnvVars {
+		t.Setenv(v, "")
+		require.NoError(t, os.Unsetenv(v))
+	}
+}
+
 // enabledConfig returns an UpdateCheckConfig with checking enabled and a long TTL.
 func enabledConfig() config.UpdateCheckConfig {
 	return config.UpdateCheckConfig{
@@ -100,6 +123,8 @@ func TestCheckAndNotify_SkipsInCI(t *testing.T) {
 }
 
 func TestCheckAndNotify_SkipsWhenDisabled(t *testing.T) {
+	clearCIEnv(t)
+
 	server := newFailingServer(t)
 	defer server.Close()
 
@@ -120,6 +145,8 @@ func TestCheckAndNotify_SkipsWhenDisabled(t *testing.T) {
 }
 
 func TestCheckAndNotify_SkipsDevVersion(t *testing.T) {
+	clearCIEnv(t)
+
 	server := newFailingServer(t)
 	defer server.Close()
 
@@ -137,6 +164,8 @@ func TestCheckAndNotify_SkipsDevVersion(t *testing.T) {
 }
 
 func TestCheckAndNotify_NewerVersionAvailable(t *testing.T) {
+	clearCIEnv(t)
+
 	server := newTestServer(t, "v0.13.0", "some changelog")
 	defer server.Close()
 
@@ -162,6 +191,8 @@ func TestCheckAndNotify_NewerVersionAvailable(t *testing.T) {
 }
 
 func TestCheckAndNotify_SilentAfterNotified(t *testing.T) {
+	clearCIEnv(t)
+
 	server := newFailingServer(t)
 	defer server.Close()
 
@@ -190,6 +221,8 @@ func TestCheckAndNotify_SilentAfterNotified(t *testing.T) {
 }
 
 func TestCheckAndNotify_SilentWhenUpToDate(t *testing.T) {
+	clearCIEnv(t)
+
 	server := newTestServer(t, "v0.12.0", "changelog")
 	defer server.Close()
 
@@ -207,6 +240,8 @@ func TestCheckAndNotify_SilentWhenUpToDate(t *testing.T) {
 }
 
 func TestCheckAndNotify_SilentOnNetworkError(t *testing.T) {
+	clearCIEnv(t)
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
@@ -226,6 +261,8 @@ func TestCheckAndNotify_SilentOnNetworkError(t *testing.T) {
 }
 
 func TestCheckAndNotify_UsesCachedResult(t *testing.T) {
+	clearCIEnv(t)
+
 	server := newFailingServer(t)
 	defer server.Close()
 
@@ -254,6 +291,8 @@ func TestCheckAndNotify_UsesCachedResult(t *testing.T) {
 }
 
 func TestCheckAndNotify_WritesCache(t *testing.T) {
+	clearCIEnv(t)
+
 	server := newTestServer(t, "v0.13.0", "changelog")
 	defer server.Close()
 
