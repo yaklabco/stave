@@ -355,7 +355,7 @@ func DefaultConfig() *Config {
 		TargetColor:   DefaultTargetColor,
 		UpdateCheck: UpdateCheckConfig{
 			Enabled:  DefaultUpdateCheckEnabled,
-			Interval: DefaultUpdateCheckInterval,
+			Interval: defaultUpdateCheckInterval,
 		},
 	}
 }

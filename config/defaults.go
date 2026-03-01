@@ -33,8 +33,8 @@ const (
 	DefaultUpdateCheckEnabled = true
 )
 
-// DefaultUpdateCheckInterval is the default duration between update checks.
-var DefaultUpdateCheckInterval = 24 * time.Hour //nolint:gochecknoglobals // default configuration value
+// defaultUpdateCheckInterval is the default duration between update checks.
+var defaultUpdateCheckInterval = 24 * time.Hour //nolint:gochecknoglobals // default configuration value
 
 // setDefaults configures default values in the viper instance.
 func setDefaults(viperInstance *viper.Viper) {
@@ -47,5 +47,5 @@ func setDefaults(viperInstance *viper.Viper) {
 	viperInstance.SetDefault("enable_color", DefaultEnableColor)
 	viperInstance.SetDefault("target_color", DefaultTargetColor)
 	viperInstance.SetDefault("update_check.enabled", DefaultUpdateCheckEnabled)
-	viperInstance.SetDefault("update_check.interval", DefaultUpdateCheckInterval)
+	viperInstance.SetDefault("update_check.interval", defaultUpdateCheckInterval)
 }

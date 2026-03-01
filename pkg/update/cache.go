@@ -24,8 +24,8 @@ func (e *CacheEntry) IsExpired(ttl time.Duration) bool {
 	return time.Since(e.CheckedAt) > ttl
 }
 
-// CachePath returns the full path to the cache file within the given directory.
-func CachePath(dir string) string {
+// cachePath returns the full path to the cache file within the given directory.
+func cachePath(dir string) string {
 	return filepath.Join(dir, cacheFileName)
 }
 
@@ -33,7 +33,7 @@ func CachePath(dir string) string {
 // returns nil if the file does not exist, cannot be read, or contains invalid
 // JSON.
 func ReadCache(dir string) *CacheEntry {
-	data, err := os.ReadFile(CachePath(dir))
+	data, err := os.ReadFile(cachePath(dir))
 	if err != nil {
 		return nil
 	}
@@ -58,5 +58,5 @@ func WriteCache(dir string, entry *CacheEntry) error {
 		return err
 	}
 
-	return os.WriteFile(CachePath(dir), data, 0o600)
+	return os.WriteFile(cachePath(dir), data, 0o600)
 }

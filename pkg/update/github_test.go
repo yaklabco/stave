@@ -53,7 +53,7 @@ func TestFetchLatestRelease_NotFound(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Nil(t, release)
-	assert.Contains(t, err.Error(), "unexpected status 404")
+	assert.Contains(t, err.Error(), "fetching latest release: unexpected status 404")
 }
 
 func TestFetchLatestRelease_RateLimited(t *testing.T) {
@@ -67,7 +67,7 @@ func TestFetchLatestRelease_RateLimited(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Nil(t, release)
-	assert.Contains(t, err.Error(), "unexpected status 403")
+	assert.Contains(t, err.Error(), "fetching latest release: unexpected status 403")
 }
 
 func TestFetchLatestRelease_InvalidJSON(t *testing.T) {

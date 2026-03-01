@@ -81,6 +81,17 @@ var presenceCIVars = []string{ //nolint:gochecknoglobals // package-level lookup
 	"JENKINS_URL",
 }
 
+// CIEnvVarNames returns every environment variable that InCI checks.
+// This is exported so that test helpers in other packages can clear these
+// variables for isolation without maintaining their own copies.
+func CIEnvVarNames() []string {
+	names := make([]string, 0, len(boolCIVars)+len(presenceCIVars))
+	names = append(names, boolCIVars...)
+	names = append(names, presenceCIVars...)
+
+	return names
+}
+
 // InCI returns true if the process appears to be running in a CI environment.
 // It checks common CI environment variables: boolean vars (CI, GITHUB_ACTIONS,
 // GITLAB_CI, CIRCLECI, BUILDKITE) are parsed for truthiness, while presence

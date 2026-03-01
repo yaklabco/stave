@@ -806,7 +806,8 @@ func RunCompiled(ctx context.Context, params RunParams, exePath string) error {
 
 	err = theCmd.Wait()
 
-	// Best-effort update check after target execution.
+	// Best-effort update check after target execution — runs regardless of
+	// target success/failure so users see update availability even on errors.
 	update.CheckAndNotify(ctx, update.Params{
 		CurrentVersion: version.EffectiveVersion(ctx),
 		CacheDir:       params.CacheDir,

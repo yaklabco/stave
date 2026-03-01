@@ -86,7 +86,7 @@ func CheckAndNotify(ctx context.Context, params Params) {
 func ExplicitCheck(ctx context.Context, params Params) error {
 	release, err := fetchRelease(ctx, params.ClientOptions)
 	if err != nil {
-		return err
+		return fmt.Errorf("checking for updates: %w", err)
 	}
 
 	// Update cache with fresh data.
@@ -173,10 +173,15 @@ const wordWrapWidth = 80
 
 // changelogStyle returns a glamour style based on terminal background,
 // with heading prefixes (##, ###) removed for cleaner changelog output.
-func changelogStyle() ansi.StyleConfig {
+// If output is an *os.File, it is used for terminal background detection;
+// otherwise, dark style is assumed.
+func changelogStyle(output io.Writer) ansi.StyleConfig {
 	style := styles.DarkStyleConfig
-	if !lipgloss.HasDarkBackground(os.Stdin, os.Stdout) {
-		style = styles.LightStyleConfig
+
+	if f, ok := output.(*os.File); ok {
+		if !lipgloss.HasDarkBackground(f, f) {
+			style = styles.LightStyleConfig
+		}
 	}
 
 	// Remove markdown heading prefixes — they look noisy in a changelog.
@@ -193,7 +198,7 @@ func changelogStyle() ansi.StyleConfig {
 // Falls back to raw text if rendering fails.
 func renderMarkdown(output io.Writer, body string) {
 	renderer, err := glamour.NewTermRenderer(
-		glamour.WithStyles(changelogStyle()),
+		glamour.WithStyles(changelogStyle(output)),
 		glamour.WithWordWrap(wordWrapWidth),
 	)
 	if err != nil {

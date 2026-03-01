@@ -111,14 +111,14 @@ func TestWriteCache_CreatesDir(t *testing.T) {
 }
 
 func TestCachePath(t *testing.T) {
-	got := CachePath("/foo/bar")
+	got := cachePath("/foo/bar")
 	assert.Equal(t, "/foo/bar/update-check.json", got)
 }
 
 func TestCacheNotifiedVersion(t *testing.T) {
-	cacheDir := filepath.Join(t.TempDir(), "stave")
-
 	t.Run("with notified version", func(t *testing.T) {
+		cacheDir := filepath.Join(t.TempDir(), "stave")
+
 		entry := &CacheEntry{
 			CheckedAt:       time.Now().Truncate(time.Second),
 			LatestVersion:   "v0.11.0",
@@ -135,6 +135,8 @@ func TestCacheNotifiedVersion(t *testing.T) {
 	})
 
 	t.Run("without notified version", func(t *testing.T) {
+		cacheDir := filepath.Join(t.TempDir(), "stave")
+
 		entry := &CacheEntry{
 			CheckedAt:     time.Now().Truncate(time.Second),
 			LatestVersion: "v0.11.0",

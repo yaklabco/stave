@@ -187,26 +187,13 @@ func TestFailsafeParseBoolEnvDefaultTrue(t *testing.T) {
 	}
 }
 
-// allCIEnvVars returns every CI environment variable that InCI checks.
-// This must stay in sync with the boolCIVars and presenceCIVars slices.
-func allCIEnvVars() []string {
-	return []string{
-		"CI",
-		"GITHUB_ACTIONS",
-		"GITLAB_CI",
-		"CIRCLECI",
-		"BUILDKITE",
-		"JENKINS_URL",
-	}
-}
-
 // clearCIEnv unsets all CI environment variables for test isolation.
 // It uses t.Setenv to register cleanup (restoring original values),
 // then os.Unsetenv to actually remove them from the environment.
 func clearCIEnv(t *testing.T) {
 	t.Helper()
 
-	for _, v := range allCIEnvVars() {
+	for _, v := range CIEnvVarNames() {
 		t.Setenv(v, "")
 		require.NoError(t, os.Unsetenv(v))
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/yaklabco/stave/config"
+	"github.com/yaklabco/stave/pkg/env"
 )
 
 // ansiPattern matches ANSI escape sequences.
@@ -71,23 +72,13 @@ func newCountingServer(t *testing.T, tagName string, counter *atomic.Int32) *htt
 	}))
 }
 
-// ciEnvVars lists every CI environment variable that env.InCI checks.
-// Tests that call CheckAndNotify must clear these so InCI() doesn't
-// short-circuit the test when running in GitHub Actions or other CI.
-var ciEnvVars = []string{
-	"CI",
-	"GITHUB_ACTIONS",
-	"GITLAB_CI",
-	"CIRCLECI",
-	"BUILDKITE",
-	"JENKINS_URL",
-}
-
 // clearCIEnv unsets all CI environment variables for test isolation.
+// Uses env.CIEnvVarNames() as the canonical list to stay in sync
+// with the production InCI() check.
 func clearCIEnv(t *testing.T) {
 	t.Helper()
 
-	for _, v := range ciEnvVars {
+	for _, v := range env.CIEnvVarNames() {
 		t.Setenv(v, "")
 		require.NoError(t, os.Unsetenv(v))
 	}

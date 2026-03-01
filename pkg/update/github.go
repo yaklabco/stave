@@ -89,7 +89,7 @@ func (c *GitHubClient) FetchLatestRelease(ctx context.Context) (*Release, error)
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status %d", resp.StatusCode)
+		return nil, fmt.Errorf("fetching latest release: unexpected status %d", resp.StatusCode)
 	}
 
 	var release Release

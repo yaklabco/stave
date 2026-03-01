@@ -12,6 +12,7 @@ import (
 
 	"github.com/yaklabco/stave/config"
 	"github.com/yaklabco/stave/internal/log"
+	"github.com/yaklabco/stave/pkg/env"
 	"github.com/yaklabco/stave/pkg/st"
 )
 
@@ -22,17 +23,6 @@ const StaveHooksEnv = "STAVE_HOOKS"
 // StaveQuietEnv is the environment variable that suppresses hook output when set to "1".
 const StaveQuietEnv = "STAVE_QUIET"
 
-// CI environment variable names used to detect CI environments.
-// When any of these are set, hooks run in quiet mode.
-const (
-	CIEnv            = "CI"
-	GitHubActionsEnv = "GITHUB_ACTIONS"
-	GitLabCIEnv      = "GITLAB_CI"
-	JenkinsURLEnv    = "JENKINS_URL"
-	CircleCIEnv      = "CIRCLECI"
-	BuildkiteEnv     = "BUILDKITE"
-)
-
 // ErrHooksDisabled is returned when hooks are disabled via STAVE_HOOKS=0.
 var ErrHooksDisabled = errors.New("hooks disabled via " + StaveHooksEnv + "=0")
 
@@ -41,20 +31,8 @@ func isQuietMode() bool {
 	if os.Getenv(StaveQuietEnv) == "1" {
 		return true
 	}
-	ciEnvVars := []string{
-		CIEnv,
-		GitHubActionsEnv,
-		GitLabCIEnv,
-		JenkinsURLEnv,
-		CircleCIEnv,
-		BuildkiteEnv,
-	}
-	for _, v := range ciEnvVars {
-		if os.Getenv(v) != "" {
-			return true
-		}
-	}
-	return false
+
+	return env.InCI()
 }
 
 // Runtime executes hook targets.
