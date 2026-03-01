@@ -104,6 +104,7 @@ func NewRootCmd(ctx context.Context, opts ...Option) *cobra.Command {
 	rootCmd.PersistentFlags().BoolVar(&runParams.DirEnv, "direnv", false, "delegate to direnv for managing environment variables")
 	rootCmd.PersistentFlags().BoolVar(&runParams.Exec, "exec", false, "execute commands under stave")
 	rootCmd.PersistentFlags().BoolVar(&runParams.Hooks, "hooks", false, "manage git hooks (install, list, run, etc.)")
+	rootCmd.PersistentFlags().BoolVar(&runParams.CheckUpdate, "check-update", false, "check for available updates")
 	rootCmd.PersistentFlags().BoolVar(&runParams.Init, "init", false, "create a starting template if no stave files exist")
 	rootCmd.PersistentFlags().BoolVarP(&runParams.List, "list", "l", false, "list stave targets in this directory")
 

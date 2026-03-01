@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/spf13/viper"
 	"github.com/yaklabco/stave/pkg/env"
@@ -42,6 +43,9 @@ type Config struct {
 
 	// Hooks defines Git hooks and the Stave targets they should run.
 	Hooks HooksConfig `mapstructure:"hooks"`
+
+	// UpdateCheck holds configuration for automatic update checking.
+	UpdateCheck UpdateCheckConfig `mapstructure:"update_check"`
 
 	// configFile is the path to the config file that was loaded (if any).
 	configFile string
@@ -118,6 +122,14 @@ func ResetGlobal() {
 	defer globalConfigMu.Unlock()
 	globalConfig = nil
 	globalConfigLoaded = false
+}
+
+// UpdateCheckConfig holds configuration for automatic update checking.
+type UpdateCheckConfig struct {
+	// Enabled controls whether automatic update checks are performed.
+	Enabled bool `mapstructure:"enabled"`
+	// Interval is the minimum duration between update checks.
+	Interval time.Duration `mapstructure:"interval"`
 }
 
 // LoadOptions configures how configuration is loaded.
@@ -299,6 +311,14 @@ func applyEnvironmentOverrides(cfg *Config) {
 	applyBoolEnv("STAVEFILE_HASHFAST", &cfg.HashFast)
 	applyBoolEnv("STAVEFILE_IGNOREDEFAULT", &cfg.IgnoreDefault)
 	applyBoolEnv("STAVEFILE_ENABLE_COLOR", &cfg.EnableColor)
+
+	// STAVE_NO_UPDATE_CHECK disables automatic update checking when set to a truthy value.
+	if v, ok := os.LookupEnv("STAVE_NO_UPDATE_CHECK"); ok && v != "" {
+		b, parseErr := env.ParseBool(v)
+		if parseErr == nil && b {
+			cfg.UpdateCheck.Enabled = false
+		}
+	}
 }
 
 // applyStringEnv applies an environment variable value to a string pointer if set.
@@ -333,6 +353,10 @@ func DefaultConfig() *Config {
 		IgnoreDefault: DefaultIgnoreDefault,
 		EnableColor:   DefaultEnableColor,
 		TargetColor:   DefaultTargetColor,
+		UpdateCheck: UpdateCheckConfig{
+			Enabled:  DefaultUpdateCheckEnabled,
+			Interval: DefaultUpdateCheckInterval,
+		},
 	}
 }
 
@@ -401,5 +425,10 @@ enable_color: false
 #          BrightBlack, BrightRed, BrightGreen, BrightYellow,
 #          BrightBlue, BrightMagenta, BrightCyan, BrightWhite
 target_color: Cyan
+
+# Automatic update check settings.
+# update_check:
+#   enabled: true
+#   interval: 24h
 `
 }

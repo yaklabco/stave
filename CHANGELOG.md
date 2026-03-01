@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Automatic version check after target execution, with one-liner notification for new releases.
+- `--check-update` flag for explicit version check with full changelog display.
+- Configurable `update_check` settings in `stave.yaml` (`enabled`, `interval`).
+- `STAVE_NO_UPDATE_CHECK` environment variable to disable automatic update checks.
+- Auto-disable update checks in CI environments.
+
 ## [0.12.0] - 2026-02-26
 
 ### Changed

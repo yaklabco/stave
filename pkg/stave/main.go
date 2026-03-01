@@ -22,6 +22,7 @@ import (
 	cblog "github.com/charmbracelet/log"
 	"github.com/samber/lo"
 	"github.com/yaklabco/stave/cmd/stave/version"
+	"github.com/yaklabco/stave/config"
 	"github.com/yaklabco/stave/internal"
 	"github.com/yaklabco/stave/internal/dryrun"
 	"github.com/yaklabco/stave/internal/log"
@@ -31,6 +32,7 @@ import (
 	"github.com/yaklabco/stave/pkg/sh"
 	"github.com/yaklabco/stave/pkg/st"
 	"github.com/yaklabco/stave/pkg/stave/prettylog"
+	"github.com/yaklabco/stave/pkg/update"
 )
 
 const (
@@ -82,6 +84,8 @@ type RunParams struct {
 	HashFast bool          // don't rely on GOCACHE, just hash the stavefiles
 
 	HooksAreRunning bool // indicates whether hooks are currently being executed
+
+	CheckUpdate bool // triggers update check mode
 }
 
 // UsesStavefiles returns true if we are getting our stave files from a stavefiles directory.
@@ -112,7 +116,7 @@ func Run(params RunParams) error {
 	}
 
 	if howManyThingsToDo(params) > 1 {
-		return errors.New("only one of --init, --clean, --list, --hooks, --config, or explicit targets may be specified")
+		return errors.New("only one of --init, --clean, --list, --hooks, --config, --check-update, or explicit targets may be specified")
 	}
 
 	if params.Clean {
@@ -138,6 +142,15 @@ func Run(params RunParams) error {
 
 	if params.Hooks {
 		return runHooksMode(ctx, params)
+	}
+
+	if params.CheckUpdate {
+		return update.ExplicitCheck(ctx, update.Params{
+			CurrentVersion: version.EffectiveVersion(ctx),
+			CacheDir:       params.CacheDir,
+			Output:         params.Stdout,
+			Config:         config.Global().UpdateCheck,
+		})
 	}
 
 	if params.Init {
@@ -362,6 +375,7 @@ func howManyThingsToDo(params RunParams) int {
 
 	switch {
 	case
+		params.CheckUpdate,
 		params.Clean,
 		params.Config,
 		params.DirEnv,
@@ -791,6 +805,15 @@ func RunCompiled(ctx context.Context, params RunParams, exePath string) error {
 	}()
 
 	err = theCmd.Wait()
+
+	// Best-effort update check after target execution.
+	update.CheckAndNotify(ctx, update.Params{
+		CurrentVersion: version.EffectiveVersion(ctx),
+		CacheDir:       params.CacheDir,
+		Output:         params.Stderr,
+		Config:         config.Global().UpdateCheck,
+	})
+
 	if !sh.CmdRan(err) {
 		slog.Error("failed to run compiled stavefile", slog.Any(log.Error, err))
 	}
