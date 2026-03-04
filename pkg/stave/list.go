@@ -41,7 +41,7 @@ type targetItem struct {
 	key targetKey
 
 	displayName string
-	usage       string
+	args        []parse.Arg
 	synopsis    string
 	aliases     []string
 	isDefault   bool
@@ -58,8 +58,8 @@ var nsDefaultSuffix = ":" + strings.ToLower(defaultLabel) //nolint:gochecknoglob
 //
 // It is implemented in the Stave binary (not in the generated mainfile) so it can
 // use Charmbracelet styling without requiring additional dependencies in user projects.
-func renderTargetList(out io.Writer, binaryName string, info *parse.PkgInfo, filters []string) error {
-	items := buildTargetItems(binaryName, info)
+func renderTargetList(out io.Writer, info *parse.PkgInfo, filters []string) error {
+	items := buildTargetItems(info)
 	items = applyTargetFilters(items, filters)
 
 	anyWatch := false
@@ -95,27 +95,47 @@ func renderTargetList(out io.Writer, binaryName string, info *parse.PkgInfo, fil
 		watchStyle = watchStyle.Foreground(cs.QuotedString).Reverse(true).Bold(true)
 	}
 
-	renderName := func(name string, isDefault, isWatch bool) string {
+	renderName := func(name string, isDefault, isWatch bool, args []parse.Arg) string {
+		var sb strings.Builder
 		if !colorEnabled {
-			if isWatch {
-				return name + " [W]"
+			sb.WriteString(name)
+			for _, a := range args {
+				if strings.TrimSpace(a.Name) == "" {
+					continue
+				}
+				sb.WriteString(" <")
+				sb.WriteString(a.Name)
+				sb.WriteString(">")
 			}
-			return name
+			if isWatch {
+				sb.WriteString(" [W]")
+			}
+			return sb.String()
 		}
 
-		var renderedName string
 		if isDefault {
 			// Default target is highlighted with a distinct color so it is visually discoverable.
-			renderedName = defaultNameStyle.Render(name)
+			sb.WriteString(defaultNameStyle.Render(name))
 		} else {
 			// Non-default targets use the existing env-driven target color semantics.
-			renderedName = targetStyle.Render(name)
+			sb.WriteString(targetStyle.Render(name))
+		}
+
+		for _, a := range args {
+			if strings.TrimSpace(a.Name) == "" {
+				continue
+			}
+			sb.WriteString(" <")
+			sb.WriteString(a.Name)
+			sb.WriteString(">")
 		}
 
 		if isWatch {
-			renderedName += " " + watchStyle.Render("[W]")
+			sb.WriteString(" ")
+			sb.WriteString(watchStyle.Render("[W]"))
 		}
-		return renderedName
+
+		return sb.String()
 	}
 
 	// Header
@@ -154,7 +174,7 @@ func renderTargetList(out io.Writer, binaryName string, info *parse.PkgInfo, fil
 	return nil
 }
 
-func buildTargetItems(binaryName string, info *parse.PkgInfo) []targetItem {
+func buildTargetItems(info *parse.PkgInfo) []targetItem {
 	aliasByKey := make(map[targetKey][]string)
 	for alias, fn := range info.Aliases {
 		if fn == nil {
@@ -191,7 +211,7 @@ func buildTargetItems(binaryName string, info *parse.PkgInfo) []targetItem {
 		items = append(items, targetItem{
 			key:         funcKey,
 			displayName: display,
-			usage:       usageFor(binaryName, display, fn.Args),
+			args:        fn.Args,
 			synopsis:    fn.Synopsis,
 			aliases:     aliasByKey[funcKey],
 			isDefault:   funcKey == defaultKey && fn.Name != "",
@@ -219,7 +239,7 @@ func buildTargetItems(binaryName string, info *parse.PkgInfo) []targetItem {
 			items = append(items, targetItem{
 				key:         funcKey,
 				displayName: display,
-				usage:       usageFor(binaryName, display, fn.Args),
+				args:        fn.Args,
 				synopsis:    fn.Synopsis,
 				aliases:     aliasByKey[funcKey],
 				isDefault:   funcKey == defaultKey && fn.Name != "",
@@ -293,7 +313,7 @@ func applyTargetFilters(items []targetItem, filters []string) []targetItem {
 	out := make([]targetItem, 0, len(items))
 	for _, it := range items {
 		aliases := strings.Join(it.aliases, ", ")
-		if matchAll(strings.Join([]string{it.displayName, it.usage, it.synopsis, aliases, it.groupName, it.groupMeta}, " ")) {
+		if matchAll(strings.Join([]string{it.displayName, it.synopsis, aliases, it.groupName, it.groupMeta}, " ")) {
 			out = append(out, it)
 		}
 	}
@@ -349,15 +369,14 @@ func groupTargets(items []targetItem) targetSections {
 		switch it.groupKind {
 		case targetGroupLocal:
 			if it.isDefault {
-				it.usage = strings.TrimSuffix(it.usage, it.displayName)
-				it.usage += "(" + it.displayName + ")"
+				it.displayName = "(" + it.displayName + ")"
 			}
 
 			locals = append(locals, it)
 		case targetGroupNamespace:
 			if it.key.name == defaultLabel {
 				it.isDefault = true
-				it.usage = strings.TrimSuffix(it.usage, nsDefaultSuffix)
+				it.displayName = strings.TrimSuffix(it.displayName, nsDefaultSuffix)
 			}
 			nsByName[it.groupName] = append(nsByName[it.groupName], it)
 		case targetGroupImport:
@@ -386,7 +405,7 @@ func writeTable(
 	out io.Writer,
 	headerStyle, subsectionStyle lipgloss.Style,
 	group targetGroup,
-	renderName func(name string, isDefault, isWatch bool) string,
+	renderName func(name string, isDefault, isWatch bool, args []parse.Arg) string,
 	indent string,
 ) {
 	if len(group.items) == 0 {
@@ -404,7 +423,7 @@ func writeTable(
 
 	type row struct {
 		name      string
-		usage     string
+		args      []parse.Arg
 		synopsis  string
 		isDefault bool
 		isWatch   bool
@@ -412,8 +431,7 @@ func writeTable(
 
 	rows := make([]row, 0, len(group.items)+1)
 	rows = append(rows, row{
-		name:     "NAME",
-		usage:    "USAGE",
+		name:     "USAGE",
 		synopsis: "SYNOPSIS",
 	})
 
@@ -428,7 +446,7 @@ func writeTable(
 		}
 		rows = append(rows, row{
 			name:      name,
-			usage:     it.usage,
+			args:      it.args,
 			synopsis:  syn,
 			isDefault: it.isDefault,
 			isWatch:   it.isWatch,
@@ -436,14 +454,17 @@ func writeTable(
 	}
 
 	// Column widths (ANSI-aware via lipgloss.Width).
-	maxName, maxUsage, maxSyn := 0, 0, 0
-	for _, theRow := range rows {
-		name := theRow.name
-		if theRow.isWatch {
-			name += " [W]"
+	maxUsage, maxSyn := 0, 0
+	for i, theRow := range rows {
+		usage := theRow.name
+		if i > 0 {
+			// For data rows, use the non-colored usage string to calculate width
+			usage = usageFor("", theRow.name, theRow.args)
+			if theRow.isWatch {
+				usage += " [W]"
+			}
 		}
-		maxName = max(maxName, lipgloss.Width(name))
-		maxUsage = max(maxUsage, lipgloss.Width(theRow.usage))
+		maxUsage = max(maxUsage, lipgloss.Width(usage))
 		maxSyn = max(maxSyn, lipgloss.Width(theRow.synopsis))
 	}
 
@@ -461,8 +482,7 @@ func writeTable(
 	// Print header.
 	h := rows[0]
 	headerLine := strings.Join([]string{
-		pad(h.name, maxName),
-		pad(h.usage, maxUsage),
+		pad(h.name, maxUsage),
 		h.synopsis,
 	}, "  ")
 	_, _ = fmt.Fprintln(out, indent+headerStyle.Render(headerLine))
@@ -470,7 +490,7 @@ func writeTable(
 	// Compute terminal width and synopsis column width for wrapping.
 	termWidth := detectTermWidth(out)
 	const gap = 2
-	leftOffset := lipgloss.Width(indent) + maxName + gap + maxUsage + gap
+	leftOffset := lipgloss.Width(indent) + maxUsage + gap
 	synWidth := termWidth - leftOffset
 	if synWidth < termWidthFloor {
 		synWidth = termWidthFloor
@@ -480,15 +500,14 @@ func writeTable(
 
 	// Print rows with word-wrapped synopsis using a hanging indent.
 	for _, theRow := range rows[1:] {
-		name := renderName(theRow.name, theRow.isDefault, theRow.isWatch)
+		usage := renderName(theRow.name, theRow.isDefault, theRow.isWatch, theRow.args)
 
 		wrappedSyn := wordwrap.String(theRow.synopsis, synWidth)
 		// Align continuation lines under the start of the synopsis column.
 		wrappedSyn = strings.ReplaceAll(wrappedSyn, "\n", "\n"+spaceLeft)
 
 		line := strings.Join([]string{
-			pad(name, maxName),
-			pad(theRow.usage, maxUsage),
+			pad(usage, maxUsage),
 			wrappedSyn,
 		}, strings.Repeat(" ", gap))
 		_, _ = fmt.Fprintln(out, indent+line)

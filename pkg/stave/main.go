@@ -225,7 +225,6 @@ func runListMode(ctx context.Context, params RunParams) error {
 
 	return renderTargetList(
 		params.Stdout,
-		filepath.Base(os.Args[0]),
 		info,
 		params.Args,
 	)
