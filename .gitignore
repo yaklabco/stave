@@ -49,7 +49,7 @@ node_modules
 .glide/
 
 # Stavefile output
-stave_output_file.go
+stave_output_file*.go
 
 # Stave test binaries
 stave_test_out

@@ -27,7 +27,7 @@ func TestRenderTargetList_Watch(t *testing.T) {
 	}
 
 	buf := &bytes.Buffer{}
-	err := renderTargetList(buf, "stave", info, nil)
+	err := renderTargetList(buf, info, nil)
 	require.NoError(t, err)
 
 	output := buf.String()
