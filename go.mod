@@ -1,10 +1,10 @@
 module github.com/yaklabco/stave
 
-go 1.25.7
+go 1.25.8
 
 require (
 	charm.land/lipgloss/v2 v2.0.0
-	github.com/caarlos0/svu/v3 v3.3.0
+	github.com/caarlos0/svu/v3 v3.4.0
 	github.com/charmbracelet/fang v0.4.4
 	github.com/charmbracelet/log v0.4.2
 	github.com/charmbracelet/x/term v0.2.2
@@ -13,7 +13,7 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.6.0
 	github.com/muesli/reflow v0.3.0
-	github.com/samber/lo v1.52.0
+	github.com/samber/lo v1.53.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
@@ -28,10 +28,10 @@ require (
 	github.com/bitfield/gotestdox v0.2.2 // indirect
 	github.com/charmbracelet/colorprofile v0.4.2 // indirect
 	github.com/charmbracelet/lipgloss v1.1.0 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20260223171050-89c142e4aa73 // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20260303162955-0b88c25f3fff // indirect
 	github.com/charmbracelet/x/ansi v0.11.6 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.15 // indirect
-	github.com/charmbracelet/x/exp/charmtone v0.0.0-20260225200202-61df8bc4b903 // indirect
+	github.com/charmbracelet/x/exp/charmtone v0.0.0-20260305213658-fe36e8c10185 // indirect
 	github.com/charmbracelet/x/termios v0.1.1 // indirect
 	github.com/charmbracelet/x/windows v0.2.2 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
