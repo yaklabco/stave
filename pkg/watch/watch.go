@@ -117,7 +117,7 @@ func Watch(patterns ...string) {
 		globalMu.Unlock()
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(ctx) //nolint:gosec,lll // False positive ("cancellation function ... is not called"); cancellation function is appended to theState.CancelFuncs on next line.
 	theState.CancelFuncs = append(theState.CancelFuncs, cancel)
 
 	// Register the new cancellable context as the active context for the target AND outermost target.
