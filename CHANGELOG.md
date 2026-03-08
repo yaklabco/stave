@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Simplify `--list` output by merging NAME and USAGE columns into a single USAGE column (while still preserving original color-coding & annotations that NAME column previously had.
+- Simplify `--list` output by merging NAME and USAGE columns into a single USAGE column (while still preserving original color-coding & annotations that NAME column previously had).
 
 ## [0.12.0] - 2026-02-26
 
