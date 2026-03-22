@@ -95,18 +95,10 @@ func renderTargetList(out io.Writer, info *parse.PkgInfo, filters []string) erro
 		watchStyle = watchStyle.Foreground(cs.QuotedString).Reverse(true).Bold(true)
 	}
 
-	renderName := func(name string, isDefault, isWatch bool, args []parse.Arg) string {
+	renderName := func(name string, isDefault, isWatch bool) string {
 		var sb strings.Builder
 		if !colorEnabled {
 			sb.WriteString(name)
-			for _, a := range args {
-				if strings.TrimSpace(a.Name) == "" {
-					continue
-				}
-				sb.WriteString(" <")
-				sb.WriteString(a.Name)
-				sb.WriteString(">")
-			}
 			if isWatch {
 				sb.WriteString(" [W]")
 			}
@@ -119,15 +111,6 @@ func renderTargetList(out io.Writer, info *parse.PkgInfo, filters []string) erro
 		} else {
 			// Non-default targets use the existing env-driven target color semantics.
 			sb.WriteString(targetStyle.Render(name))
-		}
-
-		for _, a := range args {
-			if strings.TrimSpace(a.Name) == "" {
-				continue
-			}
-			sb.WriteString(" <")
-			sb.WriteString(a.Name)
-			sb.WriteString(">")
 		}
 
 		if isWatch {
@@ -151,6 +134,18 @@ func renderTargetList(out io.Writer, info *parse.PkgInfo, filters []string) erro
 	_, _ = fmt.Fprintln(out, titleStyle.Render("Targets:"))
 
 	sections := groupTargets(items)
+
+	// Compute global column widths across all groups so columns align holistically.
+	maxName := lipgloss.Width("NAME")
+	maxUsage := lipgloss.Width("USAGE")
+	allGroups := slices.Concat(sections.local, sections.namespaces, sections.imports)
+	for _, g := range allGroups {
+		for _, it := range g.items {
+			maxName = max(maxName, itemNameWidth(it))
+			maxUsage = max(maxUsage, itemUsageWidth(it))
+		}
+	}
+
 	writeSection := func(title string, groups []targetGroup) {
 		if len(groups) == 0 {
 			return
@@ -158,7 +153,7 @@ func renderTargetList(out io.Writer, info *parse.PkgInfo, filters []string) erro
 		_, _ = fmt.Fprintln(out)
 		_, _ = fmt.Fprintln(out, sectionStyle.Render(title))
 		for _, g := range groups {
-			writeTable(out, tableHeaderStyle, subsectionStyle, g, renderName, indent)
+			writeTable(out, tableHeaderStyle, subsectionStyle, g, renderName, indent, maxName, maxUsage)
 		}
 	}
 
@@ -266,6 +261,23 @@ func localGroupName(fn *parse.Function) string {
 		return ""
 	}
 	return lowerFirstTargetName(fn.Receiver)
+}
+
+// itemNameWidth returns the visual width of a targetItem's NAME cell.
+func itemNameWidth(it targetItem) int {
+	name := it.displayName
+	if len(it.aliases) > 0 {
+		name = fmt.Sprintf("%s (%s)", name, strings.Join(it.aliases, ", "))
+	}
+	if it.isWatch {
+		name += " [W]"
+	}
+	return lipgloss.Width(name)
+}
+
+// itemUsageWidth returns the visual width of a targetItem's USAGE cell.
+func itemUsageWidth(it targetItem) int {
+	return lipgloss.Width(usageFor("stave", it.displayName, it.args))
 }
 
 func usageFor(binaryName, display string, args []parse.Arg) string {
@@ -405,8 +417,9 @@ func writeTable(
 	out io.Writer,
 	headerStyle, subsectionStyle lipgloss.Style,
 	group targetGroup,
-	renderName func(name string, isDefault, isWatch bool, args []parse.Arg) string,
+	renderName func(name string, isDefault, isWatch bool) string,
 	indent string,
+	maxName, maxUsage int,
 ) {
 	if len(group.items) == 0 {
 		return
@@ -421,53 +434,6 @@ func writeTable(
 		_, _ = fmt.Fprintln(out, subsectionStyle.Render(subtitle))
 	}
 
-	type row struct {
-		name      string
-		args      []parse.Arg
-		synopsis  string
-		isDefault bool
-		isWatch   bool
-	}
-
-	rows := make([]row, 0, len(group.items)+1)
-	rows = append(rows, row{
-		name:     "USAGE",
-		synopsis: "SYNOPSIS",
-	})
-
-	for _, it := range group.items {
-		syn := strings.TrimSpace(it.synopsis)
-		if syn == "" {
-			syn = "-"
-		}
-		name := it.displayName
-		if len(it.aliases) > 0 {
-			name = fmt.Sprintf("%s (%s)", name, strings.Join(it.aliases, ", "))
-		}
-		rows = append(rows, row{
-			name:      name,
-			args:      it.args,
-			synopsis:  syn,
-			isDefault: it.isDefault,
-			isWatch:   it.isWatch,
-		})
-	}
-
-	// Column widths (ANSI-aware via lipgloss.Width).
-	maxUsage, maxSyn := 0, 0
-	for i, theRow := range rows {
-		usage := theRow.name
-		if i > 0 {
-			// For data rows, use the non-colored usage string to calculate width
-			usage = usageFor("", theRow.name, theRow.args)
-			if theRow.isWatch {
-				usage += " [W]"
-			}
-		}
-		maxUsage = max(maxUsage, lipgloss.Width(usage))
-		maxSyn = max(maxSyn, lipgloss.Width(theRow.synopsis))
-	}
-
 	pad := func(text string, width int) string {
 		if width <= 0 {
 			return text
@@ -479,37 +445,47 @@ func writeTable(
 		return text + strings.Repeat(" ", width-textWidth)
 	}
 
+	const gap = 2
+	gapStr := strings.Repeat(" ", gap)
+
 	// Print header.
-	h := rows[0]
 	headerLine := strings.Join([]string{
-		pad(h.name, maxUsage),
-		h.synopsis,
-	}, "  ")
+		pad("NAME", maxName),
+		pad("USAGE", maxUsage),
+		"SYNOPSIS",
+	}, gapStr)
 	_, _ = fmt.Fprintln(out, indent+headerStyle.Render(headerLine))
 
 	// Compute terminal width and synopsis column width for wrapping.
 	termWidth := detectTermWidth(out)
-	const gap = 2
-	leftOffset := lipgloss.Width(indent) + maxUsage + gap
-	synWidth := termWidth - leftOffset
-	if synWidth < termWidthFloor {
-		synWidth = termWidthFloor
-	}
-
+	leftOffset := lipgloss.Width(indent) + maxName + gap + maxUsage + gap
+	synWidth := max(termWidth-leftOffset, termWidthFloor)
 	spaceLeft := strings.Repeat(" ", leftOffset)
 
 	// Print rows with word-wrapped synopsis using a hanging indent.
-	for _, theRow := range rows[1:] {
-		usage := renderName(theRow.name, theRow.isDefault, theRow.isWatch, theRow.args)
+	for _, it := range group.items {
+		name := it.displayName
+		if len(it.aliases) > 0 {
+			name = fmt.Sprintf("%s (%s)", name, strings.Join(it.aliases, ", "))
+		}
 
-		wrappedSyn := wordwrap.String(theRow.synopsis, synWidth)
+		nameCol := renderName(name, it.isDefault, it.isWatch)
+		usageCol := usageFor("stave", it.displayName, it.args)
+
+		syn := strings.TrimSpace(it.synopsis)
+		if syn == "" {
+			syn = "-"
+		}
+
+		wrappedSyn := wordwrap.String(syn, synWidth)
 		// Align continuation lines under the start of the synopsis column.
 		wrappedSyn = strings.ReplaceAll(wrappedSyn, "\n", "\n"+spaceLeft)
 
 		line := strings.Join([]string{
-			pad(usage, maxUsage),
+			pad(nameCol, maxName),
+			pad(usageCol, maxUsage),
 			wrappedSyn,
-		}, strings.Repeat(" ", gap))
+		}, gapStr)
 		_, _ = fmt.Fprintln(out, indent+line)
 	}
 }
