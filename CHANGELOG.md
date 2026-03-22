@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-03-22
+
+### Changed
+
+- Restore three-column layout (NAME, USAGE, SYNOPSIS) in `stave -l` with globally aligned columns across all groups (Local, Namespaces, Imports).
+
+### Fixed
+
+- Hooks tests no longer fail when the user has a global `core.hooksPath` git config.
+- `TestSignals` no longer flakes under heavy load (replaced racy sleep with readiness protocol).
+- Remove stale `//nolint:gosec` directive in `pkg/watch/watch.go`.
+
 ## [0.13.2] - 2026-03-07
 
 ### Changed
@@ -491,7 +503,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.13.2...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/yaklabco/stave/compare/v0.13.2...v0.14.0
 [0.13.2]: https://github.com/yaklabco/stave/compare/v0.13.1...v0.13.2
 [0.13.1]: https://github.com/yaklabco/stave/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/yaklabco/stave/compare/v0.12.0...v0.13.0
