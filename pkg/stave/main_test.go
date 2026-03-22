@@ -1,6 +1,7 @@
 package stave
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/sha256"
 	"debug/macho"
@@ -1674,29 +1675,63 @@ func TestSignals(t *testing.T) {
 		stdout.Reset()
 		cmd := exec.Command(filename, target)
 		cmd.Stderr = stderr
-		cmd.Stdout = stdout
+
+		stdoutPipe, pipeErr := cmd.StdoutPipe()
+		if pipeErr != nil {
+			return fmt.Errorf("stdout pipe for '%s %s': %w", filename, target, pipeErr)
+		}
+
 		if err := cmd.Start(); err != nil {
 			return fmt.Errorf("running '%s %s' failed with: %w\nstdout: %s\nstderr: %s",
 				filename, target, err, stdout, stderr)
 		}
 
-		pid := cmd.Process.Pid
+		// Read stdout in a goroutine, signaling when the target prints "ready".
+		// This replaces a fixed time.Sleep that was racy under heavy load.
+		ready := make(chan struct{})
+		readerDone := make(chan struct{})
 		go func() {
-			// Wait longer for process to start and set up signal handlers,
-			// especially important when running in parallel with other tests.
-			time.Sleep(time.Second * 1)
-			for _, s := range signals {
-				killErr := syscall.Kill(pid, s)
-				if killErr != nil {
-					t.Errorf("failed to kill process %d with signal %s: %v", pid, s, killErr)
+			defer close(readerDone)
+			scanner := bufio.NewScanner(stdoutPipe)
+			for scanner.Scan() {
+				line := scanner.Text()
+				stdout.WriteString(line + "\n")
+				select {
+				case <-ready:
+				default:
+					if line == "ready" {
+						close(ready)
+					}
 				}
-				time.Sleep(time.Millisecond * 50)
 			}
 		}()
 
-		if err := cmd.Wait(); err != nil {
+		// Wait for the target to signal readiness before sending signals.
+		select {
+		case <-ready:
+		case <-time.After(10 * time.Second):
+			if killErr := cmd.Process.Kill(); killErr != nil {
+				t.Errorf("failed to kill timed-out process: %v", killErr)
+			}
+			<-readerDone
+			return fmt.Errorf("timed out waiting for '%s %s' to become ready\nstdout: %s\nstderr: %s",
+				filename, target, stdout, stderr)
+		}
+
+		pid := cmd.Process.Pid
+		for _, s := range signals {
+			if killErr := syscall.Kill(pid, s); killErr != nil {
+				t.Errorf("failed to kill process %d with signal %s: %v", pid, s, killErr)
+			}
+			time.Sleep(time.Millisecond * 50)
+		}
+
+		waitErr := cmd.Wait()
+		<-readerDone // ensure all stdout is captured
+
+		if waitErr != nil {
 			return fmt.Errorf("running '%s %s' failed with: %w\nstdout: %s\nstderr: %s",
-				filename, target, err, stdout, stderr)
+				filename, target, waitErr, stdout, stderr)
 		}
 
 		return nil
