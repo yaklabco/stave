@@ -28,6 +28,15 @@ hooks:
     - target: fmt
 `
 
+// isolateGitConfig prevents tests from inheriting the user's global or system
+// git configuration (e.g. core.hooksPath). This is incompatible with t.Parallel()
+// because t.Setenv modifies process-wide environment variables.
+func isolateGitConfig(t *testing.T) {
+	t.Helper()
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_SYSTEM", os.DevNull)
+}
+
 // testGitInit initializes a git repository in the given directory.
 // It uses --template= to avoid inheriting hooks from user git templates,
 // ensuring test isolation regardless of the user's git configuration.
@@ -283,7 +292,7 @@ func TestRunHooksCommand_Install_NoHooksConfig(t *testing.T) {
 }
 
 func TestRunHooksCommand_Install_CreatesScripts(t *testing.T) {
-	t.Parallel()
+	isolateGitConfig(t)
 
 	config.ResetGlobal()
 
@@ -344,7 +353,7 @@ hooks:
 }
 
 func TestRunHooksCommand_Install_ExistingNonStaveHook_Fails(t *testing.T) {
-	t.Parallel()
+	isolateGitConfig(t)
 
 	config.ResetGlobal()
 
@@ -389,7 +398,7 @@ func TestRunHooksCommand_Install_ExistingNonStaveHook_Fails(t *testing.T) {
 }
 
 func TestRunHooksCommand_Install_Force(t *testing.T) {
-	t.Parallel()
+	isolateGitConfig(t)
 
 	config.ResetGlobal()
 
@@ -479,7 +488,7 @@ func TestRunHooksCommand_Install_UpdatesStaveHook(t *testing.T) {
 }
 
 func TestRunHooksCommand_Uninstall(t *testing.T) {
-	t.Parallel()
+	isolateGitConfig(t)
 
 	config.ResetGlobal()
 

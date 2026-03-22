@@ -10,6 +10,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// isolateGitConfig prevents tests from inheriting the user's global or system
+// git configuration (e.g. core.hooksPath). This is incompatible with t.Parallel()
+// because t.Setenv modifies process-wide environment variables.
+func isolateGitConfig(t *testing.T) {
+	t.Helper()
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_SYSTEM", os.DevNull)
+}
+
 // testGitInit initializes a git repository in the given directory.
 // It uses --template= to avoid inheriting hooks from user git templates,
 // ensuring test isolation regardless of the user's git configuration.
@@ -105,7 +114,7 @@ func TestFindGitRepo_Subdirectory(t *testing.T) {
 }
 
 func TestGitRepo_HooksPath_Default(t *testing.T) {
-	t.Parallel()
+	isolateGitConfig(t)
 
 	// Create a temp directory with a git repo
 	tmpDir := t.TempDir()
@@ -203,7 +212,7 @@ func TestGitRepo_HooksPath_AbsoluteCustomPath(t *testing.T) {
 }
 
 func TestGitRepo_EnsureHooksDir(t *testing.T) {
-	t.Parallel()
+	isolateGitConfig(t)
 
 	// Create a temp directory with a git repo
 	tmpDir := t.TempDir()
@@ -241,7 +250,7 @@ func TestGitRepo_EnsureHooksDir(t *testing.T) {
 }
 
 func TestGitRepo_HookPath(t *testing.T) {
-	t.Parallel()
+	isolateGitConfig(t)
 
 	// Create a temp directory with a git repo
 	tmpDir := t.TempDir()
