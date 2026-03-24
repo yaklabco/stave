@@ -151,6 +151,8 @@ func renderTargetList(out io.Writer, info *parse.PkgInfo, filters []string) erro
 	_, _ = fmt.Fprintln(out, titleStyle.Render("Targets:"))
 
 	sections := groupTargets(items)
+	maxUsage := globalUsageWidth(sections)
+
 	writeSection := func(title string, groups []targetGroup) {
 		if len(groups) == 0 {
 			return
@@ -158,7 +160,7 @@ func renderTargetList(out io.Writer, info *parse.PkgInfo, filters []string) erro
 		_, _ = fmt.Fprintln(out)
 		_, _ = fmt.Fprintln(out, sectionStyle.Render(title))
 		for _, g := range groups {
-			writeTable(out, tableHeaderStyle, subsectionStyle, g, renderName, indent)
+			writeTable(out, tableHeaderStyle, subsectionStyle, g, renderName, indent, maxUsage)
 		}
 	}
 
@@ -284,6 +286,30 @@ func usageFor(binaryName, display string, args []parse.Arg) string {
 	return sb.String()
 }
 
+func usageWidthFor(name string, args []parse.Arg, isWatch bool) int {
+	usage := usageFor("", name, args)
+	if isWatch {
+		usage += " [W]"
+	}
+	return lipgloss.Width(usage)
+}
+
+func globalUsageWidth(sections targetSections) int {
+	maxWidth := lipgloss.Width("USAGE")
+	for _, groups := range [][]targetGroup{sections.local, sections.namespaces, sections.imports} {
+		for _, g := range groups {
+			for _, it := range g.items {
+				name := it.displayName
+				if len(it.aliases) > 0 {
+					name = fmt.Sprintf("%s (%s)", name, strings.Join(it.aliases, ", "))
+				}
+				maxWidth = max(maxWidth, usageWidthFor(name, it.args, it.isWatch))
+			}
+		}
+	}
+	return maxWidth
+}
+
 func applyTargetFilters(items []targetItem, filters []string) []targetItem {
 	if len(filters) == 0 {
 		return items
@@ -407,6 +433,7 @@ func writeTable(
 	group targetGroup,
 	renderName func(name string, isDefault, isWatch bool, args []parse.Arg) string,
 	indent string,
+	maxUsage int,
 ) {
 	if len(group.items) == 0 {
 		return
@@ -451,21 +478,6 @@ func writeTable(
 			isDefault: it.isDefault,
 			isWatch:   it.isWatch,
 		})
-	}
-
-	// Column widths (ANSI-aware via lipgloss.Width).
-	maxUsage, maxSyn := 0, 0
-	for i, theRow := range rows {
-		usage := theRow.name
-		if i > 0 {
-			// For data rows, use the non-colored usage string to calculate width
-			usage = usageFor("", theRow.name, theRow.args)
-			if theRow.isWatch {
-				usage += " [W]"
-			}
-		}
-		maxUsage = max(maxUsage, lipgloss.Width(usage))
-		maxSyn = max(maxSyn, lipgloss.Width(theRow.synopsis))
 	}
 
 	pad := func(text string, width int) string {
