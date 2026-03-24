@@ -10,17 +10,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// testGitInit initializes a git repository in the given directory.
-// It uses --template= to avoid inheriting hooks from user git templates,
-// ensuring test isolation regardless of the user's git configuration.
-// It also creates the hooks directory since --template= skips creating it.
+// testGitInit initializes an isolated git repository in the given directory.
+// It uses --template= to avoid inheriting hooks from user git templates and
+// sets GIT_CONFIG_GLOBAL/SYSTEM to /dev/null so user git config (e.g.
+// core.hooksPath) doesn't leak into the test repo. It also writes a local
+// git config that unsets core.hooksPath for any subsequent git commands that
+// run without the env overrides (e.g. in production code under test).
 func testGitInit(t *testing.T, dir string) {
 	t.Helper()
+
 	cmd := exec.Command("git", "init", "--template=")
 	cmd.Dir = dir
+	cmd.Env = append(os.Environ(),
+		"GIT_CONFIG_GLOBAL="+os.DevNull,
+		"GIT_CONFIG_SYSTEM="+os.DevNull,
+	)
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("git init failed: %v", err)
 	}
+
+	// Ensure core.hooksPath is not inherited from global config for
+	// subsequent git commands run by the code under test.
+	unset := exec.Command("git", "config", "--local", "core.hooksPath", "")
+	unset.Dir = dir
+	_ = unset.Run() //nolint:errcheck // non-zero exit if key absent is fine
+
 	// Create hooks directory since --template= skips it
 	hooksDir := filepath.Join(dir, ".git", "hooks")
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
