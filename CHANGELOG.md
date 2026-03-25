@@ -7,12 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.4] - 2026-03-24
+
+### Changed
+
+- Bump all updatable Go dependencies to their latest versions as of this date.
+
 ## [0.13.3] - 2026-03-24
 
 ### Fixed
 
-- Align USAGE and SYNOPSIS columns across all groups in `stave -l` output.
-- Isolate git hook tests from user global config (`core.hooksPath`). Closes #90.
+- Align USAGE and SYNOPSIS columns across all groups in `stave -l/--list` output.
+- Isolate git hook tests from user global config (`core.hooksPath`). Closes <https://github.com/yaklabco/stave/issues/90>.
 
 ## [0.13.2] - 2026-03-07
 
@@ -79,7 +85,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Secrets scanning (based on [trufflehog](https://github.com/trufflesecurity/trufflehog) GitHub action) in CI.
-
 - Wire in [trufflehog](https://github.com/trufflesecurity/trufflehog) to project's stavefile.gp
 
 ## [0.10.5] - 2026-01-31
@@ -157,7 +162,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - "Double-dip" running of `golangci-lint` in stavefile.go: run once with `--fix` & without reporting exit code, then run a second time without `--fix` & report exit code as well as any output.
-
 - Change test `TestTransitiveHashFast` to not be parallelized.
 
 ## [0.9.4] - 2026-01-07
@@ -183,7 +187,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Handling of svu config file in `pkg/changelog` code.
-
 - Propagation of working dir in hooks processing.
 
 ## [0.9.0] - 2026-01-07
@@ -241,13 +244,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Panic propagation in `st.Deps`: if a dependency panics, subsequent calls now correctly re-propagate the panic instead of silently returning a `nil` error.
-
 - Watch mode improvements:
   - Support for multiple targets: all specified targets are now re-run upon file changes.
   - Non-blocking re-runs: re-running one target no longer blocks others.
   - Activation logic: fixed issues where watch mode wouldn't activate correctly depending on target order.
   - Safety: restricted watch mode activation to explicitly requested targets to prevent infinite loops from transitive dependencies.
-
 - Fixed potential out-of-bounds panic when multiple variables are declared on a single line in a stavefile (e.g., `var A, Default = 1, Target`).
 
 ### Removed
@@ -283,17 +284,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `ExtractSection(...)` function to extract a section from a changelog file, with ability to extract latest (numbered) section if no explicit section specified. Useful in generating release notes from manually-curated, _Keep a Changelog_-style changelog.
-
 - `Snapshot` target in `stave`'s own stavefile.go
-
 - `Prep.GitStateClean` target in `stave`'s own stavefile.go
 
 ### Changed
 
 - Generate `stave`'s own release notes from changelog using `ExtractSection(...)` function.
-
 - Some refactoring of `stave`'s own stavefile.go
-
 - `stave`'s own `Check.PrePush` now calls `Prep.LinkifyChangelog` (which is idempotent, so will no-op if changelog is already linkified), followed by `Check.GitStateClean`, as dependencies. This means that if changelog has not been linkified beforehand, attempting to push the branch will fail the `Check.PrePush` check on uncommitted changes.
 
 ## [0.5.4] - 2025-12-22
@@ -341,7 +338,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Watch-mode; see [documentation of this feature](./docs/user-guide/watch.md) for details.
-
 - Changelog "linkify" functionality (function `Linkify(...)` in `pkg/changelog).
 
 ## [0.3.4] - 2025-12-16
@@ -377,7 +373,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Enhanced `stave -l` output with Lipgloss styling and table formatting.
-
 - Color auto-detection via `st.ColorEnabled()` respecting `NO_COLOR` standard.
 
 ### Changed
@@ -387,7 +382,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Unused `st.EnableColor()` function (use `st.ColorEnabled()` instead).
-
 - Dead list code from compiled mainfile template.
 
 ## [0.2.8] - 2025-12-12
@@ -407,7 +401,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Lots of updates to documentation. See [docs/index.md](./docs/index.md) and links therein.
-
 - Bump all updatable Go dependencies to their latest versions as of this date.
 
 ## [0.2.5] - 2025-12-10
@@ -477,28 +470,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Git hooks management. Stave can manage your git hooks, implementing both native hooks management, and `husky`-based hooks management for support of legacy projects. See [docs/user-guide/hooks.md](./docs/user-guide/hooks.md) for details.
-
 - Public Go functions, exported as `pkg/changelog`, for automatically enforcing [_keep-a-changelog_](https://keepachangelog.com/en/1.1.0/)-compliant CHANGELOG formatting; and, separately, for enforcing that every push includes an update to the CHANGELOG (each can be used / not used separately from one another). Also, `changelog.NextVersion()`, which automatically calculates next release version based on [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#summary).
-
 - `--dryrun` mode.
-
 - Automated detection of circular dependencies among stavefile targets.
-
 - Detailed API reference documentation as well as an architecture overview for contributors.
-
 - Pretty-printed debug logs, both in "outer" Stave execution _and_ in execution of compiled stavefile.
-
 - `--exec` flag to execute arbitrary command-lines under Stave.
-
 - `CHANGELOG.md`! (And first formally-versioned release of Stave.)
 
 ### Changed
 
 - Added parallelism-by-default to use of Go tools from inside Stave.
-
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.13.3...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.13.4...HEAD
+[0.13.4]: https://github.com/yaklabco/stave/compare/v0.13.3...v0.13.4
 [0.13.3]: https://github.com/yaklabco/stave/compare/v0.13.2...v0.13.3
 [0.13.2]: https://github.com/yaklabco/stave/compare/v0.13.1...v0.13.2
 [0.13.1]: https://github.com/yaklabco/stave/compare/v0.13.0...v0.13.1
