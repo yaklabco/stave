@@ -28,17 +28,17 @@ Documentation for `stave` is available [here](./docs/index.md).
 
 ## Installation
 
+### Using `go install`
+
+```bash
+go install github.com/yaklabco/stave@latest
+```
+
 ### Using Homebrew
 
 ```shell
 brew tap yaklabco/tap
 brew install stave
-```
-
-### Using `go install`
-
-```bash
-go install github.com/yaklabco/stave@latest
 ```
 
 ### Building & installing from source
