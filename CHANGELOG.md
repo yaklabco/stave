@@ -11,8 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Align USAGE and SYNOPSIS columns across all groups in `stave -l` output.
-- Isolate git hook tests from user global config (`core.hooksPath`). Closes #90.
+- Align USAGE and SYNOPSIS columns across all groups in `stave -l/--list` output.
+- Isolate git hook tests from user global config (`core.hooksPath`). Closes <https://github.com/yaklabco/stave/issues/90>.
 
 ## [0.13.2] - 2026-03-07
 
