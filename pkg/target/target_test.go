@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 // testFilePerm is the permission for test files (gosec G306 expects 0600 or less,
@@ -452,4 +454,50 @@ func TestDir(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("Delete File Behavior", func(t *testing.T) {
+		srcDir := filepath.Join(dir, "src_del")
+		dstDir := filepath.Join(dir, "dst_del")
+		require.NoError(t, os.Mkdir(srcDir, 0755))
+		require.NoError(t, os.Mkdir(dstDir, 0755))
+
+		// Create a file in src and dst
+		srcFile := filepath.Join(srcDir, "file.txt")
+		require.NoError(t, os.WriteFile(srcFile, []byte("hello"), 0644))
+		dstFile := filepath.Join(dstDir, "file.txt")
+		require.NoError(t, os.WriteFile(dstFile, []byte("hello"), 0644))
+
+		// Set all times to 'now'
+		now := time.Now().Truncate(time.Second)
+		require.NoError(t, os.Chtimes(srcFile, now, now))
+		require.NoError(t, os.Chtimes(srcDir, now, now))
+		require.NoError(t, os.Chtimes(dstFile, now, now))
+		require.NoError(t, os.Chtimes(dstDir, now, now))
+
+		// Initially, they should be "not newer"
+		newer, err := Dir(dstDir, srcDir)
+		require.NoError(t, err)
+		if newer {
+			t.Error("Initially should not be newer")
+		}
+
+		// Create and delete a file in srcDir to update its modtime
+		tempFile := filepath.Join(srcDir, "temp.txt")
+		require.NoError(t, os.WriteFile(tempFile, []byte("temp"), 0644))
+
+		future := now.Add(10 * time.Second)
+		require.NoError(t, os.Chtimes(tempFile, future, future))
+		require.NoError(t, os.Chtimes(srcDir, future, future))
+
+		require.NoError(t, os.Remove(tempFile))
+		// Deleting file updates directory modtime; ensure it's 'future'
+		require.NoError(t, os.Chtimes(srcDir, future, future))
+
+		// Now check again. It should ignore srcDir itself and return false.
+		newer, err = Dir(dstDir, srcDir)
+		require.NoError(t, err)
+		if newer {
+			t.Error("Deleting a file in src should not make it newer if no other changes occurred")
+		}
+	})
 }

@@ -18,7 +18,8 @@ var (
 
 // DirNewer reports whether any item in sources is newer than the target time.
 // Sources are searched recursively and searching stops as soon as any entry
-// is newer than the target.
+// is newer than the target. The modification time of the root directories in
+// sources are ignored.
 //
 // DirNewer respects the global ignorelist populated by AddIgnorePattern and
 // LoadIgnoreFile.
@@ -31,31 +32,47 @@ func dirNewer(target time.Time, sources ...string) (bool, string, time.Time, err
 	var newestSoFar time.Time
 	var newestPath string
 
-	walkFn := func(path string, info os.FileInfo, err error) error {
+	for _, source := range sources {
+		source = os.ExpandEnv(source)
+
+		// Get absolute path of source to compare properly in walkFn
+		absSource, err := filepath.Abs(source)
 		if err != nil {
-			return err
+			absSource = source // fallback
 		}
-		if isIgnored(path, info.IsDir()) {
+
+		walkFn := func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if isIgnored(path, info.IsDir()) {
+				if info.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+
+			// Skip the entry for the directory itself if it's one of our root sources.
 			if info.IsDir() {
-				return filepath.SkipDir
+				absPath, err := filepath.Abs(path)
+				if err == nil && absPath == absSource {
+					return nil
+				}
+			}
+
+			modTime := info.ModTime()
+			if modTime.After(target) {
+				newestSoFar = modTime
+				newestPath = path
+				return errNewer
+			}
+			if modTime.After(newestSoFar) {
+				newestSoFar = modTime
+				newestPath = path
 			}
 			return nil
 		}
-		modTime := info.ModTime()
-		if modTime.After(target) {
-			newestSoFar = modTime
-			newestPath = path
-			return errNewer
-		}
-		if modTime.After(newestSoFar) {
-			newestSoFar = modTime
-			newestPath = path
-		}
-		return nil
-	}
-	for _, source := range sources {
-		source = os.ExpandEnv(source)
-		err := filepath.Walk(source, walkFn)
+		err = filepath.Walk(source, walkFn)
 		if err == nil {
 			continue
 		}
@@ -139,13 +156,20 @@ func pathNewer(target time.Time, sources ...string) (bool, string, time.Time, er
 }
 
 // OldestModTime recurses a list of target filesystem objects and finds the
-// oldest ModTime among them.
+// oldest ModTime among them. The modification time of the root directories in
+// targets are ignored.
 //
 // OldestModTime respects the global ignorelist populated by AddIgnorePattern and
 // LoadIgnoreFile.
 func OldestModTime(targets ...string) (time.Time, error) {
 	oldestTime := time.Now().Add(futureShift)
 	for _, target := range targets {
+		// Get absolute path of target to compare properly in walkFn
+		absTarget, err := filepath.Abs(target)
+		if err != nil {
+			absTarget = target // fallback
+		}
+
 		walkFn := func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
@@ -156,6 +180,15 @@ func OldestModTime(targets ...string) (time.Time, error) {
 				}
 				return nil
 			}
+
+			// Skip the entry for the directory itself if it's one of our root targets.
+			if info.IsDir() {
+				absPath, err := filepath.Abs(path)
+				if err == nil && absPath == absTarget {
+					return nil
+				}
+			}
+
 			mTime := info.ModTime()
 			if mTime.Before(oldestTime) {
 				oldestTime = mTime
@@ -170,13 +203,20 @@ func OldestModTime(targets ...string) (time.Time, error) {
 }
 
 // NewestModTime recurses a list of target filesystem objects and finds the
-// newest ModTime among them.
+// newest ModTime among them. The modification time of the root directories in
+// targets are ignored.
 //
 // NewestModTime respects the global ignorelist populated by AddIgnorePattern and
 // LoadIgnoreFile.
 func NewestModTime(targets ...string) (time.Time, error) {
 	newestTime := time.Time{}
 	for _, target := range targets {
+		// Get absolute path of target to compare properly in walkFn
+		absTarget, err := filepath.Abs(target)
+		if err != nil {
+			absTarget = target // fallback
+		}
+
 		walkFn := func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
@@ -187,6 +227,15 @@ func NewestModTime(targets ...string) (time.Time, error) {
 				}
 				return nil
 			}
+
+			// Skip the entry for the directory itself if it's one of our root targets.
+			if info.IsDir() {
+				absPath, err := filepath.Abs(path)
+				if err == nil && absPath == absTarget {
+					return nil
+				}
+			}
+
 			mTime := info.ModTime()
 			if mTime.After(newestTime) {
 				newestTime = mTime

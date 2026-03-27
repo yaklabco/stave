@@ -49,7 +49,7 @@ Returns an error if a glob pattern matches no files.
 func Dir(dst string, sources ...string) (bool, error)
 ```
 
-Recursively compare directories. Returns true if any file in any source directory is newer than the newest file in the destination directory.
+Recursively compare directories. Returns true if any file in any source directory is newer than the newest file in the destination directory. The modification time of the root directories themselves (both `dst` and `sources`) are ignored.
 
 ```go
 rebuild, err := target.Dir("site/", "docs/", "templates/")
@@ -88,7 +88,7 @@ changed, err := target.GlobNewer(cutoff, "*.go")
 func DirNewer(target time.Time, sources ...string) (bool, error)
 ```
 
-Recursively check if any file in source directories is newer than the given time.
+Recursively check if any file in source directories is newer than the given time. The modification time of the root directories in `sources` are ignored.
 
 ```go
 changed, err := target.DirNewer(cutoff, "src/", "assets/")
@@ -150,7 +150,7 @@ Returns the current state of the global ignorelist as a slice of pattern strings
 func OldestModTime(targets ...string) (time.Time, error)
 ```
 
-Find the oldest modification time among all files in the given paths (recursive).
+Find the oldest modification time among all files in the given paths (recursive). The modification time of the root directories in `targets` are ignored.
 
 ```go
 oldest, err := target.OldestModTime("cache/")
@@ -162,7 +162,7 @@ oldest, err := target.OldestModTime("cache/")
 func NewestModTime(targets ...string) (time.Time, error)
 ```
 
-Find the newest modification time among all files in the given paths (recursive).
+Find the newest modification time among all files in the given paths (recursive). The modification time of the root directories in `targets` are ignored.
 
 ```go
 newest, err := target.NewestModTime("src/")

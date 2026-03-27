@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.14.1] - 2026-03-27
 
+### Changed
+
+- `target.Dir()` will now ignore the timestamp _on the directory itself_, and only pay attention to the timestamps on its contents (files and subdirs, recursively).
+
+## [0.14.1] - 2026-03-27
+
 ### Added
 
 - `target.LoadGitIgnore()` and `target.IgnoreList()` functions. See [documentation](./docs/user-guide/file-targets.md) for details.

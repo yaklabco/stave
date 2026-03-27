@@ -68,7 +68,7 @@ func BuildDocs() error {
 }
 ```
 
-`target.Dir` walks source directories and compares the newest source file against the newest file in the destination directory.
+`target.Dir` walks source directories and compares the newest source file against the newest file in the destination directory. The modification time of the root directories themselves (both `dst` and `sources`) are ignored.
 
 ## Time-Based Variants
 
@@ -95,6 +95,8 @@ changed, err := target.GlobNewer(cutoff, "*.go")
 changed, err := target.DirNewer(cutoff, "src/")
 ```
 
+Returns true if any file in source directories is newer than `cutoff`. The modification time of the root directories in `sources` are ignored.
+
 ## Utilities
 
 ### target.OldestModTime
@@ -105,6 +107,8 @@ Find the oldest modification time in a set of paths:
 oldest, err := target.OldestModTime("dir1/", "dir2/")
 ```
 
+The modification time of the root directories in the input paths are ignored.
+
 ### target.NewestModTime
 
 Find the newest modification time:
@@ -112,6 +116,8 @@ Find the newest modification time:
 ```go
 newest, err := target.NewestModTime("src/")
 ```
+
+The modification time of the root directories in the input paths are ignored.
 
 ## Ignorelist
 
