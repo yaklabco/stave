@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-03-27
+
+### Added
+
+- `target.LoadGitIgnore()` and `target.IgnoreList()` functions. See [documentation](./docs/user-guide/file-targets.md) for details.
+
 ## [0.14.0] - 2026-03-27
 
 ### Added
@@ -495,7 +501,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added parallelism-by-default to use of Go tools from inside Stave.
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.14.0...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.14.1...HEAD
+[0.14.1]: https://github.com/yaklabco/stave/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/yaklabco/stave/compare/v0.13.5...v0.14.0
 [0.13.5]: https://github.com/yaklabco/stave/compare/v0.13.4...v0.13.5
 [0.13.4]: https://github.com/yaklabco/stave/compare/v0.13.3...v0.13.4

@@ -65,6 +65,23 @@ func TestIgnore(t *testing.T) {
 	ClearIgnoreList()
 }
 
+func TestIgnoreList(t *testing.T) {
+	ClearIgnoreList()
+	defer ClearIgnoreList()
+
+	require.Nil(t, IgnoreList(), "Empty list should return nil")
+
+	patterns := []string{"*.log", "temp/", "!important.log"}
+	for _, p := range patterns {
+		require.NoError(t, AddIgnorePattern(p))
+	}
+
+	require.Equal(t, patterns, IgnoreList(), "Should return all added patterns")
+
+	ClearIgnoreList()
+	require.Nil(t, IgnoreList(), "Should be nil after clear")
+}
+
 func TestGitignoreSyntax(t *testing.T) {
 	tests := []struct {
 		pattern  string
@@ -155,6 +172,59 @@ temp/
 	require.True(t, isIgnored("temp", true))
 	require.False(t, isIgnored("test.txt", false))
 	require.False(t, isIgnored("important.log", false))
+
+	ClearIgnoreList()
+}
+
+func TestLoadGitIgnore(t *testing.T) {
+	// Setup a nested structure:
+	// root/
+	//   .git/ (dummy)
+	//   .gitignore (Pattern: *.log)
+	//   subdir/
+	//     .gitignore (Pattern: !important.log)
+	//     important.log
+	//     other.log
+
+	tmpDir, err := os.MkdirTemp("", "stave-loadgitignore-test")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	root := filepath.Join(tmpDir, "root")
+	require.NoError(t, os.Mkdir(root, 0755))
+	require.NoError(t, os.Mkdir(filepath.Join(root, ".git"), 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".gitignore"), []byte("*.log\n"), 0644))
+
+	subdir := filepath.Join(root, "subdir")
+	require.NoError(t, os.Mkdir(subdir, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(subdir, ".gitignore"), []byte("!important.log\n"), 0644))
+
+	// Change working directory to subdir
+	oldCwd, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(subdir))
+	defer func() { _ = os.Chdir(oldCwd) }()
+
+	ClearIgnoreList()
+	err = LoadGitIgnore()
+	require.NoError(t, err)
+
+	// In subdir/
+	// other.log should be ignored (from root/.gitignore)
+	// important.log should NOT be ignored (overridden by subdir/.gitignore)
+	require.True(t, isIgnored("other.log", false), "other.log should be ignored")
+	require.False(t, isIgnored("subdir/important.log", false), "important.log should NOT be ignored")
+
+	// Verify patterns accumulated:
+	patterns := IgnoreList()
+	require.Contains(t, patterns, "*.log")
+	require.Contains(t, patterns, "!important.log")
+	// Order should be parent first, then subdir.
+	require.Equal(t, []string{"*.log", "!important.log"}, patterns)
+
+	// Test with path from root
+	require.True(t, isIgnored("subdir/other.log", false), "subdir/other.log should be ignored")
+	require.False(t, isIgnored("subdir/important.log", false), "subdir/important.log should NOT be ignored")
 
 	ClearIgnoreList()
 }

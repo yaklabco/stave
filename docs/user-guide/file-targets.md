@@ -127,6 +127,16 @@ Populate the ignorelist from a file (e.g., `.staveignore` or `.gitignore`):
 err := target.LoadIgnoreFile(".gitignore")
 ```
 
+### target.LoadGitIgnore
+
+Automatically load `.gitignore` files from the current directory and all parent directories up to the repository root (the nearest directory containing a `.git/` folder):
+
+```go
+err := target.LoadGitIgnore()
+```
+
+Patterns are accumulated in order, so a `.gitignore` in a subdirectory can override patterns from a parent `.gitignore` (e.g., via negation `!`).
+
 ### target.AddIgnorePattern
 
 Add individual patterns programmatically:
@@ -142,6 +152,17 @@ Clear all currently active ignore patterns:
 
 ```go
 target.ClearIgnoreList()
+```
+
+### target.IgnoreList
+
+Retrieve the list of active ignore patterns:
+
+```go
+patterns := target.IgnoreList()
+for _, p := range patterns {
+    fmt.Println("Ignoring:", p)
+}
 ```
 
 ## Environment Variable Expansion

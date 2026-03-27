@@ -112,6 +112,22 @@ func LoadIgnoreFile(path string) error
 
 Populates the global ignorelist from a file in `.gitignore` format.
 
+### LoadIgnoreReader
+
+```go
+func LoadIgnoreReader(r io.Reader) error
+```
+
+Populates the global ignorelist from an `io.Reader` in `.gitignore` format.
+
+### LoadGitIgnore
+
+```go
+func LoadGitIgnore() error
+```
+
+Loads the `.gitignore` state from the current directory and its parents up to the nearest repository root. Files are accumulated in order, allowing patterns in deeper directories to override those in parent directories.
+
 ### ClearIgnoreList
 
 ```go
@@ -119,6 +135,14 @@ func ClearIgnoreList()
 ```
 
 Clears the global ignorelist.
+
+### IgnoreList
+
+```go
+func IgnoreList() []string
+```
+
+Returns the current state of the global ignorelist as a slice of pattern strings.
 
 ### OldestModTime
 
