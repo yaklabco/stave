@@ -203,7 +203,11 @@ func TestLoadGitIgnore(t *testing.T) {
 	oldCwd, err := os.Getwd()
 	require.NoError(t, err)
 	require.NoError(t, os.Chdir(subdir))
-	defer func() { _ = os.Chdir(oldCwd) }()
+	defer func() {
+		if err := os.Chdir(oldCwd); err != nil {
+			t.Errorf("failed to restore working directory: %v", err)
+		}
+	}()
 
 	ClearIgnoreList()
 	err = LoadGitIgnore()

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `target.LoadGitIgnore()` and `target.IgnoreList()` functions. See [documentation](./docs/user-guide/file-targets.md) for details.
+- Debug-logging to elucidate decision-making inside `pkg/target` package.
 
 ## [0.14.0] - 2026-03-27
 

@@ -91,8 +91,7 @@ func LoadGitIgnore() error {
 	// However, usually we stop at the root. If root is empty, curr is the root of the filesystem.
 	start := root
 	if start == "" {
-		start = "/" // Fallback to filesystem root if no .git found?
-		// Actually, if no .git found, maybe we should just use the current directory or nothing.
+		// If no .git found, maybe we should just use the current directory or nothing.
 		// Git only respects .gitignore files up to the repository root.
 		// If we are not in a git repo, maybe we only load from the current directory.
 		start = cwd

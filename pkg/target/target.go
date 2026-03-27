@@ -1,6 +1,7 @@
 package target
 
 import (
+	"log/slog"
 	"os"
 )
 
@@ -11,14 +12,28 @@ import (
 // exist, it always returns true and nil. It's an error if any of the sources
 // don't exist.
 func Path(dst string, sources ...string) (bool, error) {
-	stat, err := os.Stat(os.ExpandEnv(dst))
+	dst = os.ExpandEnv(dst)
+	stat, err := os.Stat(dst)
 	if os.IsNotExist(err) {
+		slog.Debug("target.Path", "dst", dst, "verdict", true, "reason", "destination does not exist")
 		return true, nil
 	}
 	if err != nil {
 		return false, err
 	}
-	return PathNewer(stat.ModTime(), sources...)
+	destTime := stat.ModTime()
+	newer, srcPath, srcTime, err := pathNewer(destTime, sources...)
+	if err != nil {
+		return false, err
+	}
+	slog.Debug("target.Path",
+		"dst", dst,
+		"dst_time", destTime,
+		"src", srcPath,
+		"src_time", srcTime,
+		"verdict", newer,
+	)
+	return newer, nil
 }
 
 // Glob expands each of the globs (file patterns) into individual sources and
@@ -28,14 +43,28 @@ func Path(dst string, sources ...string) (bool, error) {
 // environment variables before globbing -- env var expansion happens during
 // the call to Path. It is an error for any glob to return an empty result.
 func Glob(dst string, globs ...string) (bool, error) {
-	stat, err := os.Stat(os.ExpandEnv(dst))
+	dst = os.ExpandEnv(dst)
+	stat, err := os.Stat(dst)
 	if os.IsNotExist(err) {
+		slog.Debug("target.Glob", "dst", dst, "verdict", true, "reason", "destination does not exist")
 		return true, nil
 	}
 	if err != nil {
 		return false, err
 	}
-	return GlobNewer(stat.ModTime(), globs...)
+	destTime := stat.ModTime()
+	newer, srcPath, srcTime, err := globNewer(destTime, globs...)
+	if err != nil {
+		return false, err
+	}
+	slog.Debug("target.Glob",
+		"dst", dst,
+		"dst_time", destTime,
+		"src", srcPath,
+		"src_time", srcTime,
+		"verdict", newer,
+	)
+	return newer, nil
 }
 
 // Dir reports whether any of the sources have been modified more recently
@@ -51,6 +80,7 @@ func Dir(dst string, sources ...string) (bool, error) {
 	dst = os.ExpandEnv(dst)
 	stat, err := os.Stat(dst)
 	if os.IsNotExist(err) {
+		slog.Debug("target.Dir", "dst", dst, "verdict", true, "reason", "destination does not exist")
 		return true, nil
 	}
 	if err != nil {
@@ -58,10 +88,22 @@ func Dir(dst string, sources ...string) (bool, error) {
 	}
 	destTime := stat.ModTime()
 	if stat.IsDir() {
+		var err error
 		destTime, err = NewestModTime(dst)
 		if err != nil {
 			return false, err
 		}
 	}
-	return DirNewer(destTime, sources...)
+	newer, srcPath, srcTime, err := dirNewer(destTime, sources...)
+	if err != nil {
+		return false, err
+	}
+	slog.Debug("target.Dir",
+		"dst", dst,
+		"dst_time", destTime,
+		"src", srcPath,
+		"src_time", srcTime,
+		"verdict", newer,
+	)
+	return newer, nil
 }
