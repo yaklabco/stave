@@ -96,6 +96,30 @@ changed, err := target.DirNewer(cutoff, "src/", "assets/")
 
 ## Utilities
 
+### AddIgnorePattern
+
+```go
+func AddIgnorePattern(pattern string) error
+```
+
+Adds a pattern to the global ignorelist. Patterns use the same syntax as `.gitignore`.
+
+### LoadIgnoreFile
+
+```go
+func LoadIgnoreFile(path string) error
+```
+
+Populates the global ignorelist from a file in `.gitignore` format.
+
+### ClearIgnoreList
+
+```go
+func ClearIgnoreList()
+```
+
+Clears the global ignorelist.
+
 ### OldestModTime
 
 ```go

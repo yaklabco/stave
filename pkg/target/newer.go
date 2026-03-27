@@ -19,10 +19,19 @@ var (
 // DirNewer reports whether any item in sources is newer than the target time.
 // Sources are searched recursively and searching stops as soon as any entry
 // is newer than the target.
+//
+// DirNewer respects the global ignorelist populated by AddIgnorePattern and
+// LoadIgnoreFile.
 func DirNewer(target time.Time, sources ...string) (bool, error) {
-	walkFn := func(_ string, info os.FileInfo, err error) error {
+	walkFn := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
+		}
+		if isIgnored(path, info.IsDir()) {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 		if info.ModTime().After(target) {
 			return errNewer
@@ -69,12 +78,18 @@ func GlobNewer(target time.Time, sources ...string) (bool, error) {
 // PathNewer checks whether any of the sources are newer than the target time.
 // It stops at the first newer file it encounters. Each source path is passed
 // through os.ExpandEnv.
+//
+// PathNewer respects the global ignorelist populated by AddIgnorePattern and
+// LoadIgnoreFile.
 func PathNewer(target time.Time, sources ...string) (bool, error) {
 	for _, source := range sources {
 		source = os.ExpandEnv(source)
 		stat, err := os.Stat(source)
 		if err != nil {
 			return false, err
+		}
+		if isIgnored(source, stat.IsDir()) {
+			continue
 		}
 		if stat.ModTime().After(target) {
 			return true, nil
@@ -85,12 +100,21 @@ func PathNewer(target time.Time, sources ...string) (bool, error) {
 
 // OldestModTime recurses a list of target filesystem objects and finds the
 // oldest ModTime among them.
+//
+// OldestModTime respects the global ignorelist populated by AddIgnorePattern and
+// LoadIgnoreFile.
 func OldestModTime(targets ...string) (time.Time, error) {
 	oldestTime := time.Now().Add(futureShift)
 	for _, target := range targets {
-		walkFn := func(_ string, info os.FileInfo, err error) error {
+		walkFn := func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
+			}
+			if isIgnored(path, info.IsDir()) {
+				if info.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
 			}
 			mTime := info.ModTime()
 			if mTime.Before(oldestTime) {
@@ -107,12 +131,21 @@ func OldestModTime(targets ...string) (time.Time, error) {
 
 // NewestModTime recurses a list of target filesystem objects and finds the
 // newest ModTime among them.
+//
+// NewestModTime respects the global ignorelist populated by AddIgnorePattern and
+// LoadIgnoreFile.
 func NewestModTime(targets ...string) (time.Time, error) {
 	newestTime := time.Time{}
 	for _, target := range targets {
-		walkFn := func(_ string, info os.FileInfo, err error) error {
+		walkFn := func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
+			}
+			if isIgnored(path, info.IsDir()) {
+				if info.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
 			}
 			mTime := info.ModTime()
 			if mTime.After(newestTime) {

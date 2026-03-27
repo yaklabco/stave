@@ -113,6 +113,37 @@ Find the newest modification time:
 newest, err := target.NewestModTime("src/")
 ```
 
+## Ignorelist
+
+The `target` package supports a global ignorelist to exclude certain files or directories from comparisons. This is particularly useful for ignoring build artifacts, temporary files, or VCS metadata when recursively checking directories.
+
+The ignorelist uses the standard `.gitignore` pattern syntax, including support for wildcards (`*`, `**`), negation (`!`), and directory-anchored patterns.
+
+### target.LoadIgnoreFile
+
+Populate the ignorelist from a file (e.g., `.staveignore` or `.gitignore`):
+
+```go
+err := target.LoadIgnoreFile(".gitignore")
+```
+
+### target.AddIgnorePattern
+
+Add individual patterns programmatically:
+
+```go
+target.AddIgnorePattern("*.log")
+target.AddIgnorePattern("temp/")
+```
+
+### target.ClearIgnoreList
+
+Clear all currently active ignore patterns:
+
+```go
+target.ClearIgnoreList()
+```
+
 ## Environment Variable Expansion
 
 All path arguments undergo `$VAR` expansion:

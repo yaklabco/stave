@@ -44,6 +44,9 @@ func Glob(dst string, globs ...string) (bool, error) {
 // recently than the most recently modified file in dst. If the destination
 // file doesn't exist, it always returns true and nil.  It's an error if any
 // of the sources don't exist.
+//
+// Dir respects the global ignorelist populated by AddIgnorePattern and
+// LoadIgnoreFile.
 func Dir(dst string, sources ...string) (bool, error) {
 	dst = os.ExpandEnv(dst)
 	stat, err := os.Stat(dst)
