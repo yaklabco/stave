@@ -12,22 +12,23 @@ stave [flags] [target] [arguments...]
 
 ## Global Flags
 
-| Flag        | Short | Default         | Description                                   |
-|-------------|-------|-----------------|-----------------------------------------------|
-| `--force`   | `-f`  | `false`         | Force recompilation of stavefile              |
-| `--debug`   | `-d`  | `false`         | Print debug messages                          |
-| `--verbose` | `-v`  | `false`         | Print verbose output during execution         |
-| `--list`    | `-l`  | `false`         | List available targets                        |
-| `--info`    | `-i`  | `false`         | Show documentation for a target               |
-| `--timeout` | `-t`  | `0`             | Timeout for target execution (e.g., `5m30s`)  |
-| `--dir`     | `-C`  | `.`             | Directory containing stavefiles               |
-| `--workdir` | `-w`  | same as `--dir` | Working directory for target execution        |
-| `--gocmd`   |       | `go`            | Go command for compilation                    |
-| `--keep`    |       | `false`         | Keep generated mainfile after compilation     |
-| `--dryrun`  |       | `false`         | Print commands instead of executing           |
-| `--clean`   |       | `false`         | Remove cached compiled binaries               |
-| `--init`    |       | `false`         | Create a starter stavefile                    |
-| `--direnv`  |       | `false`         | Delegate to direnv for environment management |
+| Flag          | Short | Default         | Description                                   |
+|---------------|-------|-----------------|-----------------------------------------------|
+| `--force`     | `-f`  | `false`         | Force recompilation of stavefile              |
+| `--debug`     | `-d`  | `false`         | Print debug messages                          |
+| `--verbose`   | `-v`  | `false`         | Print verbose output during execution         |
+| `--list`      | `-l`  | `false`         | List available targets                        |
+| `--info`      | `-i`  | `false`         | Show documentation for a target               |
+| `--multiline` |       | `false`         | Retain line returns in help text              |
+| `--timeout`   | `-t`  | `0`             | Timeout for target execution (e.g., `5m30s`)  |
+| `--dir`       | `-C`  | `.`             | Directory containing stavefiles               |
+| `--workdir`   | `-w`  | same as `--dir` | Working directory for target execution        |
+| `--gocmd`     |       | `go`            | Go command for compilation                    |
+| `--keep`      |       | `false`         | Keep generated mainfile after compilation     |
+| `--dryrun`    |       | `false`         | Print commands instead of executing           |
+| `--clean`     |       | `false`         | Remove cached compiled binaries               |
+| `--init`      |       | `false`         | Create a starter stavefile                    |
+| `--direnv`    |       | `false`         | Delegate to direnv for environment management |
 
 ## Compilation Flags
 
@@ -206,6 +207,7 @@ Flags can also be set via environment variables:
 | `STAVEFILE_GOCMD`      | `--gocmd`         |
 | `STAVEFILE_CACHE`      | Cache directory   |
 | `STAVEFILE_DRYRUN`     | `--dryrun`        |
+| `STAVEFILE_MULTILINE`  | `--multiline`     |
 | `STAVE_NUM_PROCESSORS` | Parallelism limit |
 
 Boolean environment variables use the same value semantics as configuration options:

@@ -47,6 +47,32 @@ Targets:
 
 Use `stave -i build` to see the full doc comment.
 
+### Multiline Support
+
+By default, Stave collapses multiline doc comments into a single line for the `stave -l` output. To retain line returns, use the `--multiline` flag or add the `//stave:multiline` directive to your stavefile:
+
+```go
+//go:build stave
+
+//stave:multiline
+
+package main
+
+// Build compiles the application.
+// It produces a binary in ./bin.
+func Build() error {
+    // ...
+}
+```
+
+Now `stave -l` will preserve the line break:
+
+```text
+Targets:
+  build    compiles the application.
+           It produces a binary in ./bin.
+```
+
 ## Default Target
 
 Set a default target to run when no target is specified:
