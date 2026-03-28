@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.3] - 2026-03-28
+
+### Changed
+
+- Port in PRs from the <https://github.com/magefile/mage> project:
+  - <https://github.com/magefile/mage/pull/546>: Add support for retaining multiline comments.
+  - <https://github.com/magefile/mage/pull/543>: Add tests & cleanup typos.
+
 ## [0.14.2] - 2026-03-27
 
 ### Changed
@@ -508,7 +516,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added parallelism-by-default to use of Go tools from inside Stave.
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.14.2...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.14.3...HEAD
+[0.14.3]: https://github.com/yaklabco/stave/compare/v0.14.2...v0.14.3
 [0.14.2]: https://github.com/yaklabco/stave/compare/v0.14.1...v0.14.2
 [0.14.1]: https://github.com/yaklabco/stave/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/yaklabco/stave/compare/v0.13.5...v0.14.0
