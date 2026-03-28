@@ -33,7 +33,7 @@ const (
 // keyValueParts is the expected number of parts when splitting "key||value" strings.
 const keyValueParts = 2
 
-// PkgInfo contains inforamtion about a package of files according to stave's
+// PkgInfo contains information about a package of files according to stave's
 // parsing rules.
 type PkgInfo struct {
 	// PkgName is the package name (e.g., "main", "stavefile").

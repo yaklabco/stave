@@ -3,17 +3,19 @@ package target
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
 )
 
-const futureShift = time.Hour * 24 * 365 * 250
-
 var (
-	// errNewer is an ugly sentinel error to cause filepath.Walk to abort
+	// errNewer is a sentinel error to cause filepath.WalkDir to abort
 	// as soon as a newer file is encountered.
 	errNewer = errors.New("newer item encountered")
+
+	// farFutureTime represents a distant timestamp set to January 1, 9999, UTC.
+	farFutureTime = time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC) //nolint:gochecknoglobals // Intended as a constant.
 )
 
 // DirNewer reports whether any item in sources is newer than the target time.
@@ -25,6 +27,7 @@ var (
 // LoadIgnoreFile.
 func DirNewer(target time.Time, sources ...string) (bool, error) {
 	newer, _, _, err := dirNewer(target, sources...)
+
 	return newer, err
 }
 
@@ -41,7 +44,11 @@ func dirNewer(target time.Time, sources ...string) (bool, string, time.Time, err
 			absSource = source // fallback
 		}
 
-		walkFn := func(path string, info os.FileInfo, err error) error {
+		walkFn := func(path string, dirEntry fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			info, err := dirEntry.Info()
 			if err != nil {
 				return err
 			}
@@ -72,7 +79,7 @@ func dirNewer(target time.Time, sources ...string) (bool, string, time.Time, err
 			}
 			return nil
 		}
-		err = filepath.Walk(source, walkFn)
+		err = filepath.WalkDir(source, walkFn)
 		if err == nil {
 			continue
 		}
@@ -81,6 +88,7 @@ func dirNewer(target time.Time, sources ...string) (bool, string, time.Time, err
 		}
 		return false, "", time.Time{}, err
 	}
+
 	return false, newestPath, newestSoFar, nil
 }
 
@@ -89,6 +97,7 @@ func dirNewer(target time.Time, sources ...string) (bool, string, time.Time, err
 // newer file.
 func GlobNewer(target time.Time, sources ...string) (bool, error) {
 	newer, _, _, err := globNewer(target, sources...)
+
 	return newer, err
 }
 
@@ -116,6 +125,7 @@ func globNewer(target time.Time, sources ...string) (bool, string, time.Time, er
 			newestPath = path
 		}
 	}
+
 	return false, newestPath, newestSoFar, nil
 }
 
@@ -127,6 +137,7 @@ func globNewer(target time.Time, sources ...string) (bool, string, time.Time, er
 // LoadIgnoreFile.
 func PathNewer(target time.Time, sources ...string) (bool, error) {
 	newer, _, _, err := pathNewer(target, sources...)
+
 	return newer, err
 }
 
@@ -152,6 +163,7 @@ func pathNewer(target time.Time, sources ...string) (bool, string, time.Time, er
 			newestPath = source
 		}
 	}
+
 	return false, newestPath, newestSoFar, nil
 }
 
@@ -162,7 +174,7 @@ func pathNewer(target time.Time, sources ...string) (bool, string, time.Time, er
 // OldestModTime respects the global ignorelist populated by AddIgnorePattern and
 // LoadIgnoreFile.
 func OldestModTime(targets ...string) (time.Time, error) {
-	oldestTime := time.Now().Add(futureShift)
+	oldestTime := farFutureTime
 	for _, target := range targets {
 		// Get absolute path of target to compare properly in walkFn
 		absTarget, err := filepath.Abs(target)
@@ -170,7 +182,11 @@ func OldestModTime(targets ...string) (time.Time, error) {
 			absTarget = target // fallback
 		}
 
-		walkFn := func(path string, info os.FileInfo, err error) error {
+		walkFn := func(path string, dirEntry fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			info, err := dirEntry.Info()
 			if err != nil {
 				return err
 			}
@@ -195,10 +211,11 @@ func OldestModTime(targets ...string) (time.Time, error) {
 			}
 			return nil
 		}
-		if err := filepath.Walk(target, walkFn); err != nil {
+		if err := filepath.WalkDir(target, walkFn); err != nil {
 			return oldestTime, err
 		}
 	}
+
 	return oldestTime, nil
 }
 
@@ -217,7 +234,11 @@ func NewestModTime(targets ...string) (time.Time, error) {
 			absTarget = target // fallback
 		}
 
-		walkFn := func(path string, info os.FileInfo, err error) error {
+		walkFn := func(path string, dirEntry fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			info, err := dirEntry.Info()
 			if err != nil {
 				return err
 			}
@@ -242,9 +263,10 @@ func NewestModTime(targets ...string) (time.Time, error) {
 			}
 			return nil
 		}
-		if err := filepath.Walk(target, walkFn); err != nil {
+		if err := filepath.WalkDir(target, walkFn); err != nil {
 			return newestTime, err
 		}
 	}
+
 	return newestTime, nil
 }
