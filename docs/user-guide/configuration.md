@@ -62,6 +62,7 @@ Project config overrides user config.
 | `verbose`        | bool   | `false`   | Print verbose output              |
 | `debug`          | bool   | `false`   | Print debug messages              |
 | `hash_fast`      | bool   | `false`   | Skip GOCACHE, hash files directly |
+| `multiline`      | bool   | `false`   | Retain line returns in help text  |
 | `ignore_default` | bool   | `false`   | Ignore default target             |
 | `enable_color`   | bool   | `false`   | Enable colored output             |
 | `target_color`   | string | `Cyan`    | ANSI color for target names       |
@@ -86,6 +87,7 @@ Environment variables override all config files:
 | `STAVEFILE_VERBOSE`       | `verbose`        |
 | `STAVEFILE_DEBUG`         | `debug`          |
 | `STAVEFILE_HASHFAST`      | `hash_fast`      |
+| `STAVEFILE_MULTILINE`     | `multiline`      |
 | `STAVEFILE_IGNOREDEFAULT` | `ignore_default` |
 | `STAVEFILE_ENABLE_COLOR`  | `enable_color`   |
 | `STAVEFILE_TARGET_COLOR`  | `target_color`   |

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
@@ -137,8 +138,18 @@ func Copy(dst string, src string) error {
 	defer func() { _ = to.Close() }()
 	_, err = io.Copy(to, from)
 	if err != nil {
+		closeErr := to.Close()
+		if closeErr != nil {
+			slog.Error("failed to close destination file after copy error", "src", src, "dst", dst, "err", err, "closeErr", closeErr)
+		}
+
 		return fmt.Errorf(`error copying %s to %s: %w`, src, dst, err)
 	}
+
+	if err := to.Close(); err != nil {
+		return fmt.Errorf(`failed to close destination file after copy: %w`, err)
+	}
+
 	return nil
 }
 

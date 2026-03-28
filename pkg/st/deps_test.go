@@ -1,6 +1,7 @@
 package st
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync/atomic"
@@ -196,4 +197,91 @@ func TestDepsErrors(t *testing.T) {
 		}
 	}()
 	funcF()
+}
+
+func TestDepPanicNonError(t *testing.T) {
+	theFunc := func() {
+		panic("string panic value")
+	}
+	defer func() {
+		panicValue := recover()
+		if panicValue == nil {
+			t.Fatal("expected panic, but didn't get one")
+		}
+		actual := fmt.Sprint(panicValue)
+		if actual != "string panic value" {
+			t.Fatalf(`expected "string panic value" but got %q`, actual)
+		}
+		err, ok := panicValue.(error)
+		if !ok {
+			t.Fatalf("expected recovered val to be error but was %T", panicValue)
+		}
+		code := ExitStatus(err)
+		if code != 1 {
+			t.Fatalf("Expected exit status 1 for non-error panic, but got %v", code)
+		}
+	}()
+
+	Deps(theFunc)
+}
+
+func TestCtxDepsPassesContext(t *testing.T) {
+	type ctxKey string
+	found := false
+	theFunc := func(ctx context.Context) {
+		if ctx.Value(ctxKey("key")) != "value" {
+			t.Fatal("context value was not propagated")
+		}
+		found = true
+	}
+	ctx := context.WithValue(t.Context(), ctxKey("key"), "value")
+	CtxDeps(ctx, theFunc)
+	if !found {
+		t.Fatal("context was not passed to dependency")
+	}
+}
+
+func TestChangeExit(t *testing.T) {
+	tests := []struct {
+		name string
+		old  int
+		nw   int
+		want int
+	}{
+		{"both zero", 0, 0, 0},
+		{"old zero new nonzero", 0, 5, 5},
+		{"old nonzero new zero", 5, 0, 5},
+		{"same nonzero", 5, 5, 5},
+		{"different nonzero", 5, 3, 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := changeExit(tt.old, tt.nw)
+			if got != tt.want {
+				t.Errorf("changeExit(%d, %d) = %d, want %d", tt.old, tt.nw, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSerialCtxDeps(t *testing.T) {
+	type ctxKey string
+	ch := make(chan string, 2)
+	funcF := func(ctx context.Context) {
+		if ctx.Value(ctxKey("key")) != "value" {
+			panic("missing context value")
+		}
+		ch <- "f"
+	}
+	funcG := func(_ context.Context) {
+		ch <- "g"
+	}
+	ctx := context.WithValue(t.Context(), ctxKey("key"), "value")
+	SerialCtxDeps(ctx, funcF, funcG)
+
+	first := <-ch
+	second := <-ch
+	if first != "f" || second != "g" {
+		t.Fatalf("expected serial execution f then g, got %s then %s", first, second)
+	}
 }

@@ -25,6 +25,9 @@ type Config struct {
 	// Verbose enables verbose output when running targets.
 	Verbose bool `mapstructure:"verbose"`
 
+	// Multiline enables retaining line returns in help text.
+	Multiline bool `mapstructure:"multiline"`
+
 	// Debug enables debug messages.
 	Debug bool `mapstructure:"debug"`
 
@@ -295,6 +298,7 @@ func applyEnvironmentOverrides(cfg *Config) {
 	applyStringEnv("STAVEFILE_TARGET_COLOR", &cfg.TargetColor)
 
 	applyBoolEnv("STAVEFILE_VERBOSE", &cfg.Verbose)
+	applyBoolEnv("STAVEFILE_MULTILINE", &cfg.Multiline)
 	applyBoolEnv("STAVEFILE_DEBUG", &cfg.Debug)
 	applyBoolEnv("STAVEFILE_HASHFAST", &cfg.HashFast)
 	applyBoolEnv("STAVEFILE_IGNOREDEFAULT", &cfg.IgnoreDefault)
