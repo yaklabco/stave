@@ -23,6 +23,8 @@ import (
 
 const importTag = "stave:import"
 
+const multilineTag = "stave:multiline"
+
 const (
 	stPkgPath    = "github.com/yaklabco/stave/pkg/st"
 	watchPkgPath = "github.com/yaklabco/stave/pkg/watch"
@@ -44,6 +46,7 @@ type PkgInfo struct {
 	DefaultFunc *Function
 	Aliases     map[string]*Function
 	Imports     Imports
+	Multiline   bool
 }
 
 // Function represents a job function from a stave file.
@@ -191,8 +194,8 @@ func (f Function) ExecCode() string {
 }
 
 // PrimaryPackage parses a package.  If files is non-empty, it will only parse the files given.
-func PrimaryPackage(ctx context.Context, gocmd, path string, files []string) (*PkgInfo, error) {
-	info, err := Package(path, files)
+func PrimaryPackage(ctx context.Context, gocmd, path string, files []string, multiline bool) (*PkgInfo, error) {
+	info, err := Package(path, files, multiline)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +282,7 @@ func findDuplicates(funcs map[string][]*Function) error {
 }
 
 // Package compiles information about a stave package.
-func Package(path string, files []string) (*PkgInfo, error) {
+func Package(path string, files []string, multiline bool) (*PkgInfo, error) {
 	start := time.Now()
 	defer func() {
 		slog.Debug("parsed stavefiles", slog.Duration(log.Duration, time.Since(start)))
@@ -289,6 +292,14 @@ func Package(path string, files []string) (*PkgInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	if hasComment(pkgFiles, multilineTag) {
+		slog.Debug(
+			"found multiline tag, using multiline descriptions",
+			slog.String("tag", multilineTag),
+		)
+		multiline = true
+	}
+
 	watchTargets := detectWatchTargets(pkgFiles)
 
 	// Build documentation package from files to avoid relying on deprecated ast.Package
@@ -299,10 +310,16 @@ func Package(path string, files []string) (*PkgInfo, error) {
 		return nil, err
 	}
 	pkgInfo := &PkgInfo{
-		PkgName:     pkgName,
-		Files:       pkgFiles,
-		DocPkg:      thePackage,
-		Description: toOneLine(thePackage.Doc),
+		PkgName:   pkgName,
+		Files:     pkgFiles,
+		DocPkg:    thePackage,
+		Multiline: multiline,
+	}
+
+	if multiline {
+		pkgInfo.Description = strings.TrimSuffix(thePackage.Doc, "\n")
+	} else {
+		pkgInfo.Description = toOneLine(thePackage.Doc)
 	}
 
 	setNamespaces(pkgInfo, watchTargets)
@@ -324,11 +341,11 @@ func Package(path string, files []string) (*PkgInfo, error) {
 	return pkgInfo, nil
 }
 
-func getNamedImports(ctx context.Context, gocmd, path string, pkgs map[string]string) ([]*Import, error) {
+func getNamedImports(ctx context.Context, gocmd, path string, pkgs map[string]string, multiline bool) ([]*Import, error) {
 	theImports := make([]*Import, 0, len(pkgs))
 	for pkg, alias := range pkgs {
 		slog.Debug("getting import package", slog.String(log.Pkg, pkg), slog.String(log.Alias, alias))
-		imp, err := getImport(ctx, gocmd, path, pkg, alias)
+		imp, err := getImport(ctx, gocmd, path, pkg, alias, multiline)
 		if err != nil {
 			return nil, err
 		}
@@ -338,7 +355,7 @@ func getNamedImports(ctx context.Context, gocmd, path string, pkgs map[string]st
 }
 
 // getImport returns the metadata about a package that has been stave:import'ed.
-func getImport(ctx context.Context, gocmd, path, importpath, alias string) (*Import, error) {
+func getImport(ctx context.Context, gocmd, path, importpath, alias string, multiline bool) (*Import, error) {
 	out, err := internal.OutputDebug(ctx, gocmd, "-C", path, "list", "-f", "{{.Dir}}||{{.Name}}", importpath)
 	if err != nil {
 		if strings.Contains(err.Error(), "build constraints exclude all Go files") {
@@ -372,7 +389,7 @@ func getImport(ctx context.Context, gocmd, path, importpath, alias string) (*Imp
 	}
 	files := strings.Split(out, "||")
 
-	info, err := Package(dir, files)
+	info, err := Package(dir, files, multiline)
 	if err != nil {
 		return nil, err
 	}
@@ -422,24 +439,10 @@ func setFuncs(pkgInfo *PkgInfo, watchTargets map[string]struct{}) {
 			// skip methods
 			continue
 		}
-		if !ast.IsExported(theFunc.Name) {
-			slog.Debug("skipping non-exported function", slog.String(log.Func, theFunc.Name))
-			// skip non-exported functions
+		funcInfo, ok := funcFromDoc(theFunc, pkgInfo.DocPkg.ImportPath, theFunc.Name, pkgInfo.Multiline)
+		if !ok {
 			continue
 		}
-		funcInfo, err := funcType(theFunc.Decl.Type)
-		if err != nil {
-			slog.Debug(
-				"skipping function with invalid signature",
-				slog.String(log.Func, theFunc.Name),
-				slog.Any(log.Error, err),
-			)
-			continue
-		}
-		slog.Debug("found target", slog.String(log.Func, theFunc.Name))
-		funcInfo.Name = theFunc.Name
-		funcInfo.Comment = toOneLine(theFunc.Doc)
-		funcInfo.Synopsis = sanitizeSynopsis(theFunc)
 		funcInfo.IsWatch = lo.HasKey(watchTargets, theFunc.Name)
 		pkgInfo.Funcs = append(pkgInfo.Funcs, funcInfo)
 	}
@@ -456,41 +459,50 @@ func setNamespaces(pkgInfo *PkgInfo, watchTargets map[string]struct{}) {
 			slog.String(log.Type, theType.Name),
 		)
 		for _, theMethod := range theType.Methods {
-			if !ast.IsExported(theMethod.Name) {
+			funcInfo, ok := funcFromDoc(theMethod, pkgInfo.DocPkg.ImportPath, theType.Name+"."+theMethod.Name, pkgInfo.Multiline)
+			if !ok {
 				continue
 			}
-			funcInfo, err := funcType(theMethod.Decl.Type)
-			if err != nil {
-				slog.Debug(
-					"skipping invalid namespace method",
-					slog.String(log.ImportPath, pkgInfo.DocPkg.ImportPath),
-					slog.String(log.Type, theType.Name),
-					slog.String(log.Method, theMethod.Name),
-					slog.Any(log.Error, err),
-				)
-				continue
-			}
-			slog.Debug(
-				"found namespace method",
-				slog.String(log.ImportPath, pkgInfo.DocPkg.ImportPath),
-				slog.String(log.Type, theType.Name),
-				slog.String(log.Method, theMethod.Name),
-			)
-			funcInfo.Name = theMethod.Name
-			funcInfo.Comment = toOneLine(theMethod.Doc)
-			funcInfo.Synopsis = sanitizeSynopsis(theMethod)
 			funcInfo.Receiver = theType.Name
 			funcInfo.IsWatch = lo.HasKey(watchTargets, theType.Name+"."+theMethod.Name)
-
 			pkgInfo.Funcs = append(pkgInfo.Funcs, funcInfo)
 		}
 	}
 }
 
-func setImports(ctx context.Context, gocmd, path string, pi *PkgInfo) error {
+func funcFromDoc(theFunc *doc.Func, importpath, funcname string, multiline bool) (*Function, bool) {
+	if !ast.IsExported(theFunc.Name) {
+		return nil, false
+	}
+	funcInfo, err := funcType(theFunc.Decl.Type)
+	if err != nil {
+		slog.Debug(
+			"skipping invalid method",
+			slog.String(log.ImportPath, importpath),
+			slog.String(log.Func, funcname),
+			slog.Any(log.Error, err),
+		)
+		return nil, false
+	}
+	slog.Debug(
+		"found method",
+		slog.String(log.ImportPath, importpath),
+		slog.String(log.Func, funcname),
+	)
+	funcInfo.Name = theFunc.Name
+	if multiline {
+		funcInfo.Comment = strings.TrimSuffix(theFunc.Doc, "\n")
+	} else {
+		funcInfo.Comment = toOneLine(theFunc.Doc)
+	}
+	funcInfo.Synopsis = sanitizeSynopsis(theFunc)
+	return funcInfo, true
+}
+
+func setImports(ctx context.Context, gocmd, path string, pkgInfo *PkgInfo) error {
 	var rootImports []string
 	importNames := make(map[string]string)
-	for _, f := range pi.Files {
+	for _, f := range pkgInfo.Files {
 		for _, d := range f.Decls {
 			gen, ok := d.(*ast.GenDecl)
 			if !ok || gen.Tok != token.IMPORT {
@@ -528,12 +540,12 @@ func setImports(ctx context.Context, gocmd, path string, pi *PkgInfo) error {
 			}
 		}
 	}
-	imports, err := getNamedImports(ctx, gocmd, path, importNames)
+	imports, err := getNamedImports(ctx, gocmd, path, importNames, pkgInfo.Multiline)
 	if err != nil {
 		return err
 	}
 	for _, s := range rootImports {
-		imp, err := getImport(ctx, gocmd, path, s, "")
+		imp, err := getImport(ctx, gocmd, path, s, "", pkgInfo.Multiline)
 		if err != nil {
 			return err
 		}
@@ -549,7 +561,7 @@ func setImports(ctx context.Context, gocmd, path string, pi *PkgInfo) error {
 		}
 	}
 
-	if err := checkDupes(pi, imports); err != nil {
+	if err := checkDupes(pkgInfo, imports); err != nil {
 		return err
 	}
 
@@ -568,7 +580,7 @@ func setImports(ctx context.Context, gocmd, path string, pi *PkgInfo) error {
 			f.Package = unique
 		}
 	}
-	pi.Imports = imports
+	pkgInfo.Imports = imports
 	return nil
 }
 
@@ -1084,6 +1096,22 @@ func funcType(funcTypeNode *ast.FuncType) (*Function, error) {
 
 func toOneLine(s string) string {
 	return strings.TrimSpace(strings.ReplaceAll(s, "\n", " "))
+}
+
+// hasComment reports whether any file in the package contains a comment
+// matching the given tag (e.g. "stave:multiline").
+func hasComment(pkgFiles []*ast.File, tag string) bool {
+	for _, f := range pkgFiles {
+		for _, cg := range f.Comments {
+			for _, c := range cg.List {
+				vals := strings.Fields(strings.ToLower(c.Text[2:]))
+				if len(vals) > 0 && vals[0] == tag {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func detectWatchTargets(files []*ast.File) map[string]struct{} {

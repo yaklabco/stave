@@ -677,6 +677,139 @@ func TestVerbose(t *testing.T) {
 	assert.Regexp(t, expectedRunningTargetRegexp, stderr.String())
 }
 
+func TestMultiline(t *testing.T) {
+	t.Parallel()
+	dataDirForThisTest := filepath.Join(testDataDir, "multiline")
+	mu := mutexByDir(dataDirForThisTest)
+	mu.Lock()
+	t.Cleanup(mu.Unlock)
+
+	for _, tt := range []struct {
+		name       string
+		args       []string
+		output     string
+		paramsPrep func(params *RunParams)
+	}{
+		{
+			name: "list",
+			// line returns at the end here are important to show that we don't add an extra line return.
+			output: "This is a global comment for the stave output.\nIt should retain line returns.\n\nTargets:",
+			paramsPrep: func(params *RunParams) {
+				params.List = true
+			},
+		},
+		{
+			name:   "help-func",
+			args:   []string{"-i", "doit"},
+			output: "DoIt is a dummy function with a multiline comment.\nThat should show up with multiple lines.\n\nUsage:",
+		},
+		{
+			name:   "help-func",
+			args:   []string{"-i", "sub:doittoo"},
+			output: "DoItToo is a dummy function with a multiline comment.\nHere's the second line.\n\nUsage:",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := t.Context()
+
+			stderr := &bytes.Buffer{}
+			stdout := &bytes.Buffer{}
+
+			runParams := RunParams{
+				BaseCtx:   ctx,
+				Dir:       dataDirForThisTest,
+				Stdout:    stdout,
+				Stderr:    stderr,
+				Args:      tt.args,
+				Multiline: true,
+			}
+
+			if tt.paramsPrep != nil {
+				tt.paramsPrep(&runParams)
+			}
+
+			err := Run(runParams)
+			require.NoError(t, err)
+
+			if !strings.Contains(stdout.String(), tt.output) {
+				t.Errorf("Could not find %q in output:\n%s", tt.output, stdout.String())
+			}
+		})
+	}
+}
+
+func TestMultilineTag(t *testing.T) {
+	t.Parallel()
+	dataDirForThisTest := filepath.Join(testDataDir, "multiline", "tag")
+	mu := mutexByDir(dataDirForThisTest)
+	mu.Lock()
+	t.Cleanup(mu.Unlock)
+
+	for _, tt := range []struct {
+		name       string
+		args       []string
+		output     string
+		paramsPrep func(params *RunParams)
+	}{
+		{
+			name: "list",
+			// line returns at the end here are important to show that we don't add an extra line return.
+			output: "This is a global comment for the stave output.\nIt should retain line returns.\n\nTargets:",
+			paramsPrep: func(params *RunParams) {
+				params.List = true
+			},
+		},
+		{
+			name:   "help-func",
+			args:   []string{"-i", "doit"},
+			output: "DoIt is a dummy function with a multiline comment.\nThat should show up with multiple lines.\n\nUsage:",
+		},
+		{
+			name:   "help-func",
+			args:   []string{"-i", "sub:doittoo"},
+			output: "DoItToo is a dummy function with a multiline comment.\nHere's the second line.\n\nUsage:",
+		},
+	} {
+		// The tests should be the same regardless of the environment variable, because the tag should override.
+		testFunc := func(value bool) func(t *testing.T) {
+			return func(t *testing.T) {
+				t.Helper()
+
+				t.Parallel()
+
+				ctx := t.Context()
+
+				stderr := &bytes.Buffer{}
+				stdout := &bytes.Buffer{}
+
+				runParams := RunParams{
+					BaseCtx:   ctx,
+					Dir:       dataDirForThisTest,
+					Stdout:    stdout,
+					Stderr:    stderr,
+					Args:      tt.args,
+					Multiline: value,
+				}
+
+				if tt.paramsPrep != nil {
+					tt.paramsPrep(&runParams)
+				}
+
+				err := Run(runParams)
+				require.NoError(t, err)
+
+				if !strings.Contains(stdout.String(), tt.output) {
+					t.Errorf("Could not find %q in output:\n%s", tt.output, stdout.String())
+				}
+			}
+		}
+		t.Run(tt.name+"TagFalse", testFunc(false))
+		t.Run(tt.name+"TagTrue", testFunc(true))
+	}
+}
+
 func TestList(t *testing.T) {
 	t.Parallel()
 	dataDirForThisTest := testDataListDir

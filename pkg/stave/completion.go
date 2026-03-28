@@ -27,7 +27,7 @@ func TargetNames(ctx context.Context, dir string) ([]string, error) {
 		filenames = append(filenames, filepath.Base(files[i]))
 	}
 
-	info, err := parse.PrimaryPackage(ctx, params.GoCmd, params.Dir, filenames)
+	info, err := parse.PrimaryPackage(ctx, params.GoCmd, params.Dir, filenames, params.Multiline)
 	if err != nil {
 		return nil, err
 	}

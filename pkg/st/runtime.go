@@ -54,6 +54,13 @@ const HashFastEnv = "STAVEFILE_HASHFAST"
 // stave targets will be displayed in the default colors (e.g. black and white).
 const EnableColorEnv = "STAVEFILE_ENABLE_COLOR"
 
+// MultilineEnv is the environment variable that indicates the user has
+// requested to preserve line breaks in help text generated from stave package
+// and target documentation comments. The default is false for backwards
+// compatibility. When the value is true, newline characters in those
+// descriptions are retained in stave's help and list output.
+const MultilineEnv = "STAVEFILE_MULTILINE"
+
 // NoColorEnv is the standard environment variable to disable color output.
 // When set to any value, color output is disabled regardless of terminal capabilities.
 // See https://no-color.org/ for the specification.
@@ -84,6 +91,11 @@ const TargetColorEnv = "STAVEFILE_TARGET_COLOR"
 // Verbose reports whether a stavefile was run with the verbose flag.
 func Verbose() bool {
 	return env.FailsafeParseBoolEnv(VerboseEnv, false)
+}
+
+// Multiline reports whether a stavefile was run with the multiline flag.
+func Multiline() bool {
+	return env.FailsafeParseBoolEnv(MultilineEnv, false)
 }
 
 // Debug reports whether a stavefile was run with the debug flag.

@@ -19,7 +19,7 @@ func init() {
 func TestParse(t *testing.T) {
 	ctx := t.Context()
 
-	info, err := PrimaryPackage(ctx, "go", "./testdata", []string{"func.go", "command.go", "alias.go", "repeating_synopsis.go", "subcommands.go", "watch.go"})
+	info, err := PrimaryPackage(ctx, "go", "./testdata", []string{"func.go", "command.go", "alias.go", "repeating_synopsis.go", "subcommands.go", "watch.go"}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +123,7 @@ func TestGetImportSelf(t *testing.T) {
 	ctx := t.Context()
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
-	imp, err := getImport(ctx, "go", cwd, "github.com/yaklabco/stave/internal/parse/testdata/importself", "")
+	imp, err := getImport(ctx, "go", cwd, "github.com/yaklabco/stave/internal/parse/testdata/importself", "", false)
 	if err != nil {
 		t.Fatal(err)
 	}

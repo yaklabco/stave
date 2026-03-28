@@ -1,5 +1,8 @@
 //go:build stave
 
+//stave:multiline
+
+// Set the general description you want to have displayed with stave -l here.
 package main
 
 import (

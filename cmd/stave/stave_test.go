@@ -34,6 +34,28 @@ func TestVerboseFalseEnv(t *testing.T) {
 	require.NoError(t, ExecuteWithFang(ctx, rootCmd))
 }
 
+func TestMultilineEnv(t *testing.T) {
+	ctx := t.Context()
+	t.Setenv("STAVEFILE_MULTILINE", "true")
+	runFunc := func(params stave.RunParams) error {
+		assert.True(t, params.Multiline)
+		return nil
+	}
+	rootCmd := NewRootCmd(ctx, withRunFunc(runFunc))
+	require.NoError(t, ExecuteWithFang(ctx, rootCmd))
+}
+
+func TestMultilineFalseEnv(t *testing.T) {
+	ctx := t.Context()
+	t.Setenv("STAVEFILE_MULTILINE", "0")
+	runFunc := func(params stave.RunParams) error {
+		assert.False(t, params.Multiline)
+		return nil
+	}
+	rootCmd := NewRootCmd(ctx, withRunFunc(runFunc))
+	require.NoError(t, ExecuteWithFang(ctx, rootCmd))
+}
+
 func TestParse(t *testing.T) {
 	ctx := t.Context()
 	runFunc := func(params stave.RunParams) error {

@@ -64,24 +64,24 @@ type RunParams struct {
 	Init       bool   // create an initial stavefile from template
 	List       bool   // tells the stavefile to print out a list of targets
 
-	Debug    bool          // turn on debug messages
-	Dir      string        // directory to read stavefiles from
-	WorkDir  string        // directory where stavefiles will run
-	Force    bool          // forces recreation of the compiled binary
-	Verbose  bool          // tells the stavefile to print out log statements
-	Info     bool          // tells the stavefile to print out docstring for a specific target
-	Keep     bool          // tells stave to keep the generated main file after compiling
-	DryRun   bool          // tells stave that all sh.Run* commands should print, but not execute
-	Timeout  time.Duration // tells stave to set a timeout to running the targets
-	GOOS     string        // sets the GOOS when producing a binary with -compileout
-	GOARCH   string        // sets the GOARCH when producing a binary with -compileout
-	Ldflags  string        // sets the ldflags when producing a binary with -compileout
-	Args     []string      // args to pass to the compiled binary
-	GoCmd    string        // the go binary command to run
-	CacheDir string        // the directory where we should store compiled binaries
-	HashFast bool          // don't rely on GOCACHE, just hash the stavefiles
-
-	HooksAreRunning bool // indicates whether hooks are currently being executed
+	Debug           bool          // turn on debug messages
+	Dir             string        // directory to read stavefiles from
+	WorkDir         string        // directory where stavefiles will run
+	Force           bool          // forces recreation of the compiled binary
+	Verbose         bool          // tells the stavefile to print out log statements
+	Info            bool          // tells the stavefile to print out docstring for a specific target
+	Keep            bool          // tells stave to keep the generated main file after compiling
+	DryRun          bool          // tells stave that all sh.Run* commands should print, but not execute
+	Timeout         time.Duration // tells stave to set a timeout to running the targets
+	GOOS            string        // sets the GOOS when producing a binary with -compileout
+	GOARCH          string        // sets the GOARCH when producing a binary with -compileout
+	Ldflags         string        // sets the ldflags when producing a binary with -compileout
+	Args            []string      // args to pass to the compiled binary
+	GoCmd           string        // the go binary command to run
+	CacheDir        string        // the directory where we should store compiled binaries
+	HashFast        bool          // don't rely on GOCACHE, just hash the stavefiles
+	Multiline       bool          // whether to retain line returns in help text for the generated main file
+	HooksAreRunning bool          // indicates whether hooks are currently being executed
 }
 
 // UsesStavefiles returns true if we are getting our stave files from a stavefiles directory.
@@ -215,7 +215,7 @@ func runListMode(ctx context.Context, params RunParams) error {
 		fnames = append(fnames, filepath.Base(f))
 	}
 
-	info, err := parse.PrimaryPackage(ctx, params.GoCmd, params.Dir, fnames)
+	info, err := parse.PrimaryPackage(ctx, params.GoCmd, params.Dir, fnames, params.Multiline)
 	if err != nil {
 		return fmt.Errorf("parsing stavefiles: %w", err)
 	}
@@ -294,7 +294,7 @@ func stave(ctx context.Context, params RunParams) error {
 	}
 
 	slog.Debug("parsing stavefiles")
-	info, err := parse.PrimaryPackage(ctx, params.GoCmd, params.Dir, fnames)
+	info, err := parse.PrimaryPackage(ctx, params.GoCmd, params.Dir, fnames, params.Multiline)
 	if err != nil {
 		return fmt.Errorf("parsing stavefiles: %w", err)
 	}

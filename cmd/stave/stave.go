@@ -93,6 +93,7 @@ func NewRootCmd(ctx context.Context, opts ...Option) *cobra.Command {
 	rootCmd.PersistentFlags().BoolVarP(&runParams.Info, "info", "i", st.Info(), "show docstring for a specific target")
 	rootCmd.PersistentFlags().BoolVar(&runParams.Keep, "keep", false, "keep intermediate stave files around after running")
 	rootCmd.PersistentFlags().StringVar(&runParams.Ldflags, "ldflags", "", "set ldflags for binary produced with --compile")
+	rootCmd.PersistentFlags().BoolVar(&runParams.Multiline, "multiline", st.Multiline(), "retain line returns in help text")
 	rootCmd.PersistentFlags().DurationVarP(&runParams.Timeout, "timeout", "t", 0, "timeout in duration parsable format (e.g. 5m30s)")
 	rootCmd.PersistentFlags().BoolVarP(&runParams.Verbose, "verbose", "v", st.Verbose(), "show verbose output when running stave targets")
 	rootCmd.PersistentFlags().StringVarP(&runParams.WorkDir, "workdir", "w", "", "working directory where stavefiles will run")
