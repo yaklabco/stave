@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.4] - 2026-03-31
+
+### Added
+
+- `pkg/gitutils`, containing `GetRepoRoot()` and `GetRepoRootContext()` commands to identify the root of the working copy in a way that works both in regular git clones _and_ in git worktrees.
+
+### Fixed
+
+- Improved reliability of hooks mechanism when working in a git worktree.
+- Fixed some intermittent failures in `TestMultiline` and `TestMultilineTag` tests.
+
 ## [0.14.3] - 2026-03-28
 
 ### Changed
@@ -516,7 +527,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added parallelism-by-default to use of Go tools from inside Stave.
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.14.3...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.14.4...HEAD
+[0.14.4]: https://github.com/yaklabco/stave/compare/v0.14.3...v0.14.4
 [0.14.3]: https://github.com/yaklabco/stave/compare/v0.14.2...v0.14.3
 [0.14.2]: https://github.com/yaklabco/stave/compare/v0.14.1...v0.14.2
 [0.14.1]: https://github.com/yaklabco/stave/compare/v0.14.0...v0.14.1

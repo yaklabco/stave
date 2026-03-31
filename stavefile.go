@@ -26,6 +26,7 @@ import (
 	"github.com/yaklabco/stave/config"
 	"github.com/yaklabco/stave/pkg/changelog"
 	"github.com/yaklabco/stave/pkg/fsutils"
+	"github.com/yaklabco/stave/pkg/gitutils"
 	"github.com/yaklabco/stave/pkg/sh"
 	"github.com/yaklabco/stave/pkg/st"
 	"github.com/yaklabco/stave/pkg/stave"
@@ -52,14 +53,9 @@ func init() {
 	}
 
 	var err error
-	repoRoot, err = sh.Output("git", "rev-parse", "--show-toplevel")
+	repoRoot, err = gitutils.GetRepoRoot()
 	if err != nil {
 		panic(fmt.Errorf("failed to determine repository root: %w", err))
-	}
-
-	repoRoot, err = filepath.Abs(strings.TrimSpace(repoRoot))
-	if err != nil {
-		panic(fmt.Errorf("failed to get absolute path for repository root: %w", err))
 	}
 }
 

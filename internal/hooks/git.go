@@ -90,9 +90,13 @@ func findGitDirs(ctx context.Context, absDir string) (gitDirs, error) {
 		return gitDirs{}, fmt.Errorf("%w: %s", ErrNotGitRepo, absDir)
 	}
 
-	gitDir, err := gitOutput(ctx, absDir, "rev-parse", "--git-dir")
+	gitDir, err := gitOutput(ctx, absDir, "rev-parse", "--git-common-dir")
 	if err != nil {
-		return gitDirs{}, fmt.Errorf("finding git directory: %w", err)
+		// Fallback to --git-dir if --git-common-dir fails (older git versions)
+		gitDir, err = gitOutput(ctx, absDir, "rev-parse", "--git-dir")
+		if err != nil {
+			return gitDirs{}, fmt.Errorf("finding git directory: %w", err)
+		}
 	}
 
 	// Make gitDir absolute if it isn't already

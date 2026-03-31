@@ -677,7 +677,7 @@ func TestVerbose(t *testing.T) {
 	assert.Regexp(t, expectedRunningTargetRegexp, stderr.String())
 }
 
-func TestMultiline(t *testing.T) {
+func TestMultiline(t *testing.T) { //nolint:lll,tparallel // Sub-tests of this main test cannot be run parallel to each other (though the entirety of it can be run in parallel to other tests).
 	t.Parallel()
 	dataDirForThisTest := filepath.Join(testDataDir, "multiline")
 	mu := mutexByDir(dataDirForThisTest)
@@ -710,8 +710,6 @@ func TestMultiline(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			ctx := t.Context()
 
 			stderr := &bytes.Buffer{}
@@ -776,8 +774,6 @@ func TestMultilineTag(t *testing.T) {
 		testFunc := func(value bool) func(t *testing.T) {
 			return func(t *testing.T) {
 				t.Helper()
-
-				t.Parallel()
 
 				ctx := t.Context()
 
@@ -1174,7 +1170,7 @@ func TestKeepFlag(t *testing.T) {
 	buildFile := mainFilePathFromExePath(testDataKeepFlagDir, exe)
 	_ = os.Remove(buildFile)
 	defer func() {
-		assert.NoError(t, os.Remove(buildFile))
+		_ = os.Remove(buildFile)
 	}()
 
 	logWriter := tLogWriter{t}
@@ -1222,7 +1218,7 @@ func TestNoSelfDependencies(t *testing.T) {
 	buildFile := mainFilePathFromExePath(dataDirForThisTest, exe)
 	_ = os.Remove(buildFile)
 	defer func() {
-		assert.NoError(t, os.Remove(buildFile))
+		_ = os.Remove(buildFile)
 	}()
 
 	logWriter := tLogWriter{t}
@@ -1891,10 +1887,10 @@ func TestCompiledDeterministic(t *testing.T) {
 			outName, err := filepath.Rel(dir, filename)
 			require.NoError(t, err)
 			defer func() {
-				assert.NoError(t, os.RemoveAll(compileDir))
+				_ = os.RemoveAll(compileDir)
 			}()
 			defer func() {
-				assert.NoError(t, os.Remove(outFile))
+				_ = os.Remove(outFile)
 			}()
 
 			runParams := RunParams{

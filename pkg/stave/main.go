@@ -544,7 +544,8 @@ func Stavefiles(stavePath, goos, goarch string, isStavefilesDirectory bool) ([]s
 	// filter out the non-stave files from the stave files.
 	var files []string
 	for _, f := range staveFiles {
-		if f != "" && !lo.HasKey(exclude, f) {
+		// exclude any generated mainfiles from previous or concurrent runs.
+		if f != "" && !lo.HasKey(exclude, f) && !strings.HasPrefix(filepath.Base(f), mainFileBase) {
 			files = append(files, f)
 		}
 	}
