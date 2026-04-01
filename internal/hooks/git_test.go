@@ -10,6 +10,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func testRunGit(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	// Use same env overrides as testGitInit to avoid interference
+	cmd.Env = testEnvForGit()
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %v failed: %v\nOutput: %s", args, err, string(out))
+	}
+}
+
+func testEnvForGit() []string {
+	return FilterGitEnv(append(os.Environ(),
+		"GIT_CONFIG_GLOBAL="+os.DevNull,
+		"GIT_CONFIG_SYSTEM="+os.DevNull,
+	))
+}
+
 // testGitInit initializes an isolated git repository in the given directory.
 // It uses --template= to avoid inheriting hooks from user git templates and
 // sets GIT_CONFIG_GLOBAL/SYSTEM to /dev/null so user git config (e.g.
@@ -21,10 +40,7 @@ func testGitInit(t *testing.T, dir string) {
 
 	cmd := exec.Command("git", "init", "--template=")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(),
-		"GIT_CONFIG_GLOBAL="+os.DevNull,
-		"GIT_CONFIG_SYSTEM="+os.DevNull,
-	)
+	cmd.Env = testEnvForGit()
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("git init failed: %v", err)
 	}
@@ -33,6 +49,7 @@ func testGitInit(t *testing.T, dir string) {
 	// subsequent git commands run by the code under test.
 	unset := exec.Command("git", "config", "--local", "core.hooksPath", "")
 	unset.Dir = dir
+	unset.Env = testEnvForGit()
 	_ = unset.Run() //nolint:errcheck // non-zero exit if key absent is fine
 
 	// Create hooks directory since --template= skips it
@@ -165,6 +182,7 @@ func TestGitRepo_HooksPath_CustomPath(t *testing.T) {
 	customPath := ".githooks"
 	cmd := exec.Command("git", "config", "core.hooksPath", customPath)
 	cmd.Dir = tmpDir
+	cmd.Env = testEnvForGit()
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("git config failed: %v", err)
 	}
@@ -202,6 +220,7 @@ func TestGitRepo_HooksPath_AbsoluteCustomPath(t *testing.T) {
 	customPath := filepath.Join(tmpDir, "custom-hooks")
 	cmd := exec.Command("git", "config", "core.hooksPath", customPath)
 	cmd.Dir = tmpDir
+	cmd.Env = testEnvForGit()
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("git config failed: %v", err)
 	}

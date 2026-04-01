@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
+
+	"github.com/yaklabco/stave/internal/hooks"
 )
 
 // ErrNotGitRepo is returned when the directory is not inside a Git repository.
@@ -22,41 +22,22 @@ func GetRepoRoot() (string, error) {
 
 // GetRepoRootContext returns the absolute path to the root of the current Git repository with context.
 func GetRepoRootContext(ctx context.Context) (string, error) {
-	// Use --show-toplevel to find the root of the current working copy.
-	// In a worktree, this returns the root of the worktree.
-	// In a regular clone, this returns the root of the clone.
-	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--show-toplevel")
-
-	// Filter out GIT_DIR and GIT_WORK_TREE to ensure correct behavior in hook contexts.
-	cmd.Env = filterGitEnv(os.Environ())
-
-	out, err := cmd.Output()
+	cwd, err := os.Getwd()
 	if err != nil {
-		return "", fmt.Errorf("%w: %w", ErrNotGitRepo, err)
+		return "", fmt.Errorf("getting current working directory: %w", err)
 	}
 
-	rootDir := strings.TrimSpace(string(out))
-	if rootDir == "" {
-		return "", ErrNotGitRepo
-	}
-
-	// Resolve symlinks (important on macOS where /var is a symlink to /private/var)
-	resolved, err := filepath.EvalSymlinks(rootDir)
+	repo, err := hooks.FindGitRepoContext(ctx, cwd)
 	if err != nil {
-		return filepath.Clean(rootDir), nil //nolint:nilerr // This is an intentional fallback.
+		return "", fmt.Errorf("finding git repo: %w", err)
 	}
 
-	return filepath.Clean(resolved), nil
+	return repo.RootDir, nil
 }
 
-// filterGitEnv removes GIT_DIR and GIT_WORK_TREE from the environment.
-func filterGitEnv(env []string) []string {
-	var filtered []string
-	for _, e := range env {
-		if strings.HasPrefix(e, "GIT_DIR=") || strings.HasPrefix(e, "GIT_WORK_TREE=") {
-			continue
-		}
-		filtered = append(filtered, e)
-	}
-	return filtered
+func IsWorkTree(path string) bool {
+	dotGitPath := filepath.Join(path, ".git")
+	fileInfo, err := os.Stat(dotGitPath)
+
+	return err == nil && !fileInfo.IsDir()
 }

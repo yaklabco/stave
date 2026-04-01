@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.5] - 2026-03-31
+
+### Fixed
+
+- Use of [trufflehog](https://github.com/trufflesecurity/trufflehog)-related functionality when in a gitworktree rather than a regular repo clone.
+
 ## [0.14.4] - 2026-03-31
 
 ### Added
 
-- `pkg/gitutils`, containing `GetRepoRoot()` and `GetRepoRootContext()` commands to identify the root of the working copy in a way that works both in regular git clones _and_ in git worktrees.
+- `pkg/gitutils`, containing `GetRepoRoot()` and `GetRepoRootContext()` commands to identify the root of the working copy in a way that works both in regular repo clones _and_ in git worktrees.
 
 ### Fixed
 
@@ -527,7 +533,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added parallelism-by-default to use of Go tools from inside Stave.
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.14.4...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.14.5...HEAD
+[0.14.5]: https://github.com/yaklabco/stave/compare/v0.14.4...v0.14.5
 [0.14.4]: https://github.com/yaklabco/stave/compare/v0.14.3...v0.14.4
 [0.14.3]: https://github.com/yaklabco/stave/compare/v0.14.2...v0.14.3
 [0.14.2]: https://github.com/yaklabco/stave/compare/v0.14.1...v0.14.2
