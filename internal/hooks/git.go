@@ -178,6 +178,7 @@ func (r *GitRepo) HasCustomHooksPath() bool {
 func gitOutput(ctx context.Context, dir string, args ...string) (string, error) {
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = dir
+	cmd.Env = FilterGitEnv(os.Environ())
 
 	out, err := cmd.Output()
 	if err != nil {

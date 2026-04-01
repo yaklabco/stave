@@ -374,8 +374,17 @@ func (Check) Secrets() error {
 	st.Deps(Prereq.Brew)
 
 	slog.Info("Scanning for secrets using trufflehog...")
-	if err := runTrufflehog(); err != nil {
-		return err
+	// Check if we are in a worktree rather than a simple repo clone.
+	if gitutils.IsWorkTree(repoRoot) {
+		slog.Info("We are in a worktree; running trufflehog on filesystem...")
+		if err := runTrufflehog([]string{"filesystem", "."}); err != nil {
+			return err
+		}
+	} else {
+		slog.Info("Running trufflehog on git repo...")
+		if err := runTrufflehog([]string{"git"}, "file://"+repoRoot); err != nil {
+			return err
+		}
 	}
 
 	slog.Info("No secrets found.")
@@ -525,7 +534,7 @@ func (Test) Go() error {
 		},
 		"go", "tool", "gotestsum", "-f", "pkgname-and-test-fails",
 		"--",
-		"-v", "-p", nProcsStr, "-parallel", nProcsStr, "./...", "-count", "1",
+		"-v", "-p", nProcsStr, "-parallel", nProcsStr, "./...", "-count", "1", "-run", "TestFindGitRepo_Worktree",
 		"-coverprofile=coverage.out", "-covermode=atomic",
 	); err != nil {
 		return err
@@ -761,15 +770,14 @@ func numProcsAsString() string {
 	return cmp.Or(os.Getenv("STAVE_NUM_PROCESSORS"), "1")
 }
 
-func runTrufflehog(extraFlags ...string) error {
+func runTrufflehog(coreArgs []string, extraFlags ...string) error {
 	var stdoutBuf bytes.Buffer
 	var stderrBuf bytes.Buffer
 
-	args := make([]string, 0, 4+len(extraFlags)) //nolint:mnd // This is just the number of args in the next statement.
+	args := make([]string, 0, 2+len(coreArgs)+len(extraFlags))
+	args = append(args, coreArgs...)
 	args = append(args,
-		"git",
 		"--no-update", "--no-verification",
-		"file://"+repoRoot,
 	)
 	args = append(args, extraFlags...)
 	err := sh.Piper(
@@ -790,13 +798,7 @@ func runTrufflehog(extraFlags ...string) error {
 	return nil
 }
 
-func secretsHookWorker(pushRefs []changelog.PushRef) error {
-	if len(pushRefs) == 0 {
-		slog.Warn("no refs pushed, skipping secrets hook")
-		return nil
-	}
-
-	slog.Info("Scanning for secrets using trufflehog...")
+func runTrufflehogOnPushRefs(pushRefs []changelog.PushRef) error {
 	for _, ref := range pushRefs {
 		// Skip deleted refs - nothing to scan.
 		if ref.LocalSHA == changelog.ZeroSHA {
@@ -816,7 +818,33 @@ func secretsHookWorker(pushRefs []changelog.PushRef) error {
 			extraFlags = append(extraFlags, "--since-commit="+ref.RemoteSHA)
 		}
 
-		if err := runTrufflehog(extraFlags...); err != nil {
+		extraFlags = append(extraFlags, "file://"+repoRoot)
+
+		if err := runTrufflehog([]string{"git"}, extraFlags...); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func secretsHookWorker(pushRefs []changelog.PushRef) error {
+	if len(pushRefs) == 0 {
+		slog.Warn("no refs pushed, skipping secrets hook")
+		return nil
+	}
+
+	slog.Info("Scanning for secrets using trufflehog...")
+
+	// Check if we are in a worktree rather than a simple repo clone.
+	if gitutils.IsWorkTree(repoRoot) {
+		slog.Info("We are in a worktree; running trufflehog on filesystem...")
+		if err := runTrufflehog([]string{"filesystem", "."}); err != nil {
+			return err
+		}
+	} else {
+		slog.Info("Running trufflehog on pushrefs...")
+		if err := runTrufflehogOnPushRefs(pushRefs); err != nil {
 			return err
 		}
 	}

@@ -28,6 +28,13 @@ hooks:
     - target: fmt
 `
 
+func testEnvForGit() []string {
+	return hooks.FilterGitEnv(append(os.Environ(),
+		"GIT_CONFIG_GLOBAL="+os.DevNull,
+		"GIT_CONFIG_SYSTEM="+os.DevNull,
+	))
+}
+
 // testGitInit initializes an isolated git repository in the given directory.
 // It uses --template= to avoid inheriting hooks from user git templates and
 // sets GIT_CONFIG_GLOBAL/SYSTEM to /dev/null so user git config (e.g.
@@ -39,10 +46,7 @@ func testGitInit(t *testing.T, dir string) {
 
 	cmd := exec.Command("git", "init", "--template=")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(),
-		"GIT_CONFIG_GLOBAL="+os.DevNull,
-		"GIT_CONFIG_SYSTEM="+os.DevNull,
-	)
+	cmd.Env = testEnvForGit()
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("git init failed: %v", err)
 	}
@@ -51,6 +55,7 @@ func testGitInit(t *testing.T, dir string) {
 	// subsequent git commands run by the code under test.
 	unset := exec.Command("git", "config", "--local", "core.hooksPath", "")
 	unset.Dir = dir
+	unset.Env = testEnvForGit()
 	_ = unset.Run() //nolint:errcheck // non-zero exit if key absent is fine
 
 	// Create hooks directory since --template= skips it
