@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Use of [trufflehog](https://github.com/trufflesecurity/trufflehog)-related functionality when in a gitworktree rather than a regular repo clone.
+- Use of [trufflehog](https://github.com/trufflesecurity/trufflehog)-related functionality when in a git worktree rather than a regular repo clone.
 
 ## [0.14.4] - 2026-03-31
 
