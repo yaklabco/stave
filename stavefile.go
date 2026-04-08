@@ -534,7 +534,7 @@ func (Test) Go() error {
 		},
 		"go", "tool", "gotestsum", "-f", "pkgname-and-test-fails",
 		"--",
-		"-v", "-p", nProcsStr, "-parallel", nProcsStr, "./...", "-count", "1", "-run", "TestFindGitRepo_Worktree",
+		"-v", "-p", nProcsStr, "-parallel", nProcsStr, "./...", "-count", "1",
 		"-coverprofile=coverage.out", "-covermode=atomic",
 	); err != nil {
 		return err
