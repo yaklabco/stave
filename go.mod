@@ -1,6 +1,6 @@
 module github.com/yaklabco/stave
 
-go 1.25.8
+go 1.25.9
 
 require (
 	charm.land/lipgloss/v2 v2.0.2
@@ -18,7 +18,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
-	github.com/yaklabco/direnv/v2 v2.37.2-0.20260131191105-7a83bbbd7e5b
+	github.com/yaklabco/direnv/v2 v2.37.2-0.20260408140756-a0bfab26dddf
 	golang.org/x/tools v0.43.0
 )
 
@@ -32,7 +32,7 @@ require (
 	github.com/charmbracelet/ultraviolet v0.0.0-20260330092749-0f94982c930b // indirect
 	github.com/charmbracelet/x/ansi v0.11.6 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.15 // indirect
-	github.com/charmbracelet/x/exp/charmtone v0.0.0-20260330094520-2dce04b6f8a4 // indirect
+	github.com/charmbracelet/x/exp/charmtone v0.0.0-20260406091427-a791e22d5143 // indirect
 	github.com/charmbracelet/x/termios v0.1.1 // indirect
 	github.com/charmbracelet/x/windows v0.2.2 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
@@ -48,8 +48,8 @@ require (
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-runewidth v0.0.21 // indirect
+	github.com/mattn/go-isatty v0.0.21 // indirect
+	github.com/mattn/go-runewidth v0.0.23 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/mango v0.2.0 // indirect
 	github.com/muesli/mango-cobra v1.3.0 // indirect
@@ -70,7 +70,7 @@ require (
 	golang.org/x/mod v0.34.0 // indirect
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
 	golang.org/x/term v0.41.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
