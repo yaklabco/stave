@@ -58,8 +58,8 @@ type Function struct {
 	Receiver   string
 	IsError    bool
 	IsContext  bool
-	Synopsis   string
-	Comment    string
+	Synopsis   string // Synopsis is a one sentence description of the function, without its leading function name.
+	Comment    string // Comment is the full comment on the function, with newlines replaced by spaces and trimmed.
 	Args       []Arg
 	IsWatch    bool
 }
@@ -319,7 +319,7 @@ func Package(path string, files []string, multiline bool) (*PkgInfo, error) {
 	if multiline {
 		pkgInfo.Description = strings.TrimSuffix(thePackage.Doc, "\n")
 	} else {
-		pkgInfo.Description = toOneLine(thePackage.Doc)
+		pkgInfo.Description = oneLineDoc(thePackage.Doc)
 	}
 
 	setNamespaces(pkgInfo, watchTargets)
@@ -493,7 +493,7 @@ func funcFromDoc(theFunc *doc.Func, importpath, funcname string, multiline bool)
 	if multiline {
 		funcInfo.Comment = strings.TrimSuffix(theFunc.Doc, "\n")
 	} else {
-		funcInfo.Comment = toOneLine(theFunc.Doc)
+		funcInfo.Comment = oneLineDoc(theFunc.Doc)
 	}
 	funcInfo.Synopsis = sanitizeSynopsis(theFunc)
 	return funcInfo, true
@@ -695,6 +695,7 @@ func sanitizeSynopsis(theFunc *doc.Func) string {
 	// Create a minimal Package to use the non-deprecated Synopsis method
 	pkg := &doc.Package{}
 	synopsis := pkg.Synopsis(theFunc.Doc)
+	synopsis = sanitizeDocComment(synopsis)
 
 	// If the synopsis begins with the function name, remove it. This is done to
 	// not repeat the text.
@@ -1094,8 +1095,18 @@ func funcType(funcTypeNode *ast.FuncType) (*Function, error) {
 	return theFunc, nil
 }
 
-func toOneLine(s string) string {
-	return strings.TrimSpace(strings.ReplaceAll(s, "\n", " "))
+// sanitizeDocComment sanitizes a doc comment by replacing characters that would screw up formatting
+// in the output file.
+func sanitizeDocComment(s string) string {
+	s = strings.ReplaceAll(s, "`", "'")
+	return s
+}
+
+// oneLineDoc converts a doc comment to a single line, and sanitizes it for output.
+func oneLineDoc(s string) string {
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.TrimSpace(s)
+	return sanitizeDocComment(s)
 }
 
 // hasComment reports whether any file in the package contains a comment
