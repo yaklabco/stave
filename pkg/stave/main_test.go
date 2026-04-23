@@ -2,6 +2,7 @@ package stave
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"debug/macho"
 	"debug/pe"
@@ -803,6 +804,217 @@ func TestMultilineTag(t *testing.T) {
 		}
 		t.Run(tt.name+"TagFalse", testFunc(false))
 		t.Run(tt.name+"TagTrue", testFunc(true))
+	}
+}
+
+// TestHelpNoCompile verifies that -i works without compilation by using a
+// fixture whose function bodies reference an undefined package. The AST parser
+// can still extract targets, but go build would fail.
+func TestHelpNoCompile(t *testing.T) { //nolint:tparallel // Sub-tests intentionally not parallelized.
+	t.Parallel()
+	dataDirForThisTest := filepath.Join(testDataDir, "help_no_compile")
+	mu := mutexByDir(dataDirForThisTest)
+	mu.Lock()
+	t.Cleanup(mu.Unlock)
+
+	for _, tt := range []struct {
+		name     string
+		target   string
+		output   string
+		wantErr  bool
+		toStderr bool
+	}{
+		{
+			name:    "known target",
+			target:  "build",
+			output:  "Build compiles the project.\n\nUsage:\n\n\tstave build\n\n",
+			wantErr: false,
+		},
+		{
+			name:    "multiline comment",
+			target:  "deploy",
+			output:  "Deploy pushes to production. This is the extended description.\n\nUsage:\n\n\tstave deploy\n\n",
+			wantErr: false,
+		},
+		{
+			name:    "namespace target",
+			target:  "ns:run",
+			output:  "Run runs within the namespace.\n\nUsage:\n\n\tstave ns:run\n\n",
+			wantErr: false,
+		},
+		{
+			name:     "unknown target",
+			target:   "doesnotexist",
+			output:   "target \"doesnotexist\" not found in parsed functions",
+			wantErr:  true,
+			toStderr: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := t.Context()
+
+			stdout := &bytes.Buffer{}
+			stderr := &bytes.Buffer{}
+			runParams := RunParams{
+				BaseCtx: ctx,
+				Dir:     dataDirForThisTest,
+				Stdout:  stdout,
+				Stderr:  stderr,
+				Args:    []string{tt.target},
+				Info:    true,
+			}
+			err := Run(runParams)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			var got string
+			if tt.toStderr {
+				got = err.Error()
+			} else {
+				got = stdout.String()
+			}
+			if got != tt.output {
+				t.Errorf("expected output %q, got %q", tt.output, got)
+			}
+		})
+	}
+}
+
+// TestHelpNoTarget verifies that -i without a target name prints an error.
+func TestHelpNoTarget(t *testing.T) {
+	t.Parallel()
+	dataDirForThisTest := filepath.Join(testDataDir, "multiline")
+	mu := mutexByDir(dataDirForThisTest)
+	mu.Lock()
+	t.Cleanup(mu.Unlock)
+
+	ctx := t.Context()
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     dataDirForThisTest,
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{},
+		Info:    true,
+	}
+	err := Run(runParams)
+
+	if err == nil {
+		t.Fatalf("expected an error, but gone none\nstdout: %s\nstderr: %s", stdout, stderr)
+	}
+	got := err.Error()
+	want := "no target specified for -i/--info flag"
+	if got != want {
+		t.Errorf("expected %q, got %q", want, got)
+	}
+}
+
+// TestHelpAliases verifies that -i shows sorted aliases.
+func TestHelpAliases(t *testing.T) {
+	t.Parallel()
+	dataDirForThisTest := filepath.Join(testDataDir, "alias")
+	mu := mutexByDir(dataDirForThisTest)
+	mu.Lock()
+	t.Cleanup(mu.Unlock)
+
+	ctx := t.Context()
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	runParams := RunParams{
+		BaseCtx: ctx,
+		Dir:     dataDirForThisTest,
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Args:    []string{"status"},
+		Info:    true,
+	}
+	err := Run(runParams)
+	if err != nil {
+		t.Fatalf("expected no error, but got: %v\nstdout: %s\nstderr: %s", err, stdout, stderr)
+	}
+	got := stdout.String()
+	want := "Prints status.\n\nUsage:\n\n\tstave status\n\nAliases: st, stat\n\n"
+	if got != want {
+		t.Errorf("expected %q, got %q", want, got)
+	}
+}
+
+// TestHelpMatchesCompiledBinary verifies that stave -i and a compiled binary's
+// -i produce identical output for the same target.
+func TestHelpMatchesCompiledBinary(t *testing.T) {
+	t.Parallel()
+	dataDirForThisTest := filepath.Join(testDataDir, "compiled")
+	mu := mutexByDir(dataDirForThisTest)
+	mu.Lock()
+	t.Cleanup(mu.Unlock)
+
+	ctx := t.Context()
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+
+	compileDir := t.TempDir()
+	name := filepath.Join(compileDir, "stave_help_test")
+	if runtime.GOOS == windows {
+		name += ".exe"
+	}
+
+	runParams := RunParams{
+		BaseCtx:    ctx,
+		Dir:        dataDirForThisTest,
+		Stdout:     stdout,
+		Stderr:     stderr,
+		CompileOut: name,
+	}
+
+	err := Run(runParams)
+
+	if err != nil {
+		t.Fatalf("compile failed with error %v: %s", err, stderr)
+	}
+
+	// Get help from stave directly (no compilation path).
+	stdout.Reset()
+	stderr.Reset()
+	runParams = RunParams{
+		BaseCtx: ctx,
+		Dir:     dataDirForThisTest,
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Info:    true,
+		Args:    []string{"deploy"},
+	}
+	err = Run(runParams)
+	if err != nil {
+		t.Fatalf("stave -i deploy failed with error %v: %s", err, stderr)
+	}
+
+	staveOutput := stdout.String()
+
+	// Get help from the compiled binary.
+	stdout.Reset()
+	stderr.Reset()
+	cmd := exec.CommandContext(context.Background(), name, "-i", "deploy")
+	cmd.Env = os.Environ()
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("compiled binary -i deploy failed: %v\nstderr: %s", err, stderr)
+	}
+	compiledOutput := stdout.String()
+
+	// The binary name differs (compiled binary uses its own filename), so
+	// normalize both outputs by replacing the binary name with a placeholder.
+	binaryBase := filepath.Base(name)
+	normalizedStave := strings.ReplaceAll(staveOutput, "\tstave ", "\tBINARY ")
+	normalizedCompiled := strings.ReplaceAll(compiledOutput, "\t"+binaryBase+" ", "\tBINARY ")
+
+	if normalizedStave != normalizedCompiled {
+		t.Errorf("help output mismatch (after normalizing binary name):\nstave -i:    %q\ncompiled -i: %q", staveOutput, compiledOutput)
 	}
 }
 

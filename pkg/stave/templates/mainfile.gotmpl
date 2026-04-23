@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	_filepath "path/filepath"
+	_sort "sort"
 	"strconv"
 	_strings "strings"
 	"syscall"
@@ -74,6 +75,7 @@ func main() {
 	}
 
 	args := arguments{}
+	_sort.Strings(args.Args) // This should be empty at this point; this statement is just here to avoid an import error on _sort if all its other uses are in code that is excluded by template conditionals.
 	fs := _flag.FlagSet{}
 	fs.SetOutput(os.Stdout)
 
@@ -420,6 +422,7 @@ func main() {
 			{{if and (eq $name $func.Name) (eq $recv $func.Receiver)}}aliases = append(aliases, "{{$alias}}"){{end -}}
 			{{- end}}
 			if len(aliases) > 0 {
+				_sort.Strings(aliases)
 				_fmt.Printf("Aliases: %s\n\n", _strings.Join(aliases, ", "))
 			}
 			return
@@ -439,6 +442,7 @@ func main() {
 			{{if and (eq $name $func.Name) (eq $recv $func.Receiver)}}aliases = append(aliases, "{{$alias}}"){{end -}}
 			{{- end}}
 			if len(aliases) > 0 {
+				_sort.Strings(aliases)
 				_fmt.Printf("Aliases: %s\n\n", _strings.Join(aliases, ", "))
 			}
 			return

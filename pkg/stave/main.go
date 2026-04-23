@@ -153,6 +153,10 @@ func Run(params RunParams) error {
 		return runListMode(ctx, params)
 	}
 
+	if params.Info {
+		return runInfoMode(ctx, params)
+	}
+
 	return stave(ctx, params)
 }
 
@@ -196,38 +200,6 @@ func runConfigMode(ctx context.Context, params RunParams) error {
 		return st.Fatal(exitCode, "config command failed")
 	}
 	return nil
-}
-
-// runListMode handles the -l/--list flag by parsing stavefiles and rendering
-// the target list directly, without compiling a temporary binary.
-func runListMode(ctx context.Context, params RunParams) error {
-	files, err := Stavefiles(params.Dir, params.GOOS, params.GOARCH, params.UsesStavefiles())
-	if err != nil {
-		return fmt.Errorf("determining list of stavefiles: %w", err)
-	}
-
-	if len(files) == 0 {
-		return errors.New("no .go files marked with the stave build tag in this directory")
-	}
-
-	fnames := make([]string, 0, len(files))
-	for _, f := range files {
-		fnames = append(fnames, filepath.Base(f))
-	}
-
-	info, err := parse.PrimaryPackage(ctx, params.GoCmd, params.Dir, fnames, params.Multiline)
-	if err != nil {
-		return fmt.Errorf("parsing stavefiles: %w", err)
-	}
-
-	sort.Sort(info.Funcs)
-	sort.Sort(info.Imports)
-
-	return renderTargetList(
-		params.Stdout,
-		info,
-		params.Args,
-	)
 }
 
 func stave(ctx context.Context, params RunParams) error {
@@ -309,10 +281,7 @@ func stave(ctx context.Context, params RunParams) error {
 		return fmt.Errorf("getting exe hash for mainfile: %w", hashErr)
 	}
 	main := mainFilePathFromExePath(params.Dir, hashPath)
-	binaryName := "stave"
-	if params.CompileOut != "" {
-		binaryName = filepath.Base(params.CompileOut)
-	}
+	binaryName := generateBinaryName(params)
 
 	createdByMe := false
 	if _, statErr := os.Stat(main); errors.Is(statErr, os.ErrNotExist) {
@@ -354,6 +323,15 @@ func stave(ctx context.Context, params RunParams) error {
 	}
 
 	return RunCompiled(ctx, params, exePath)
+}
+
+func generateBinaryName(params RunParams) string {
+	binaryName := "stave"
+	if params.CompileOut != "" {
+		binaryName = filepath.Base(params.CompileOut)
+	}
+
+	return binaryName
 }
 
 func howManyThingsToDo(params RunParams) int {
@@ -425,10 +403,6 @@ func applyBasicRunParams(params RunParams) error {
 
 	if lo.IsEmpty(params.CompileOut) && (params.GOARCH != "" || params.GOOS != "") {
 		return errors.New("-goos and -goarch only apply when running with -compile")
-	}
-
-	if params.Info && len(params.Args) != 1 {
-		return errors.New("-d requires exactly one target, for which to show details")
 	}
 
 	return nil
@@ -629,7 +603,26 @@ func GenerateMainFile(binaryName, path string, info *parse.PkgInfo) error {
 		return fmt.Errorf("error creating generated mainfile: %w", err)
 	}
 	defer func() { _ = outputFile.Close() }()
-	data := mainfileTemplateData{
+	data := buildTemplateData(binaryName, info)
+
+	slog.Debug("writing new file", slog.String(log.Path, path))
+	if err := mainfileTemplate.Execute(outputFile, data); err != nil {
+		return fmt.Errorf("can't execute mainfile template: %w", err)
+	}
+	if err := outputFile.Close(); err != nil {
+		return fmt.Errorf("error closing generated mainfile: %w", err)
+	}
+	// we set an old modtime on the generated mainfile so that the go tool
+	// won't think it has changed more recently than the compiled binary.
+	longAgo := time.Now().Add(longAgoShift)
+	if err := os.Chtimes(path, longAgo, longAgo); err != nil {
+		return fmt.Errorf("error setting old modtime on generated mainfile: %w", err)
+	}
+	return nil
+}
+
+func buildTemplateData(binaryName string, info *parse.PkgInfo) *mainfileTemplateData {
+	data := &mainfileTemplateData{
 		Description:  info.Description,
 		Funcs:        info.Funcs,
 		Aliases:      info.Aliases,
@@ -673,20 +666,7 @@ func GenerateMainFile(binaryName, path string, info *parse.PkgInfo) error {
 		data.DefaultFunc = *info.DefaultFunc
 	}
 
-	slog.Debug("writing new file", slog.String(log.Path, path))
-	if err := mainfileTemplate.Execute(outputFile, data); err != nil {
-		return fmt.Errorf("can't execute mainfile template: %w", err)
-	}
-	if err := outputFile.Close(); err != nil {
-		return fmt.Errorf("error closing generated mainfile: %w", err)
-	}
-	// we set an old modtime on the generated mainfile so that the go tool
-	// won't think it has changed more recently than the compiled binary.
-	longAgo := time.Now().Add(longAgoShift)
-	if err := os.Chtimes(path, longAgo, longAgo); err != nil {
-		return fmt.Errorf("error setting old modtime on generated mainfile: %w", err)
-	}
-	return nil
+	return data
 }
 
 // ExeName reports the executable filename that this version of Stave would
@@ -810,9 +790,6 @@ func setupEnv(params RunParams) (map[string]string, error) {
 
 	if params.Verbose {
 		envMap["STAVEFILE_VERBOSE"] = "1"
-	}
-	if params.Info {
-		envMap["STAVEFILE_INFO"] = "1"
 	}
 	if params.Debug {
 		envMap["STAVEFILE_DEBUG"] = "1"

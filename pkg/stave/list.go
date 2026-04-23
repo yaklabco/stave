@@ -2,11 +2,15 @@ package stave
 
 import (
 	"cmp"
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"maps"
 	"os"
+	"path/filepath"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -53,6 +57,38 @@ type targetItem struct {
 }
 
 var nsDefaultSuffix = ":" + strings.ToLower(defaultLabel) //nolint:gochecknoglobals // Intended as a constant.
+
+// runListMode handles the -l/--list flag by parsing stavefiles and rendering
+// the target list directly, without compiling a temporary binary.
+func runListMode(ctx context.Context, params RunParams) error {
+	files, err := Stavefiles(params.Dir, params.GOOS, params.GOARCH, params.UsesStavefiles())
+	if err != nil {
+		return fmt.Errorf("determining list of stavefiles: %w", err)
+	}
+
+	if len(files) == 0 {
+		return errors.New("no .go files marked with the stave build tag in this directory")
+	}
+
+	fnames := make([]string, 0, len(files))
+	for _, f := range files {
+		fnames = append(fnames, filepath.Base(f))
+	}
+
+	info, err := parse.PrimaryPackage(ctx, params.GoCmd, params.Dir, fnames, params.Multiline)
+	if err != nil {
+		return fmt.Errorf("parsing stavefiles: %w", err)
+	}
+
+	sort.Sort(info.Funcs)
+	sort.Sort(info.Imports)
+
+	return renderTargetList(
+		params.Stdout,
+		info,
+		params.Args,
+	)
+}
 
 // renderTargetList renders the output of `stave -l`.
 //
