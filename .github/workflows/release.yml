@@ -1,9 +1,9 @@
 name: release
 
 env:
-  HOMEBREW_NO_ANALYTICS: '1'
-  STAVEFILE_VERBOSE: '1'
-  STAVEFILE_DEBUG: '1'
+  HOMEBREW_NO_ANALYTICS: "1"
+  STAVEFILE_VERBOSE: "1"
+  STAVEFILE_DEBUG: "1"
 
 defaults:
   run:
@@ -23,7 +23,7 @@ permissions:
 jobs:
   release:
     timeout-minutes: 30
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4

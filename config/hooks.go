@@ -23,36 +23,64 @@ type HookTarget struct {
 // HooksConfig maps Git hook names to their configured targets.
 type HooksConfig map[string][]HookTarget
 
+const (
+	HookNameApplypatchMsg       = "applypatch-msg"
+	HookNamePreApplypatch       = "pre-applypatch"
+	HookNamePostApplypatch      = "post-applypatch"
+	HookNamePreCommit           = "pre-commit"
+	HookNamePrepareCommitMsg    = "prepare-commit-msg"
+	HookNameCommitMsg           = "commit-msg"
+	HookNamePostCommit          = "post-commit"
+	HookNamePreRebase           = "pre-rebase"
+	HookNamePostCheckout        = "post-checkout"
+	HookNamePostMerge           = "post-merge"
+	HookNamePrePush             = "pre-push"
+	HookNamePreReceive          = "pre-receive"
+	HookNameUpdate              = "update"
+	HookNamePostReceive         = "post-receive"
+	HookNamePostUpdate          = "post-update"
+	HookNamePushToCheckout      = "push-to-checkout"
+	HookNamePreAutoGc           = "pre-auto-gc"
+	HookNamePostRewrite         = "post-rewrite"
+	HookNameSendemailValidate   = "sendemail-validate"
+	HookNameFsmonitorWatchman   = "fsmonitor-watchman"
+	HookNameP4PreSubmit         = "p4-pre-submit"
+	HookNameP4Changelist        = "p4-changelist"
+	HookNameP4PrepareChangelist = "p4-prepare-changelist"
+	HookNameP4PostChangelist    = "p4-post-changelist"
+	HookNamePostIndexChange     = "post-index-change"
+)
+
 // knownGitHooks is the set of standard Git hook names.
 // Used to warn on unrecognized hook names.
 //
 //nolint:gochecknoglobals // package-level lookup table for hook validation
 var knownGitHooks = lo.Keyify([]string{
-	"applypatch-msg",
-	"pre-applypatch",
-	"post-applypatch",
-	"pre-commit",
-	"prepare-commit-msg",
-	"commit-msg",
-	"post-commit",
-	"pre-rebase",
-	"post-checkout",
-	"post-merge",
-	"pre-push",
-	"pre-receive",
-	"update",
-	"post-receive",
-	"post-update",
-	"push-to-checkout",
-	"pre-auto-gc",
-	"post-rewrite",
-	"sendemail-validate",
-	"fsmonitor-watchman",
-	"p4-pre-submit",
-	"p4-changelist",
-	"p4-prepare-changelist",
-	"p4-post-changelist",
-	"post-index-change",
+	HookNameApplypatchMsg,
+	HookNamePreApplypatch,
+	HookNamePostApplypatch,
+	HookNamePreCommit,
+	HookNamePrepareCommitMsg,
+	HookNameCommitMsg,
+	HookNamePostCommit,
+	HookNamePreRebase,
+	HookNamePostCheckout,
+	HookNamePostMerge,
+	HookNamePrePush,
+	HookNamePreReceive,
+	HookNameUpdate,
+	HookNamePostReceive,
+	HookNamePostUpdate,
+	HookNamePushToCheckout,
+	HookNamePreAutoGc,
+	HookNamePostRewrite,
+	HookNameSendemailValidate,
+	HookNameFsmonitorWatchman,
+	HookNameP4PreSubmit,
+	HookNameP4Changelist,
+	HookNameP4PrepareChangelist,
+	HookNameP4PostChangelist,
+	HookNamePostIndexChange,
 })
 
 // IsKnownGitHook returns true if the hook name is a recognized Git hook.

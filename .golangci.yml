@@ -37,7 +37,7 @@ linters:
     - gocyclo
     - godot
     - goheader
-    - gomodguard
+    - gomodguard_v2
     - goprintffuncname
     - gosec
     - govet
@@ -46,7 +46,7 @@ linters:
     - ineffassign
     - interfacebloat
     - intrange
-#    - ireturn # Go internals for parsing Go code often return interfaces.
+    #    - ireturn # Go internals for parsing Go code often return interfaces.
     - lll
     - loggercheck
     - maintidx
@@ -86,7 +86,7 @@ linters:
     - varnamelen
     - wastedassign
     - whitespace
-#    - wrapcheck # Stave outputs error messages directly to the user, so wrapping is actually not what we want in this project.
+    #    - wrapcheck # Stave outputs error messages directly to the user, so wrapping is actually not what we want in this project.
     - zerologlint
   settings:
     cyclop:
@@ -105,6 +105,8 @@ linters:
       ignore-comments: true
     gocognit:
       min-complexity: 50
+    goconst:
+      ignore-tests: true
     gocritic:
       settings:
         captLocal:
@@ -113,21 +115,20 @@ linters:
           skipRecvDeref: false
     gocyclo:
       min-complexity: 50
-    gomodguard:
+    gomodguard_v2:
       blocked:
-        modules:
-          - github.com/golang/protobuf:
-              recommendations:
-                - google.golang.org/protobuf
-              reason: see https://developers.google.com/protocol-buffers/docs/reference/go/faq#modules
-          - github.com/satori/go.uuid:
-              recommendations:
-                - github.com/google/uuid
-              reason: satori's package is not maintained
-          - github.com/gofrs/uuid:
-              recommendations:
-                - github.com/google/uuid
-              reason: gofrs' package is not go module
+        - module: github.com/golang/protobuf
+          recommendations:
+            - google.golang.org/protobuf
+          reason: see https://developers.google.com/protocol-buffers/docs/reference/go/faq#modules
+        - module: github.com/satori/go.uuid
+          recommendations:
+            - github.com/google/uuid
+          reason: satori's package is not maintained
+        - module: github.com/gofrs/uuid
+          recommendations:
+            - github.com/google/uuid
+          reason: gofrs' package is not go module
     gosec:
       excludes:
         - G703 # This rule is about enabling arbitrary path traversal via injected user input; which, yeah, this is stave and it can do that.
@@ -207,7 +208,7 @@ linters:
           disabled: false
         - name: context-as-argument
           arguments:
-            - allowTypesBefore: '*testing.T,*github.com/user/repo/testing.Harness'
+            - allowTypesBefore: "*testing.T,*github.com/user/repo/testing.Harness"
           disabled: false
         - name: context-keys-type
           disabled: false
@@ -417,7 +418,7 @@ linters:
           - gocritic
         source: //noinspection
       - linters:
-        - revive
+          - revive
         text: "var-naming: avoid package names that conflict with Go standard library"
       - linters:
           - bodyclose

@@ -129,10 +129,10 @@ func (f Function) ExecCode() string {
 	var parseargs string
 	for iArg, theArg := range f.Args {
 		switch theArg.Type {
-		case "string":
+		case stringType:
 			parseargs += fmt.Sprintf(`
 			theArg%d := _targetArgs[%d]`, iArg, iArg)
-		case "int":
+		case intType:
 			parseargs += fmt.Sprintf(`
 				theArg%d, err := strconv.Atoi(_targetArgs[%d])
 				if err != nil {
@@ -140,7 +140,7 @@ func (f Function) ExecCode() string {
 					os.Exit(2)
 				}
 				`, iArg, iArg, iArg)
-		case "float64":
+		case float64Type:
 			parseargs += fmt.Sprintf(`
 				theArg%d, err := strconv.ParseFloat(_targetArgs[%d], 64)
 				if err != nil {
@@ -148,7 +148,7 @@ func (f Function) ExecCode() string {
 					os.Exit(2)
 				}
 				`, iArg, iArg, iArg)
-		case "bool":
+		case boolType:
 			parseargs += fmt.Sprintf(`
 				theArg%d, err := strconv.ParseBool(_targetArgs[%d])
 				if err != nil {
@@ -156,7 +156,7 @@ func (f Function) ExecCode() string {
 					os.Exit(2)
 				}
 				`, iArg, iArg, iArg)
-		case "time.Duration":
+		case timeType:
 			parseargs += fmt.Sprintf(`
 				theArg%d, err := time.ParseDuration(_targetArgs[%d])
 				if err != nil {
@@ -328,13 +328,15 @@ func Package(path string, files []string, multiline bool) (*PkgInfo, error) {
 	hasDupes, names := checkDupeTargets(pkgInfo)
 	if hasDupes {
 		msg := "Build targets must be case insensitive, thus the following targets conflict:\n"
-		var msgSb277 strings.Builder
+		var builder strings.Builder
 		for _, v := range names {
 			if len(v) > 1 {
-				msgSb277.WriteString("  " + strings.Join(v, ", ") + "\n")
+				builder.WriteString("  ")
+				builder.WriteString(strings.Join(v, ", "))
+				builder.WriteString("\n")
 			}
 		}
-		msg += msgSb277.String()
+		msg += builder.String()
 		return nil, errors.New(msg)
 	}
 
