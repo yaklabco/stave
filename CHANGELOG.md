@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.10] - 2026-05-24
+
+### Added
+
+- Automatically "bless" `stave` (using `xattr`) on macOS to avoid quarantine shenanigans.
+
 ## [0.14.9] - 2026-05-24
 
 ### Changed
@@ -560,7 +566,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added parallelism-by-default to use of Go tools from inside Stave.
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.14.9...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.14.10...HEAD
+[0.14.10]: https://github.com/yaklabco/stave/compare/v0.14.9...v0.14.10
 [0.14.9]: https://github.com/yaklabco/stave/compare/v0.14.8...v0.14.9
 [0.14.8]: https://github.com/yaklabco/stave/compare/v0.14.7...v0.14.8
 [0.14.7]: https://github.com/yaklabco/stave/compare/v0.14.6...v0.14.7

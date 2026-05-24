@@ -87,6 +87,14 @@ homebrew_casks:
       args: ["completion"] # Subcommand your binary runs to spit out completions
       shell_parameter_format: cobra # Options: cobra, clap, click, flag, none, typer
 
+    hooks:
+      post:
+        # replace foo with the actual binary name
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/stave"]
+          end
+
     # Informing users to clean up the legacy formula to prevent overlap issues
     caveats: |
       If you previously installed stave via homebrew formulas, please run:
