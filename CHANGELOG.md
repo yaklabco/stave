@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.16] - 2026-06-08
+
+### Fixed
+
+- Bump all updatable Go dependencies to their latest versions as of this date.
+
 ## [0.14.15] - 2026-06-08
 
 ### Fixed
@@ -595,7 +601,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added parallelism-by-default to use of Go tools from inside Stave.
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.14.15...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.14.16...HEAD
+[0.14.16]: https://github.com/yaklabco/stave/compare/v0.14.15...v0.14.16
 [0.14.15]: https://github.com/yaklabco/stave/compare/v0.14.14...v0.14.15
 [0.14.14]: https://github.com/yaklabco/stave/compare/v0.14.13...v0.14.14
 [0.14.13]: https://github.com/yaklabco/stave/compare/v0.14.12...v0.14.13
