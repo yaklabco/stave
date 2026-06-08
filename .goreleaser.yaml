@@ -15,9 +15,9 @@ before:
     # Generate completions into a hidden cache folder.
     # This avoids the 'dist' cleanup and prevents parallel race conditions.
     - mkdir -p .buildcache/completions
-    - sh -c "go run . completion bash > .buildcache/completions/stave.bash"
-    - sh -c "go run . completion zsh > .buildcache/completions/stave.zsh"
-    - sh -c "go run . completion fish > .buildcache/completions/stave.fish"
+    - sh -c 'go run . completion bash > .buildcache/completions/stave.bash'
+    - sh -c 'go run . completion zsh > .buildcache/completions/stave.zsh'
+    - sh -c 'go run . completion fish > .buildcache/completions/stave.fish'
 
 builds:
   - id: stave
