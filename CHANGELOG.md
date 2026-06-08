@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.14] - 2026-06-08
+
+### Fixed
+
+- Goreleaser config for generation of completions in Homebrew release pipeline. (Broke as part of the transition in [0.14.9](#0149---2026-05-24).)
+
 ## [0.14.13] - 2026-06-04
 
 ### Changed
@@ -585,7 +591,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added parallelism-by-default to use of Go tools from inside Stave.
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.14.13...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.14.14...HEAD
+[0.14.14]: https://github.com/yaklabco/stave/compare/v0.14.13...v0.14.14
 [0.14.13]: https://github.com/yaklabco/stave/compare/v0.14.12...v0.14.13
 [0.14.12]: https://github.com/yaklabco/stave/compare/v0.14.11...v0.14.12
 [0.14.11]: https://github.com/yaklabco/stave/compare/v0.14.10...v0.14.11
