@@ -84,7 +84,6 @@ homebrew_casks:
     # The property must be an object map rather than a boolean 'true'
     generate_completions_from_executable:
       executable: "stave"
-      args: ["completion"] # Subcommand your binary runs to spit out completions
       shell_parameter_format: cobra # Options: cobra, clap, click, flag, none, typer
 
     hooks:
