@@ -536,6 +536,7 @@ func (Test) Go() error {
 			st.DryRunPossibleEnv:     "",
 			stave.HooksAreRunningEnv: "",
 		},
+		"",
 		"go", "tool", "gotestsum", "-f", "pkgname-and-test-fails",
 		"--",
 		"-v", "-p", nProcsStr, "-parallel", nProcsStr, "./...", "-count", "1",
