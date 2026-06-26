@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/yaklabco/stave/pkg/env"
 )
 
 func TestOutCmd(t *testing.T) {
@@ -41,9 +42,9 @@ func TestExitCode(t *testing.T) {
 }
 
 func TestEnv(t *testing.T) {
-	env := "SOME_REALLY_LONG_STAVEFILE_SPECIFIC_THING"
+	theEnv := "SOME_REALLY_LONG_STAVEFILE_SPECIFIC_THING"
 	out := &bytes.Buffer{}
-	ran, err := Exec(map[string]string{env: "foobar"}, "", nil, out, nil, os.Args[0], "-printVar", env)
+	ran, err := Exec(map[string]string{theEnv: "foobar"}, "", nil, out, nil, os.Args[0], "-printVar", theEnv)
 	if err != nil {
 		t.Fatalf("unexpected error from runner: %#v", err)
 	}
@@ -124,8 +125,8 @@ func TestPiperWith(t *testing.T) {
 
 	var out bytes.Buffer
 	var errBuf bytes.Buffer
-	env := map[string]string{key: "inner"}
-	if err := PiperWith(env, "", nil, &out, &errBuf, os.Args[0], "-printVar", key); err != nil {
+	theEnv := map[string]string{key: "inner"}
+	if err := PiperWith(theEnv, "", nil, &out, &errBuf, os.Args[0], "-printVar", key); err != nil {
 		t.Fatalf("PiperWith failed: %v", err)
 	}
 	assert.Equal(t, "inner\n", out.String())
@@ -186,19 +187,23 @@ func TestOutputWith(t *testing.T) {
 	}
 }
 
-func TestWorkingDir(t *testing.T) {
+func TestWorkingDir(t *testing.T) { //nolint:tparallel // Not all subtests here are suited for parallelization (some manipulated `os.Stdout`).
 	tmp := t.TempDir()
 	// Resolve symlinks if any, as os.Getwd() might return the resolved path
 	tmp, err := filepath.EvalSymlinks(tmp)
 	require.NoError(t, err)
 
 	t.Run("OutputWith", func(t *testing.T) {
+		t.Parallel()
+
 		out, err := OutputWith(nil, tmp, os.Args[0], "-printWd")
 		require.NoError(t, err)
 		assert.Equal(t, tmp, out)
 	})
 
 	t.Run("Exec", func(t *testing.T) {
+		t.Parallel()
+
 		var out bytes.Buffer
 		ran, err := Exec(nil, tmp, nil, &out, nil, os.Args[0], "-printWd")
 		require.NoError(t, err)
@@ -207,6 +212,8 @@ func TestWorkingDir(t *testing.T) {
 	})
 
 	t.Run("PiperWith", func(t *testing.T) {
+		t.Parallel()
+
 		var out bytes.Buffer
 		err := PiperWith(nil, tmp, nil, &out, nil, os.Args[0], "-printWd")
 		require.NoError(t, err)
@@ -234,13 +241,15 @@ func TestWorkingDir(t *testing.T) {
 	})
 
 	t.Run("RunWith", func(t *testing.T) {
+		theEnv := env.GetMap()
+		theEnv["STAVEFILE_VERBOSE"] = "1"
 		t.Setenv("STAVEFILE_VERBOSE", "1")
 		oldStdout := os.Stdout
 		reader, writer, err := os.Pipe()
 		require.NoError(t, err)
 		os.Stdout = writer
 
-		err = RunWith(nil, tmp, os.Args[0], "-printWd")
+		err = RunWith(theEnv, tmp, os.Args[0], "-printWd")
 		require.NoError(t, err)
 
 		writer.Close()
