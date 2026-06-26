@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-06-26
+
+### Breaking changes
+
+- All `sh.*With*` functions (e.g. `sh.RunWith`, `sh.RunWithV`, `sh.OutputWith`, `sh.PiperWith`, etc.) now require a `wd` (working directory) argument of type `string`, right after the `env` argument of type `map[string]string`. If `wd` is the empty string, it will be ignored; otherwise, it will be set as the `.Dir` field of the `exec.Cmd` used underlyingly to launch the command.
+
 ## [0.14.16] - 2026-06-08
 
 ### Fixed
@@ -601,7 +607,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added parallelism-by-default to use of Go tools from inside Stave.
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.14.16...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/yaklabco/stave/compare/v0.14.16...v0.15.0
 [0.14.16]: https://github.com/yaklabco/stave/compare/v0.14.15...v0.14.16
 [0.14.15]: https://github.com/yaklabco/stave/compare/v0.14.14...v0.14.15
 [0.14.14]: https://github.com/yaklabco/stave/compare/v0.14.13...v0.14.14

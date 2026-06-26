@@ -172,7 +172,7 @@ linters:
           disabled: true
         - name: argument-limit
           arguments:
-            - 7
+            - 8
           disabled: false
         - name: atomic
           disabled: false

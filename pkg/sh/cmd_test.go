@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -26,7 +27,7 @@ func TestOutCmd(t *testing.T) {
 }
 
 func TestExitCode(t *testing.T) {
-	ran, err := Exec(nil, nil, nil, nil, os.Args[0], "-helper", "-exit", "99")
+	ran, err := Exec(nil, "", nil, nil, nil, os.Args[0], "-helper", "-exit", "99")
 	if err == nil {
 		t.Fatal("unexpected nil error from run")
 	}
@@ -42,7 +43,7 @@ func TestExitCode(t *testing.T) {
 func TestEnv(t *testing.T) {
 	env := "SOME_REALLY_LONG_STAVEFILE_SPECIFIC_THING"
 	out := &bytes.Buffer{}
-	ran, err := Exec(map[string]string{env: "foobar"}, nil, out, nil, os.Args[0], "-printVar", env)
+	ran, err := Exec(map[string]string{env: "foobar"}, "", nil, out, nil, os.Args[0], "-printVar", env)
 	if err != nil {
 		t.Fatalf("unexpected error from runner: %#v", err)
 	}
@@ -55,7 +56,7 @@ func TestEnv(t *testing.T) {
 }
 
 func TestNotRun(t *testing.T) {
-	ran, err := Exec(nil, nil, nil, nil, "thiswontwork")
+	ran, err := Exec(nil, "", nil, nil, nil, "thiswontwork")
 	if err == nil {
 		t.Fatal("unexpected nil error")
 	}
@@ -124,7 +125,7 @@ func TestPiperWith(t *testing.T) {
 	var out bytes.Buffer
 	var errBuf bytes.Buffer
 	env := map[string]string{key: "inner"}
-	if err := PiperWith(env, nil, &out, &errBuf, os.Args[0], "-printVar", key); err != nil {
+	if err := PiperWith(env, "", nil, &out, &errBuf, os.Args[0], "-printVar", key); err != nil {
 		t.Fatalf("PiperWith failed: %v", err)
 	}
 	assert.Equal(t, "inner\n", out.String())
@@ -138,7 +139,7 @@ func TestCmdRanNilErr(t *testing.T) {
 }
 
 func TestCmdRanNotFound(t *testing.T) {
-	_, err := Exec(nil, nil, nil, nil, "thiswontwork")
+	_, err := Exec(nil, "", nil, nil, nil, "thiswontwork")
 	if CmdRan(err) {
 		t.Fatal("CmdRan should return false for not-found command")
 	}
@@ -159,7 +160,7 @@ func TestExitStatusNonExecError(t *testing.T) {
 }
 
 func TestExitStatusFromExec(t *testing.T) {
-	_, err := Exec(nil, nil, nil, nil, os.Args[0], "-helper", "-exit", "42")
+	_, err := Exec(nil, "", nil, nil, nil, os.Args[0], "-helper", "-exit", "42")
 	code := ExitStatus(err)
 	if code != 42 {
 		t.Fatalf("expected exit status 42, got %d", code)
@@ -176,11 +177,78 @@ func TestRunCmd(t *testing.T) {
 }
 
 func TestOutputWith(t *testing.T) {
-	out, err := OutputWith(map[string]string{"MY_TEST_VAR": "xyz"}, os.Args[0], "-printVar", "MY_TEST_VAR")
+	out, err := OutputWith(map[string]string{"MY_TEST_VAR": "xyz"}, "", os.Args[0], "-printVar", "MY_TEST_VAR")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if out != "xyz" {
 		t.Fatalf("expected 'xyz', got %q", out)
 	}
+}
+
+func TestWorkingDir(t *testing.T) {
+	tmp := t.TempDir()
+	// Resolve symlinks if any, as os.Getwd() might return the resolved path
+	tmp, err := filepath.EvalSymlinks(tmp)
+	require.NoError(t, err)
+
+	t.Run("OutputWith", func(t *testing.T) {
+		out, err := OutputWith(nil, tmp, os.Args[0], "-printWd")
+		require.NoError(t, err)
+		assert.Equal(t, tmp, out)
+	})
+
+	t.Run("Exec", func(t *testing.T) {
+		var out bytes.Buffer
+		ran, err := Exec(nil, tmp, nil, &out, nil, os.Args[0], "-printWd")
+		require.NoError(t, err)
+		assert.True(t, ran)
+		assert.Equal(t, tmp+"\n", out.String())
+	})
+
+	t.Run("PiperWith", func(t *testing.T) {
+		var out bytes.Buffer
+		err := PiperWith(nil, tmp, nil, &out, nil, os.Args[0], "-printWd")
+		require.NoError(t, err)
+		assert.Equal(t, tmp+"\n", out.String())
+	})
+
+	t.Run("RunWithV", func(t *testing.T) {
+		// RunWithV always sends to stdout, so we need to capture it.
+		// Since we're in a test, we can temporarily redirect os.Stdout.
+		oldStdout := os.Stdout
+		reader, writer, err := os.Pipe()
+		require.NoError(t, err)
+		os.Stdout = writer
+
+		err = RunWithV(nil, tmp, os.Args[0], "-printWd")
+		require.NoError(t, err)
+
+		writer.Close()
+		os.Stdout = oldStdout
+
+		var buf bytes.Buffer
+		_, err = buf.ReadFrom(reader)
+		require.NoError(t, err)
+		assert.Equal(t, tmp+"\n", buf.String())
+	})
+
+	t.Run("RunWith", func(t *testing.T) {
+		t.Setenv("STAVEFILE_VERBOSE", "1")
+		oldStdout := os.Stdout
+		reader, writer, err := os.Pipe()
+		require.NoError(t, err)
+		os.Stdout = writer
+
+		err = RunWith(nil, tmp, os.Args[0], "-printWd")
+		require.NoError(t, err)
+
+		writer.Close()
+		os.Stdout = oldStdout
+
+		var buf bytes.Buffer
+		_, err = buf.ReadFrom(reader)
+		require.NoError(t, err)
+		assert.Equal(t, tmp+"\n", buf.String())
+	})
 }

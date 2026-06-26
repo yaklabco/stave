@@ -14,6 +14,7 @@ var (
 	stdout       string
 	exitCode     int
 	printVar     string
+	printWd      bool
 	dryRunOutput bool
 )
 
@@ -24,6 +25,7 @@ func init() {
 	flag.StringVar(&stdout, "stdout", "", "")
 	flag.IntVar(&exitCode, "exit", 0, "")
 	flag.StringVar(&printVar, "printVar", "", "")
+	flag.BoolVar(&printWd, "printWd", false, "")
 	flag.BoolVar(&dryRunOutput, "dryRunOutput", false, "")
 }
 
@@ -36,6 +38,15 @@ func TestMain(m *testing.M) {
 	}
 	if printVar != "" {
 		_, _ = fmt.Fprintln(os.Stdout, os.Getenv(printVar))
+		return
+	}
+	if printWd {
+		wd, err := os.Getwd()
+		if err != nil {
+			_, _ = fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		_, _ = fmt.Fprintln(os.Stdout, wd)
 		return
 	}
 
