@@ -11,17 +11,19 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/samber/lo"
 	"github.com/yaklabco/stave/internal/dryrun"
 	"github.com/yaklabco/stave/internal/log"
+	"github.com/yaklabco/stave/pkg/env"
 	"github.com/yaklabco/stave/pkg/st"
 )
 
 // Exec executes the command, piping its stdout and stderr to the given
 // writers.
-func Exec(ctx context.Context, env map[string]string, wd string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) (bool, error) {
+func Exec(ctx context.Context, theEnv map[string]string, wd string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) (bool, error) {
 	expand := func(varName string) string {
-		if env != nil {
-			s2, ok := env[varName]
+		if theEnv != nil {
+			s2, ok := theEnv[varName]
 			if ok {
 				return s2
 			}
@@ -35,7 +37,7 @@ func Exec(ctx context.Context, env map[string]string, wd string, stdin io.Reader
 		args[i] = os.Expand(args[i], expand)
 	}
 
-	ran, code, err := run(ctx, env, wd, stdin, stdout, stderr, cmd, args...)
+	ran, code, err := run(ctx, theEnv, wd, stdin, stdout, stderr, cmd, args...)
 	if err == nil {
 		return true, nil
 	}
@@ -45,10 +47,11 @@ func Exec(ctx context.Context, env map[string]string, wd string, stdin io.Reader
 	return ran, fmt.Errorf(`failed to run "%s %s: %w"`, cmd, strings.Join(args, " "), err)
 }
 
-func run(ctx context.Context, env map[string]string, wd string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) (bool, int, error) {
+func run(ctx context.Context, theEnv map[string]string, wd string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) (bool, int, error) {
 	theCmd := dryrun.Wrap(ctx, cmd, args...)
-	theCmd.Env = os.Environ()
-	for k, v := range env {
+	ambientEnvMap := lo.Assign(env.ToMap(os.Environ()), theEnv)
+	theCmd.Env = env.ToAssignments(ambientEnvMap)
+	for k, v := range theEnv {
 		theCmd.Env = append(theCmd.Env, k+"="+v)
 	}
 	theCmd.Stderr = stderr
@@ -158,27 +161,27 @@ func Copy(dst string, src string) error {
 
 // Higher-level functions
 
-func Run(ctx context.Context, env map[string]string, wd, cmd string, args ...string) error {
+func Run(ctx context.Context, theEnv map[string]string, wd, cmd string, args ...string) error {
 	var output io.Writer
 	if st.Verbose() || dryrun.IsDryRun() {
 		output = os.Stdout
 	}
-	_, err := Exec(ctx, env, wd, os.Stdin, output, os.Stderr, cmd, args...)
+	_, err := Exec(ctx, theEnv, wd, os.Stdin, output, os.Stderr, cmd, args...)
 	return err
 }
 
-func RunV(ctx context.Context, env map[string]string, wd, cmd string, args ...string) error {
-	_, err := Exec(ctx, env, wd, os.Stdin, os.Stdout, os.Stderr, cmd, args...)
+func RunV(ctx context.Context, theEnv map[string]string, wd, cmd string, args ...string) error {
+	_, err := Exec(ctx, theEnv, wd, os.Stdin, os.Stdout, os.Stderr, cmd, args...)
 	return err
 }
 
-func Output(ctx context.Context, env map[string]string, wd, cmd string, args ...string) (string, error) {
+func Output(ctx context.Context, theEnv map[string]string, wd, cmd string, args ...string) (string, error) {
 	buf := &bytes.Buffer{}
-	_, err := Exec(ctx, env, wd, os.Stdin, buf, os.Stderr, cmd, args...)
+	_, err := Exec(ctx, theEnv, wd, os.Stdin, buf, os.Stderr, cmd, args...)
 	return strings.TrimSuffix(buf.String(), "\n"), err
 }
 
-func Piper(ctx context.Context, env map[string]string, wd string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) error {
-	_, err := Exec(ctx, env, wd, stdin, stdout, stderr, cmd, args...)
+func Piper(ctx context.Context, theEnv map[string]string, wd string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) error {
+	_, err := Exec(ctx, theEnv, wd, stdin, stdout, stderr, cmd, args...)
 	return err
 }
