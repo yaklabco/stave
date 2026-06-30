@@ -3,11 +3,15 @@ package prettylog
 import (
 	"io"
 	"log/slog"
+	"os"
+	"strings"
 
 	"github.com/charmbracelet/log"
 )
 
 func SetupPrettyLogger(writerForLogger io.Writer) *log.Logger {
+	setupTERMRBG()
+
 	logHandler := log.NewWithOptions(
 		writerForLogger,
 		log.Options{
@@ -21,4 +25,22 @@ func SetupPrettyLogger(writerForLogger io.Writer) *log.Logger {
 	slog.SetDefault(logger)
 
 	return logHandler
+}
+
+func setupTERMRBG() {
+	origTERM := os.Getenv("TERM")
+	switch {
+	case strings.HasPrefix(origTERM, "screen"):
+		fallthrough
+	case strings.HasPrefix(origTERM, "tmux"):
+		fallthrough
+	case strings.HasPrefix(origTERM, "dumb"):
+	// no-op
+	default:
+		_ = os.Setenv("TERM", "screen-256color")
+	}
+
+	if os.Getenv("COLORFGBG") == "" {
+		_ = os.Setenv("COLORFGBG", "15;0")
+	}
 }
