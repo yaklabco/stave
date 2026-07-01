@@ -129,7 +129,7 @@ jobs:
 Cache the Stave binary cache to speed up CI:
 
 ```yaml
-- uses: actions/cache@v4
+- uses: actions/cache@v6
   with:
     path: ~/.cache/stave
     key: stave-${{ runner.os }}-${{ hashFiles('stavefile.go') }}
