@@ -48,9 +48,9 @@ func Exec(ctx context.Context, theEnv map[string]string, wd string, stdin io.Rea
 }
 
 func run(ctx context.Context, theEnv map[string]string, wd string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) (bool, int, error) {
-	theCmd := dryrun.Wrap(ctx, cmd, args...)
-	ambientEnvMap := lo.Assign(env.ToMap(os.Environ()), theEnv)
-	theCmd.Env = env.ToAssignments(ambientEnvMap)
+	theCmd := dryrun.Wrap(ctx, theEnv, cmd, args...)
+	ambientEnv := lo.Assign(env.GetMap(), theEnv)
+	theCmd.Env = env.ToAssignments(ambientEnv)
 	for k, v := range theEnv {
 		theCmd.Env = append(theCmd.Env, k+"="+v)
 	}

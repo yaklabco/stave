@@ -19,8 +19,14 @@ package dryrun
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
+
+	"github.com/yaklabco/stave/internal/log"
+	"github.com/yaklabco/stave/pkg/fsutils"
 )
 
 // RequestedEnv is the environment variable that indicates the user requested dryrun mode when running stave.
@@ -62,13 +68,22 @@ func IsPossible() bool {
 // Wrap creates an *exec.Cmd to run a command or simulate it in dry-run mode.
 // If not in dry-run mode, it returns exec.Command(cmd, args...).
 // In dry-run mode, it returns a command that prints the simulated command.
-func Wrap(ctx context.Context, cmd string, args ...string) *exec.Cmd {
-	if !IsDryRun() {
-		return exec.CommandContext(ctx, cmd, args...)
+func Wrap(ctx context.Context, theEnv map[string]string, cmd string, args ...string) *exec.Cmd {
+	if IsDryRun() {
+		// Return an *exec.Cmd that just prints the command that would have been run.
+		return exec.CommandContext(ctx, "echo", append([]string{"DRYRUN: " + cmd}, args...)...) //nolint:gosec // It's echo!
 	}
 
-	// Return an *exec.Cmd that just prints the command that would have been run.
-	return exec.CommandContext(ctx, "echo", append([]string{"DRYRUN: " + cmd}, args...)...) //nolint:gosec // It's echo!
+	if theEnv != nil && theEnv["PATH"] != "" && (!filepath.IsAbs(cmd)) && (!strings.ContainsRune(cmd, filepath.Separator)) {
+		newCmd, err := fsutils.LookPathIn(cmd, theEnv["PATH"])
+		if err == nil {
+			cmd = newCmd
+		} else {
+			slog.Warn("failed to look up cmd in PATH", log.Cmd, cmd, log.Path, theEnv["PATH"], log.Error, err)
+		}
+	}
+
+	return exec.CommandContext(ctx, cmd, args...)
 }
 
 // IsDryRun determines if dry-run mode is both possible and requested.
