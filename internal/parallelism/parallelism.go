@@ -18,7 +18,7 @@ func getNumProcessors() int {
 	return runtime.NumCPU()
 }
 
-func Apply(envMap map[string]string) error {
+func Apply(theEnv map[string]string) error {
 	strFromEnv := strings.TrimSpace(os.Getenv(StaveNumProcessorsEnvVar))
 	var numProcessors int
 	if strFromEnv != "" {
@@ -36,8 +36,8 @@ func Apply(envMap map[string]string) error {
 	newValStr := strconv.Itoa(numProcessors)
 
 	runtime.GOMAXPROCS(numProcessors)
-	envMap[StaveNumProcessorsEnvVar] = newValStr
-	envMap[GoMaxProcsEnvVar] = newValStr
+	theEnv[StaveNumProcessorsEnvVar] = newValStr
+	theEnv[GoMaxProcsEnvVar] = newValStr
 
 	return nil
 }

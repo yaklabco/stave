@@ -42,7 +42,7 @@ jobs:
 
       - name: Cache Homebrew downloads
         id: brew_dl
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cache/Homebrew
@@ -59,7 +59,7 @@ jobs:
 
       - name: Cache Homebrew installation
         id: brew_install
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ${{ steps.brew.outputs.prefix }}/Cellar

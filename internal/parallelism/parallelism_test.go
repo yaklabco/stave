@@ -28,30 +28,30 @@ func TestApply(t *testing.T) {
 		})
 
 		require.NoError(t, os.Unsetenv(StaveNumProcessorsEnvVar))
-		envMap := make(map[string]string)
-		err := Apply(envMap)
+		theEnv := make(map[string]string)
+		err := Apply(theEnv)
 		require.NoError(t, err)
 
 		expectedNum := runtime.NumCPU()
-		assert.Equal(t, strconv.Itoa(expectedNum), envMap[StaveNumProcessorsEnvVar])
-		assert.Equal(t, strconv.Itoa(expectedNum), envMap[GoMaxProcsEnvVar])
+		assert.Equal(t, strconv.Itoa(expectedNum), theEnv[StaveNumProcessorsEnvVar])
+		assert.Equal(t, strconv.Itoa(expectedNum), theEnv[GoMaxProcsEnvVar])
 	})
 
 	t.Run("FromEnv", func(t *testing.T) {
 		t.Setenv(StaveNumProcessorsEnvVar, "4")
-		envMap := make(map[string]string)
-		err := Apply(envMap)
+		theEnv := make(map[string]string)
+		err := Apply(theEnv)
 		require.NoError(t, err)
 
-		assert.Equal(t, "4", envMap[StaveNumProcessorsEnvVar])
-		assert.Equal(t, "4", envMap[GoMaxProcsEnvVar])
+		assert.Equal(t, "4", theEnv[StaveNumProcessorsEnvVar])
+		assert.Equal(t, "4", theEnv[GoMaxProcsEnvVar])
 		assert.Equal(t, 4, runtime.GOMAXPROCS(0))
 	})
 
 	t.Run("InvalidEnv", func(t *testing.T) {
 		t.Setenv(StaveNumProcessorsEnvVar, "invalid")
-		envMap := make(map[string]string)
-		err := Apply(envMap)
+		theEnv := make(map[string]string)
+		err := Apply(theEnv)
 		assert.Error(t, err)
 	})
 }

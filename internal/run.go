@@ -19,14 +19,14 @@ const (
 )
 
 func RunDebug(ctx context.Context, cmd string, args ...string) error {
-	envMap := EnvWithCurrentGOOS()
+	theEnv := EnvWithCurrentGOOS()
 
 	outBuf := &bytes.Buffer{}
 	errBuf := &bytes.Buffer{}
 
 	slog.Debug("running command", slog.String(log.Cmd, cmd), slog.Any(log.Args, args))
-	theCmd := dryrun.Wrap(ctx, cmd, args...)
-	theCmd.Env = env.ToAssignments(envMap)
+	theCmd := dryrun.Wrap(ctx, theEnv, cmd, args...)
+	theCmd.Env = env.ToAssignments(theEnv)
 	theCmd.Stderr = errBuf
 	theCmd.Stdout = outBuf
 
@@ -52,14 +52,14 @@ func RunDebug(ctx context.Context, cmd string, args ...string) error {
 }
 
 func OutputDebug(ctx context.Context, cmd string, args ...string) (string, error) {
-	envMap := EnvWithCurrentGOOS()
+	theEnv := EnvWithCurrentGOOS()
 
 	outBuf := &bytes.Buffer{}
 	errBuf := &bytes.Buffer{}
 
 	slog.Debug("running command", slog.String(log.Cmd, cmd), slog.Any(log.Args, args))
-	theCmd := dryrun.Wrap(ctx, cmd, args...)
-	theCmd.Env = env.ToAssignments(envMap)
+	theCmd := dryrun.Wrap(ctx, theEnv, cmd, args...)
+	theCmd.Env = env.ToAssignments(theEnv)
 	theCmd.Stderr = errBuf
 	theCmd.Stdout = outBuf
 
@@ -87,17 +87,17 @@ func EnvWithCurrentGOOS() map[string]string {
 // If goos or goarch is empty, defaults to runtime.GOOS or runtime.GOARCH.
 // Returns a modified environment map based on input and current settings.
 func EnvWithGOOS(goos, goarch string) map[string]string {
-	envMap := env.GetMap()
+	theEnv := env.GetMap()
 	if goos == "" {
-		envMap[GoOSEnvVar] = runtime.GOOS
+		theEnv[GoOSEnvVar] = runtime.GOOS
 	} else {
-		envMap[GoOSEnvVar] = goos
+		theEnv[GoOSEnvVar] = goos
 	}
 	if goarch == "" {
-		envMap[GoArchEnvVar] = runtime.GOARCH
+		theEnv[GoArchEnvVar] = runtime.GOARCH
 	} else {
-		envMap[GoArchEnvVar] = goarch
+		theEnv[GoArchEnvVar] = goarch
 	}
 
-	return envMap
+	return theEnv
 }

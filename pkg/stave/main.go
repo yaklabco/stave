@@ -167,7 +167,12 @@ func execInStave(ctx context.Context, params RunParams) error {
 
 	dryrun.SetPossible(true)
 
-	theCmd := dryrun.Wrap(ctx, params.Args[0], params.Args[1:]...)
+	theEnv, err := setupEnv(params)
+	if err != nil {
+		return fmt.Errorf("setting up environment for stavefile: %w", err)
+	}
+
+	theCmd := dryrun.Wrap(ctx, theEnv, params.Args[0], params.Args[1:]...)
 	theCmd.Stderr = params.Stderr
 	theCmd.Stdout = params.Stdout
 	theCmd.Stdin = params.Stdin
@@ -176,11 +181,7 @@ func execInStave(ctx context.Context, params RunParams) error {
 		theCmd.Dir = params.WorkDir
 	}
 
-	envMap, err := setupEnv(params)
-	if err != nil {
-		return fmt.Errorf("setting up environment for stavefile: %w", err)
-	}
-	theCmd.Env = env.ToAssignments(envMap)
+	theCmd.Env = env.ToAssignments(theEnv)
 
 	return theCmd.Run()
 }
@@ -421,7 +422,7 @@ type mainfileTemplateData struct {
 
 // listGoFiles returns a list of all .go files in a given directory,
 // matching the provided tag.
-func listGoFiles(stavePath, tag string, envMap map[string]string) ([]string, error) {
+func listGoFiles(stavePath, tag string, theEnv map[string]string) ([]string, error) {
 	origStavePath := stavePath
 	if !filepath.IsAbs(stavePath) {
 		cwd, err := os.Getwd()
@@ -434,12 +435,12 @@ func listGoFiles(stavePath, tag string, envMap map[string]string) ([]string, err
 	bctx := build.Default
 	bctx.BuildTags = []string{tag}
 
-	if _, ok := envMap["GOOS"]; ok {
-		bctx.GOOS = envMap["GOOS"]
+	if _, ok := theEnv["GOOS"]; ok {
+		bctx.GOOS = theEnv["GOOS"]
 	}
 
-	if _, ok := envMap["GOARCH"]; ok {
-		bctx.GOARCH = envMap["GOARCH"]
+	if _, ok := theEnv["GOARCH"]; ok {
+		bctx.GOARCH = theEnv["GOARCH"]
 	}
 
 	pkg, err := bctx.Import(".", stavePath, 0)
@@ -482,10 +483,10 @@ func Stavefiles(stavePath, goos, goarch string, isStavefilesDirectory bool) ([]s
 		slog.Debug("finished scanning for Stavefiles", slog.Duration(log.Duration, time.Since(start)))
 	}()
 
-	envMap := internal.EnvWithGOOS(goos, goarch)
+	theEnv := internal.EnvWithGOOS(goos, goarch)
 
 	slog.Debug("getting all files including those with stave tag", slog.String(log.Path, stavePath))
-	staveFiles, err := listGoFiles(stavePath, "stave", envMap)
+	staveFiles, err := listGoFiles(stavePath, "stave", theEnv)
 	if err != nil {
 		return nil, fmt.Errorf("listing stave files: %w", err)
 	}
@@ -501,7 +502,7 @@ func Stavefiles(stavePath, goos, goarch string, isStavefilesDirectory bool) ([]s
 	// that have the stave build tag and ignore those that don't.
 
 	slog.Debug("getting all files without stave tag", slog.String(log.Path, stavePath))
-	nonStaveFiles, err := listGoFiles(stavePath, "", envMap)
+	nonStaveFiles, err := listGoFiles(stavePath, "", theEnv)
 	if err != nil {
 		return nil, fmt.Errorf("listing non-stave files: %w", err)
 	}
@@ -557,7 +558,7 @@ func Compile(ctx context.Context, params CompileParams) error {
 		}
 	}
 
-	envMap := internal.EnvWithGOOS(params.Goos, params.Goarch)
+	theEnv := internal.EnvWithGOOS(params.Goos, params.Goarch)
 
 	// strip off the path since we're setting the path in the build command
 	for i := range params.Gofiles {
@@ -574,8 +575,8 @@ func Compile(ctx context.Context, params CompileParams) error {
 	args = append(args, params.Gofiles...)
 
 	slog.Debug("running go", slog.String(log.Cmd, params.GoCmd), slog.Any(log.Args, args))
-	theCmd := dryrun.Wrap(ctx, params.GoCmd, args...)
-	theCmd.Env = env.ToAssignments(envMap)
+	theCmd := dryrun.Wrap(ctx, theEnv, params.GoCmd, args...)
+	theCmd.Env = env.ToAssignments(theEnv)
 	theCmd.Stderr = params.Stderr
 	theCmd.Stdout = params.Stdout
 	theCmd.Dir = params.StavePath
@@ -729,8 +730,13 @@ func generateInit(dir string) error {
 
 // RunCompiled runs an already-compiled stave command with the given args,.
 func RunCompiled(ctx context.Context, params RunParams, exePath string) error {
+	theEnv, err := setupEnv(params)
+	if err != nil {
+		return fmt.Errorf("setting up environment for stavefile: %w", err)
+	}
+
 	slog.Debug("running binary", slog.String(log.Path, exePath))
-	theCmd := dryrun.Wrap(ctx, exePath, params.Args...)
+	theCmd := dryrun.Wrap(ctx, theEnv, exePath, params.Args...)
 	theCmd.Stderr = params.Stderr
 	theCmd.Stdout = params.Stdout
 	theCmd.Stdin = params.Stdin
@@ -739,15 +745,11 @@ func RunCompiled(ctx context.Context, params RunParams, exePath string) error {
 		theCmd.Dir = params.WorkDir
 	}
 
-	envMap, err := setupEnv(params)
-	if err != nil {
-		return fmt.Errorf("setting up environment for stavefile: %w", err)
-	}
-	theCmd.Env = env.ToAssignments(envMap)
+	theCmd.Env = env.ToAssignments(theEnv)
 
 	slog.Debug(
 		"running stavefile with stave vars",
-		slog.Any("env", lo.PickBy(envMap, func(key string, _ string) bool {
+		slog.Any("env", lo.PickBy(theEnv, func(key string, _ string) bool {
 			return strings.HasPrefix(key, "STAVEFILE_")
 		})),
 	)
@@ -778,7 +780,7 @@ func RunCompiled(ctx context.Context, params RunParams, exePath string) error {
 }
 
 func setupEnv(params RunParams) (map[string]string, error) {
-	envMap := env.GetMap()
+	theEnv := env.GetMap()
 
 	// We don't want to actually allow dryrun in the outermost invocation of
 	// stave, since that will inhibit the very compilation of the stavefile & the
@@ -786,33 +788,33 @@ func setupEnv(params RunParams) (map[string]string, error) {
 	// But every situation that's within such an execution is one in which dryrun
 	// is supported, so we set this environment variable which will be carried
 	// over throughout all such situations.
-	envMap["STAVEFILE_DRYRUN_POSSIBLE"] = "1"
+	theEnv["STAVEFILE_DRYRUN_POSSIBLE"] = "1"
 
 	if params.Verbose {
-		envMap["STAVEFILE_VERBOSE"] = "1"
+		theEnv["STAVEFILE_VERBOSE"] = "1"
 	}
 	if params.Debug {
-		envMap["STAVEFILE_DEBUG"] = "1"
+		theEnv["STAVEFILE_DEBUG"] = "1"
 	}
 	if params.GoCmd != "" {
-		envMap["STAVEFILE_GOCMD"] = params.GoCmd
+		theEnv["STAVEFILE_GOCMD"] = params.GoCmd
 	}
 	if params.Timeout > 0 {
-		envMap["STAVEFILE_TIMEOUT"] = params.Timeout.String()
+		theEnv["STAVEFILE_TIMEOUT"] = params.Timeout.String()
 	}
 	if params.DryRun {
-		envMap["STAVEFILE_DRYRUN"] = "1"
+		theEnv["STAVEFILE_DRYRUN"] = "1"
 	}
 
 	if params.HooksAreRunning {
-		envMap[HooksAreRunningEnv] = "1"
+		theEnv[HooksAreRunningEnv] = "1"
 	}
 
-	if err := parallelism.Apply(envMap); err != nil {
+	if err := parallelism.Apply(theEnv); err != nil {
 		return nil, err
 	}
 
-	return envMap, nil
+	return theEnv, nil
 }
 
 // removeContents removes all files but not any subdirectories in the given
