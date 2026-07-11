@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"github.com/yaklabco/stave/pkg/env"
 )
 
@@ -260,4 +261,71 @@ func TestWorkingDir(t *testing.T) { //nolint:tparallel // Not all subtests here 
 		require.NoError(t, err)
 		assert.Equal(t, tmp+"\n", buf.String())
 	})
+}
+
+func TestPrepCmd(t *testing.T) {
+	cmd := PrepCmd("echo", "hi")
+
+	assert.Nil(t, cmd.Stdin)
+	assert.Nil(t, cmd.Stdout)
+	assert.Equal(t, os.Stderr, cmd.Stderr)
+}
+
+func TestPrepCmdV(t *testing.T) {
+	cmd := PrepCmdV("echo", "hi")
+
+	assert.Nil(t, cmd.Stdin)
+	assert.Equal(t, os.Stdout, cmd.Stdout)
+	assert.Equal(t, os.Stderr, cmd.Stderr)
+}
+
+func TestPrepCmdWith(t *testing.T) {
+	theEnv := map[string]string{"FOO": "bar"}
+	theStdin := bytes.NewBufferString("hello")
+	theStdout := &bytes.Buffer{}
+	theStderr := &bytes.Buffer{}
+
+	cmd := PrepCmdWith(theEnv, "/tmp", theStdin, theStdout, theStderr, "echo", "$FOO")
+
+	assert.Equal(t, "/tmp", cmd.Dir)
+	assert.Equal(t, theStdin, cmd.Stdin)
+	assert.Equal(t, theStdout, cmd.Stdout)
+	assert.Equal(t, theStderr, cmd.Stderr)
+
+	// Check env
+	found := false
+	for _, e := range cmd.Env {
+		if e == "FOO=bar" {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "FOO=bar not found in cmd.Env")
+
+	assert.Contains(t, cmd.Args, "bar")
+}
+
+func TestPrepCmdWithV(t *testing.T) {
+	theEnv := map[string]string{"FOO": "bar"}
+	theStdin := bytes.NewBufferString("hello")
+	theStderr := &bytes.Buffer{}
+
+	cmd := PrepCmdWithV(theEnv, "/tmp", theStdin, theStderr, "echo", "$FOO")
+
+	assert.Equal(t, "/tmp", cmd.Dir)
+	assert.Equal(t, theStdin, cmd.Stdin)
+	assert.Equal(t, os.Stdout, cmd.Stdout)
+	assert.Equal(t, theStderr, cmd.Stderr)
+
+	// Check env
+	found := false
+	for _, e := range cmd.Env {
+		if e == "FOO=bar" {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "FOO=bar not found in cmd.Env")
+
+	assert.Contains(t, cmd.Args, "bar")
 }

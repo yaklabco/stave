@@ -2,6 +2,8 @@ package sh
 
 import (
 	"io"
+	"os"
+	"os/exec"
 
 	"github.com/yaklabco/stave/internal/ish"
 	"github.com/yaklabco/stave/pkg/st"
@@ -99,6 +101,34 @@ func PiperWith(env map[string]string, wd string, stdin io.Reader, stdout, stderr
 // is always true and code is always 0.
 func Exec(env map[string]string, wd string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) (bool, error) {
 	return ish.Exec(st.ActiveContext(), env, wd, stdin, stdout, stderr, cmd, args...)
+}
+
+// PrepCmd prepares the command, piping its stdin to the given reader, stdout to
+// the given writer, and stderr to the given writer. It returns the expanded
+// command string and the prepared *exec.Cmd.
+func PrepCmd(cmd string, args ...string) *exec.Cmd {
+	return PrepCmdWith(nil, "", nil, nil, os.Stderr, cmd, args...)
+}
+
+// PrepCmdV is like PrepCmd, but always sends the command's stdout to os.Stdout.
+func PrepCmdV(cmd string, args ...string) *exec.Cmd {
+	return PrepCmdWithV(nil, "", nil, os.Stderr, cmd, args...)
+}
+
+// PrepCmdWith is like PrepCmd, but adds env to the environment variables for the
+// command being prepared.
+func PrepCmdWith(env map[string]string, wd string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) *exec.Cmd {
+	_, theCmd := ish.PrepCmd(st.ActiveContext(), env, wd, stdin, stdout, stderr, cmd, args)
+
+	return theCmd
+}
+
+// PrepCmdWithV is like PrepCmdWith, but always sends the command's stdout to
+// os.Stdout.
+func PrepCmdWithV(env map[string]string, wd string, stdin io.Reader, stderr io.Writer, cmd string, args ...string) *exec.Cmd {
+	_, theCmd := ish.PrepCmd(st.ActiveContext(), env, wd, stdin, os.Stdout, stderr, cmd, args)
+
+	return theCmd
 }
 
 // CmdRan examines the error to determine if it was generated as a result of a

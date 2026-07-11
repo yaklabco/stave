@@ -20,7 +20,22 @@ import (
 
 // Exec executes the command, piping its stdout and stderr to the given
 // writers.
-func Exec(ctx context.Context, theEnv map[string]string, wd string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) (bool, error) {
+func Exec(ctx context.Context, theEnv map[string]string, wd string, stdin io.Reader, stdout, stderr io.Writer, cmdStr string, args ...string) (bool, error) {
+	cmdStr, theCmd := PrepCmd(ctx, theEnv, wd, stdin, stdout, stderr, cmdStr, args)
+	runErr := theCmd.Run()
+	ran, code, err := CmdRan(runErr), ExitStatus(runErr), runErr
+
+	if err == nil {
+		return true, nil
+	}
+	if ran {
+		return ran, st.Fatalf(code, `running "%s %s" failed with exit code %d`, cmdStr, strings.Join(args, " "), code)
+	}
+
+	return ran, fmt.Errorf(`failed to run "%s %s: %w"`, cmdStr, strings.Join(args, " "), err)
+}
+
+func PrepCmd(ctx context.Context, theEnv map[string]string, wd string, stdin io.Reader, stdout io.Writer, stderr io.Writer, cmdStr string, args []string) (string, *exec.Cmd) {
 	expand := func(varName string) string {
 		if theEnv != nil {
 			s2, ok := theEnv[varName]
@@ -31,24 +46,13 @@ func Exec(ctx context.Context, theEnv map[string]string, wd string, stdin io.Rea
 		return os.Getenv(varName)
 	}
 
-	cmd = os.Expand(cmd, expand)
+	cmdStr = os.Expand(cmdStr, expand)
 
 	for i := range args {
 		args[i] = os.Expand(args[i], expand)
 	}
 
-	ran, code, err := run(ctx, theEnv, wd, stdin, stdout, stderr, cmd, args...)
-	if err == nil {
-		return true, nil
-	}
-	if ran {
-		return ran, st.Fatalf(code, `running "%s %s" failed with exit code %d`, cmd, strings.Join(args, " "), code)
-	}
-	return ran, fmt.Errorf(`failed to run "%s %s: %w"`, cmd, strings.Join(args, " "), err)
-}
-
-func run(ctx context.Context, theEnv map[string]string, wd string, stdin io.Reader, stdout, stderr io.Writer, cmd string, args ...string) (bool, int, error) {
-	theCmd := dryrun.Wrap(ctx, theEnv, cmd, args...)
+	theCmd := dryrun.Wrap(ctx, theEnv, cmdStr, args...)
 	ambientEnv := lo.Assign(env.GetMap(), theEnv)
 	theCmd.Env = env.ToAssignments(ambientEnv)
 	for k, v := range theEnv {
@@ -67,11 +71,10 @@ func run(ctx context.Context, theEnv map[string]string, wd string, stdin io.Read
 	}
 	// To protect against logging from doing exec in global variables
 	if st.Verbose() {
-		log.SimpleConsoleLogger.Println("exec:", cmd, strings.Join(quoted, " "))
+		log.SimpleConsoleLogger.Println("exec:", cmdStr, strings.Join(quoted, " "))
 	}
-	err := theCmd.Run()
 
-	return CmdRan(err), ExitStatus(err), err
+	return cmdStr, theCmd
 }
 
 // CmdRan examines the error to determine if it was generated as a result of a
