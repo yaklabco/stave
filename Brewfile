@@ -3,13 +3,8 @@
 #   brew bundle install --no-lock
 #   brew bundle cleanup --force   # optional: remove anything not in this Brewfile
 
-# Go-related formulae
-brew "go"
-brew "gofumpt"
-brew "goimports"
-brew "golangci-lint"
-brew "golangci-lint-langserver"
-brew "goreleaser"
-brew "trufflehog"
+ENV["HOMEBREW_BUNDLE_NO_UPGRADE"] = "1"
 
+brew "go"
+brew "trufflehog"
 brew "markdownlint-cli2"
