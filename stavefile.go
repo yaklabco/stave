@@ -111,11 +111,11 @@ func Init() {
 func Build() error {
 	st.Deps(Init, Clean)
 
-	if err := sh.RunV("go", "tool", "goreleaser", "check"); err != nil {
+	if err := sh.RunV("goreleaser", "check"); err != nil {
 		return err
 	}
 
-	return sh.RunV("go", "tool", "goreleaser", "--parallelism", numProcsAsString(), "build", "--clean", "--snapshot")
+	return sh.RunV("goreleaser", "--parallelism", numProcsAsString(), "build", "--clean", "--snapshot")
 }
 
 // Release tags the next version and runs goreleaser release
@@ -126,7 +126,7 @@ func Release() error {
 		return err
 	}
 
-	return sh.Run("go", "tool", "goreleaser", "--parallelism", numProcsAsString(), "release", "--clean", "--release-notes="+filepath.Join(buildCacheDirName, releaseNotesFilename))
+	return sh.Run("goreleaser", "--parallelism", numProcsAsString(), "release", "--clean", "--release-notes="+filepath.Join(buildCacheDirName, releaseNotesFilename))
 }
 
 // Snapshot is like Release except it runs locally and does not push a new tag;
@@ -140,7 +140,7 @@ func Snapshot() error {
 	}
 
 	return sh.Run(
-		"go", "tool", "goreleaser",
+		"goreleaser",
 		"--parallelism", numProcsAsString(), "release", "--clean", "--snapshot",
 		"--release-notes="+filepath.Join(buildCacheDirName, releaseNotesFilename),
 	)

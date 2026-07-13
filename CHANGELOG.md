@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.2] - 2026-07-13
+
+### Fixed
+
+- Moved `goreleaser` back from a Go `tool` directive to a `Brewfile` dependency, to avoid bumping Go version to most recent major version. Downgraded back to Go `1.25.12`.
+
 ## [0.16.1] - 2026-07-11
 
 ### Changed
@@ -640,7 +646,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added parallelism-by-default to use of Go tools from inside Stave.
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.16.1...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.16.2...HEAD
+[0.16.2]: https://github.com/yaklabco/stave/compare/v0.16.1...v0.16.2
 [0.16.1]: https://github.com/yaklabco/stave/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/yaklabco/stave/compare/v0.15.3...v0.16.0
 [0.15.3]: https://github.com/yaklabco/stave/compare/v0.15.2...v0.15.3
