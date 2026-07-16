@@ -350,14 +350,14 @@ linters:
       - std-error-handling
     rules:
       - linters:
-          - govet
-        text: 'shadow: declaration of "(err|ctx)" shadows declaration at'
+          - gocritic
+        source: //noinspection
       - linters:
           - godot
         source: (noinspection|TODO)
       - linters:
-          - gocritic
-        source: //noinspection
+          - govet
+        text: 'shadow: declaration of "(err|ctx)" shadows declaration at'
       - linters:
           - revive
         text: "var-naming: avoid package names that conflict with Go standard library"
@@ -374,18 +374,16 @@ linters:
         path: _test\.go$
       - linters:
           - forbidigo
-          - gochecknoglobals
-          - godot
-          - unparam
-          - wrapcheck
-        path: stavefile\.go$
-      - linters:
-          - forbidigo
         path: testmain_test\.go$
       - linters:
+          - forbidigo
+          - gochecknoglobals
           - gochecknoinits
+          - godot
           - noctx
+          - unparam
           - unused
+          - wrapcheck
         path: stavefile\.go$
     paths:
       - third_party$
