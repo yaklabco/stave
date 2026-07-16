@@ -91,6 +91,7 @@ func newStaveTargetRunner(cfg *config.Config, generalWorkDir string) hooks.Targe
 		}
 
 		err = Run(runParams)
+
 		return st.ExitStatus(err), err
 	}
 }
@@ -141,6 +142,7 @@ func RunHooksCommand(ctx context.Context, params RunParams) int {
 			return exitOK
 		}
 		_, _ = fmt.Fprintf(params.Stderr, "Error: %v\n", err)
+
 		return exitUsage
 	}
 
@@ -187,6 +189,7 @@ func dispatchHooksSubcommand(ctx context.Context, params RunParams, subArgs []st
 			slog.String("subcommand", subArgs[0]))
 		_, _ = fmt.Fprintf(params.Stderr, "Error: unknown hooks subcommand %q\n", subArgs[0])
 		hooksUsage(params.Stderr)
+
 		return exitUsage
 	}
 }
@@ -206,10 +209,12 @@ func runHooksInit(ctx context.Context, params RunParams) int {
 		slog.Debug("hooks already configured",
 			slog.Int("hook_count", len(cfg.Hooks)))
 		_, _ = fmt.Fprintln(params.Stdout, "Hooks configuration already exists in stave.yaml")
+
 		return runHooksList(ctx, params)
 	}
 
 	printHooksInitInstructions(params.Stdout)
+
 	return exitOK
 }
 
@@ -227,6 +232,7 @@ func runHooksInstall(ctx context.Context, params RunParams, args []string) int {
 		if errors.Is(err, flag.ErrHelp) {
 			return exitOK
 		}
+
 		return printUsageErr(params.Stderr, err)
 	}
 
@@ -239,8 +245,10 @@ func runHooksInstall(ctx context.Context, params RunParams, args []string) int {
 		if errors.Is(err, hooks.ErrNotGitRepo) {
 			_, _ = fmt.Fprintf(params.Stderr, "Error: %v\n", err)
 			_, _ = fmt.Fprintln(params.Stderr, "Run this command from within a Git repository.")
+
 			return exitError
 		}
+
 		return printErr(params.Stderr, err)
 	}
 
@@ -256,6 +264,7 @@ func runHooksInstall(ctx context.Context, params RunParams, args []string) int {
 		slog.Debug("no hooks configured in config")
 		_, _ = fmt.Fprintln(params.Stderr, "No hooks configured in stave.yaml")
 		_, _ = fmt.Fprintln(params.Stderr, "Run 'stave --hooks init' for setup instructions.")
+
 		return exitError
 	}
 
@@ -280,6 +289,7 @@ func installHooks(repo *hooks.GitRepo, cfg *config.Config, force bool, params Ru
 		if code := installSingleHook(repo, hookName, force, params.Stdout, params.Stderr); code != exitOK {
 			return code
 		}
+
 		installed++
 	}
 
@@ -288,6 +298,7 @@ func installHooks(repo *hooks.GitRepo, cfg *config.Config, force bool, params Ru
 		slog.String("directory", repo.HooksPath()))
 
 	_, _ = fmt.Fprintf(params.Stdout, "\nInstalled %d hook(s) to %s\n", installed, repo.HooksPath())
+
 	return exitOK
 }
 
@@ -317,6 +328,7 @@ func installSingleHook(repo *hooks.GitRepo, hookName string, force bool, stdout,
 					slog.String("hook", hookName))
 				_, _ = fmt.Fprintf(stderr, "Error: %s already exists and was not installed by Stave\n", hookName)
 				_, _ = fmt.Fprintln(stderr, "Use --force to overwrite, or remove the existing hook first.")
+
 				return exitError
 			}
 			slog.Debug("overwriting existing hook",
@@ -331,6 +343,7 @@ func installSingleHook(repo *hooks.GitRepo, hookName string, force bool, stdout,
 		return exitError
 	}
 	_, _ = fmt.Fprintf(stdout, "Installed %s\n", hookName)
+
 	return exitOK
 }
 
@@ -344,6 +357,7 @@ func runHooksUninstall(ctx context.Context, params RunParams, args []string) int
 		if errors.Is(err, flag.ErrHelp) {
 			return exitOK
 		}
+
 		return printUsageErr(params.Stderr, err)
 	}
 
@@ -375,6 +389,7 @@ func getHookNamesToUninstall(all bool, cfg *config.Config) []string {
 	if cfg.Hooks != nil {
 		return cfg.Hooks.HookNames()
 	}
+
 	return nil
 }
 
@@ -404,6 +419,7 @@ func uninstallHooks(repo *hooks.GitRepo, hookNames []string, stdout, stderr io.W
 			slog.Int("count", removed))
 		_, _ = fmt.Fprintf(stdout, "\nRemoved %d hook(s)\n", removed)
 	}
+
 	return exitOK
 }
 
@@ -420,6 +436,7 @@ func runHooksList(ctx context.Context, params RunParams) int {
 		slog.Debug("no hooks configured")
 		_, _ = fmt.Fprintln(params.Stdout, "No hooks configured.")
 		_, _ = fmt.Fprintln(params.Stdout, "Run 'stave --hooks init' for setup instructions.")
+
 		return exitOK
 	}
 
@@ -498,6 +515,7 @@ func runHooksRun(ctx context.Context, params RunParams, args []string) int {
 		if errors.Is(err, flag.ErrHelp) {
 			return exitOK
 		}
+
 		return printUsageErr(params.Stderr, err)
 	}
 
@@ -505,6 +523,7 @@ func runHooksRun(ctx context.Context, params RunParams, args []string) int {
 	if len(remaining) == 0 {
 		_, _ = fmt.Fprintln(params.Stderr, "Error: hook name required")
 		_, _ = fmt.Fprintln(params.Stderr, "Usage: stave --hooks run <hook-name> [-- args...]")
+
 		return exitUsage
 	}
 

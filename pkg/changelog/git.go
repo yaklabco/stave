@@ -49,6 +49,7 @@ func (g *ShellGitOps) ChangedFiles(base, head string) ([]string, error) {
 			result = append(result, f)
 		}
 	}
+
 	return result, nil
 }
 
@@ -58,6 +59,7 @@ func (g *ShellGitOps) MergeBase(ref1, ref2 string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return strings.TrimSpace(out), nil
 }
 
@@ -73,6 +75,7 @@ func (g *ShellGitOps) CurrentBranch() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return strings.TrimSpace(out), nil
 }
 
@@ -81,6 +84,7 @@ func (g *ShellGitOps) gitOutput(args ...string) (string, error) {
 	if g.Dir != "" {
 		args = append([]string{"-C", g.Dir}, args...)
 	}
+
 	return sh.Output("git", args...)
 }
 

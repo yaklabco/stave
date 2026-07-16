@@ -146,6 +146,7 @@ func renderTargetList(out io.Writer, info *parse.PkgInfo, filters []string) erro
 			if isWatch {
 				sb.WriteString(" [W]")
 			}
+
 			return sb.String()
 		}
 
@@ -296,6 +297,7 @@ func localGroupKind(fn *parse.Function) targetGroupKind {
 	if fn.Receiver != "" {
 		return targetGroupNamespace
 	}
+
 	return targetGroupLocal
 }
 
@@ -303,6 +305,7 @@ func localGroupName(fn *parse.Function) string {
 	if fn.Receiver == "" {
 		return ""
 	}
+
 	return lowerFirstTargetName(fn.Receiver)
 }
 
@@ -319,6 +322,7 @@ func usageFor(binaryName, display string, args []parse.Arg) string {
 		sb.WriteString(a.Name)
 		sb.WriteString(">")
 	}
+
 	return sb.String()
 }
 
@@ -327,6 +331,7 @@ func usageWidthFor(name string, args []parse.Arg, isWatch bool) int {
 	if isWatch {
 		usage += " [W]"
 	}
+
 	return lipgloss.Width(usage)
 }
 
@@ -343,6 +348,7 @@ func globalUsageWidth(sections targetSections) int {
 			}
 		}
 	}
+
 	return maxWidth
 }
 
@@ -369,6 +375,7 @@ func applyTargetFilters(items []targetItem, filters []string) []targetItem {
 				return false
 			}
 		}
+
 		return true
 	}
 
@@ -379,6 +386,7 @@ func applyTargetFilters(items []targetItem, filters []string) []targetItem {
 			out = append(out, it)
 		}
 	}
+
 	return out
 }
 
@@ -418,6 +426,7 @@ func buildGroups(byLabel map[string][]targetItem, metaByLabel map[string]string)
 			items:  items,
 		})
 	}
+
 	return groups
 }
 
@@ -524,6 +533,7 @@ func writeTable(
 		if textWidth >= width {
 			return text
 		}
+
 		return text + strings.Repeat(" ", width-textWidth)
 	}
 
@@ -539,10 +549,7 @@ func writeTable(
 	termWidth := detectTermWidth(out)
 	const gap = 2
 	leftOffset := lipgloss.Width(indent) + maxUsage + gap
-	synWidth := termWidth - leftOffset
-	if synWidth < termWidthFloor {
-		synWidth = termWidthFloor
-	}
+	synWidth := max(termWidth-leftOffset, termWidthFloor)
 
 	spaceLeft := strings.Repeat(" ", leftOffset)
 
@@ -588,5 +595,6 @@ func lowerFirstTargetName(s string) string {
 	for i := range parts {
 		parts[i] = lowerFirstWord(parts[i])
 	}
+
 	return strings.Join(parts, ":")
 }

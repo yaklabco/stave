@@ -63,6 +63,7 @@ func Sort[T interface{ TopoSortable }](items []T, ignoreMissingDeps bool) ([]T, 
 					// Skip edges to missing nodes
 					continue
 				}
+
 				return nil, fmt.Errorf(
 					"dependency %q of %q not found: %w", dep, itemID, ErrMissingDependency)
 			}
@@ -106,6 +107,7 @@ func Sort[T interface{ TopoSortable }](items []T, ignoreMissingDeps bool) ([]T, 
 			}
 		}
 		sort.Strings(remaining)
+
 		return nil, fmt.Errorf("%w: cycle among nodes: %v", ErrCircularDependency, remaining)
 	}
 

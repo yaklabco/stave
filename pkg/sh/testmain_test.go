@@ -47,6 +47,7 @@ func TestMain(m *testing.M) {
 			os.Exit(1)
 		}
 		_, _ = fmt.Fprintln(os.Stdout, wd)
+
 		return
 	}
 
@@ -61,6 +62,7 @@ func TestMain(m *testing.M) {
 			return
 		}
 		_, _ = fmt.Fprintln(os.Stdout, s)
+
 		return
 	}
 

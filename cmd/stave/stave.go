@@ -71,6 +71,7 @@ func NewRootCmd(ctx context.Context, opts ...Option) *cobra.Command {
 			if err != nil {
 				return nil, cobra.ShellCompDirectiveError
 			}
+
 			return targets, cobra.ShellCompDirectiveNoFileComp
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {

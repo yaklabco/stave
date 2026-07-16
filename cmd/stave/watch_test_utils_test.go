@@ -64,6 +64,7 @@ func (h *watchHandle) stop() {
 func (h *watchHandle) stdout() string {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+
 	return h.allStdout.String()
 }
 
@@ -77,6 +78,7 @@ func startWatch(t *testing.T, ctx context.Context, bin, dir string, args ...stri
 		if cmd.Process != nil {
 			return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
 		}
+
 		return nil
 	}
 
@@ -103,6 +105,7 @@ func startWatch(t *testing.T, ctx context.Context, bin, dir string, args ...stri
 			handle.mu.Lock()
 			handle.allStdout.WriteString(line + "\n")
 			handle.mu.Unlock()
+
 			handle.lines <- line
 		}
 		close(handle.lines)
@@ -149,6 +152,7 @@ func buildStave(t *testing.T, absRoot, binName string) string {
 	buildCmd.Dir = absRoot
 	out, err := buildCmd.CombinedOutput()
 	require.NoError(t, err, "failed to build stave: %s", string(out))
+
 	return staveBin
 }
 
@@ -158,5 +162,6 @@ func runStave(t *testing.T, bin, dir string, args ...string) string {
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
 	require.NoError(t, err, "stave failed: %s", string(out))
+
 	return string(out)
 }

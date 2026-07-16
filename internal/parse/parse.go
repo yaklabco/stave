@@ -16,9 +16,10 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"golang.org/x/tools/go/packages"
+
 	"github.com/yaklabco/stave/internal"
 	"github.com/yaklabco/stave/internal/log"
-	"golang.org/x/tools/go/packages"
 )
 
 const importTag = "stave:import"
@@ -96,6 +97,7 @@ func (f Function) ID() string {
 	if f.Receiver != "" {
 		receiver = f.Receiver + "."
 	}
+
 	return fmt.Sprintf("%s.%s%s", path, receiver, f.Name)
 }
 
@@ -109,6 +111,7 @@ func (f Function) TargetName() string {
 			names = append(names, s)
 		}
 	}
+
 	return strings.Join(names, ":")
 }
 
@@ -126,14 +129,14 @@ func (f Function) ExecCode() string {
 		name = f.Package + "." + name
 	}
 
-	var parseargs string
+	var parseargs strings.Builder
 	for iArg, theArg := range f.Args {
 		switch theArg.Type {
 		case stringType:
-			parseargs += fmt.Sprintf(`
+			fmt.Fprintf(&parseargs, `
 			theArg%d := _targetArgs[%d]`, iArg, iArg)
 		case intType:
-			parseargs += fmt.Sprintf(`
+			fmt.Fprintf(&parseargs, `
 				theArg%d, err := strconv.Atoi(_targetArgs[%d])
 				if err != nil {
 					logger.Printf("can't convert argument %%q to int\n", _targetArgs[%d])
@@ -141,7 +144,7 @@ func (f Function) ExecCode() string {
 				}
 				`, iArg, iArg, iArg)
 		case float64Type:
-			parseargs += fmt.Sprintf(`
+			fmt.Fprintf(&parseargs, `
 				theArg%d, err := strconv.ParseFloat(_targetArgs[%d], 64)
 				if err != nil {
 					logger.Printf("can't convert argument %%q to float64\n", _targetArgs[%d])
@@ -149,7 +152,7 @@ func (f Function) ExecCode() string {
 				}
 				`, iArg, iArg, iArg)
 		case boolType:
-			parseargs += fmt.Sprintf(`
+			fmt.Fprintf(&parseargs, `
 				theArg%d, err := strconv.ParseBool(_targetArgs[%d])
 				if err != nil {
 					logger.Printf("can't convert argument %%q to bool\n", _targetArgs[%d])
@@ -157,7 +160,7 @@ func (f Function) ExecCode() string {
 				}
 				`, iArg, iArg, iArg)
 		case timeType:
-			parseargs += fmt.Sprintf(`
+			fmt.Fprintf(&parseargs, `
 				theArg%d, err := time.ParseDuration(_targetArgs[%d])
 				if err != nil {
 					logger.Printf("can't convert argument %%q to time.Duration\n", _targetArgs[%d])
@@ -167,7 +170,7 @@ func (f Function) ExecCode() string {
 		}
 	}
 
-	out := parseargs + `
+	out := parseargs.String() + `
 				wrapFn := func(ctx context.Context) error {
 					`
 	if f.IsError {
@@ -190,6 +193,7 @@ func (f Function) ExecCode() string {
 	out += `
 				}
 				ret := runTarget(logger, "` + f.TargetName() + `", wrapFn)`
+
 	return out
 }
 
@@ -206,6 +210,7 @@ func PrimaryPackage(ctx context.Context, gocmd, path string, files []string, mul
 
 	setDefault(info)
 	setAliases(info)
+
 	return info, nil
 }
 
@@ -246,11 +251,13 @@ func checkAliasConflicts(aliases map[string]*Function, funcs map[string][]*Funct
 			for _, f := range funcs[aliasName] {
 				ids = append(ids, f.ID())
 			}
+
 			return fmt.Errorf(
 				"alias %q duplicates existing target(s): %s", aliasName, strings.Join(ids, ", "))
 		}
 		funcs[aliasName] = append(funcs[aliasName], aliasFunc)
 	}
+
 	return nil
 }
 
@@ -278,6 +285,7 @@ func findDuplicates(funcs map[string][]*Function) error {
 			"%q target has multiple definitions: %s\n", dupeName, strings.Join(ids, ", ")))
 	}
 	sort.Strings(errs)
+
 	return errors.New(strings.Join(errs, "\n"))
 }
 
@@ -337,6 +345,7 @@ func Package(path string, files []string, multiline bool) (*PkgInfo, error) {
 			}
 		}
 		msg += builder.String()
+
 		return nil, errors.New(msg)
 	}
 
@@ -353,6 +362,7 @@ func getNamedImports(ctx context.Context, gocmd, path string, pkgs map[string]st
 		}
 		theImports = append(theImports, imp)
 	}
+
 	return theImports, nil
 }
 
@@ -405,6 +415,7 @@ func getImport(ctx context.Context, gocmd, path, importpath, alias string, multi
 		info.Funcs[idx].PkgAlias = alias
 		info.Funcs[idx].ImportPath = importpath
 	}
+
 	return &Import{Alias: alias, Name: name, Path: importpath, Info: *info}, nil
 }
 
@@ -484,6 +495,7 @@ func funcFromDoc(theFunc *doc.Func, importpath, funcname string, multiline bool)
 			slog.String(log.Func, funcname),
 			slog.Any(log.Error, err),
 		)
+
 		return nil, false
 	}
 	slog.Debug(
@@ -498,6 +510,7 @@ func funcFromDoc(theFunc *doc.Func, importpath, funcname string, multiline bool)
 		funcInfo.Comment = oneLineDoc(theFunc.Doc)
 	}
 	funcInfo.Synopsis = sanitizeSynopsis(theFunc)
+
 	return funcInfo, true
 }
 
@@ -583,6 +596,7 @@ func setImports(ctx context.Context, gocmd, path string, pkgInfo *PkgInfo) error
 		}
 	}
 	pkgInfo.Imports = imports
+
 	return nil
 }
 
@@ -596,6 +610,7 @@ func getImportPath(imp *ast.ImportSpec) (string, string, bool) {
 	trailingVals := getImportPathFromCommentGroup(imp.Comment)
 
 	var vals []string
+
 	switch {
 	case len(leadingVals) > 0:
 		vals = leadingVals
@@ -613,6 +628,7 @@ func getImportPath(imp *ast.ImportSpec) (string, string, bool) {
 		if imp.Name != nil {
 			alias = imp.Name.Name
 		}
+
 		return path, alias, true
 	default:
 		return "", "", false
@@ -631,6 +647,7 @@ func getImportPath(imp *ast.ImportSpec) (string, string, bool) {
 			slog.String(log.ImportTag, importTag),
 			slog.String(log.Path, path),
 		)
+
 		return "", "", false
 	}
 }
@@ -651,6 +668,7 @@ func getImportPathFromCommentGroup(comments *ast.CommentGroup) []string {
 	if vals[0] != importTag {
 		return nil
 	}
+
 	return vals
 }
 
@@ -670,6 +688,7 @@ func isNamespace(typeDecl *doc.Type) bool {
 	if !isIdent {
 		return false
 	}
+
 	return ident.Name == "st" && selectorExpr.Sel.Name == "Namespace"
 }
 
@@ -689,6 +708,7 @@ func checkDupeTargets(info *PkgInfo) (bool, map[string][]string) {
 		lowers[low] = struct{}{}
 		names[low] = append(names[low], theFunc.Name)
 	}
+
 	return hasDupes, names
 }
 
@@ -734,6 +754,7 @@ func lit2string(l *ast.BasicLit) (string, bool) {
 	if !strings.HasPrefix(l.Value, `"`) || !strings.HasSuffix(l.Value, `"`) {
 		return "", false
 	}
+
 	return strings.Trim(l.Value, `"`), true
 }
 
@@ -774,6 +795,7 @@ func findValueSpec(pkgVars []*doc.Value, name string) *ast.ValueSpec {
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -803,6 +825,7 @@ func parseAliasMap(comp *ast.CompositeLit, pkgInfo *PkgInfo) map[string]*Functio
 		}
 		aliases[alias] = aliasFunc
 	}
+
 	return aliases
 }
 
@@ -818,6 +841,7 @@ func getFunction(exp ast.Expr, pi *PkgInfo) (*Function, error) {
 				return f
 			}
 		}
+
 		return nil
 	}
 
@@ -829,9 +853,11 @@ func getFunction(exp ast.Expr, pi *PkgInfo) (*Function, error) {
 						return f
 					}
 				}
+
 				return nil
 			}
 		}
+
 		return nil
 	}
 
@@ -841,6 +867,7 @@ func getFunction(exp ast.Expr, pi *PkgInfo) (*Function, error) {
 				return true
 			}
 		}
+
 		return false
 	}
 
@@ -850,6 +877,7 @@ func getFunction(exp ast.Expr, pi *PkgInfo) (*Function, error) {
 		if f := findLocal("", theExpr.Name); f != nil {
 			return f, nil
 		}
+
 		return nil, fmt.Errorf("unknown function %s.%s", "", theExpr.Name)
 
 	case *ast.SelectorExpr:
@@ -872,6 +900,7 @@ func getFunction(exp ast.Expr, pi *PkgInfo) (*Function, error) {
 			if f := findImported(first, "", funcname); f != nil { // import.Func
 				return f, nil
 			}
+
 			return nil, fmt.Errorf("%q is not a known target", exp)
 
 		case *ast.SelectorExpr:
@@ -893,6 +922,7 @@ func getFunction(exp ast.Expr, pi *PkgInfo) (*Function, error) {
 			if hasImport(pkg) {
 				return nil, fmt.Errorf("unknown function %s.%s.%s", pkg, receiver, funcname)
 			}
+
 			return nil, fmt.Errorf("unknown package for function %q", exp)
 
 		default:
@@ -931,6 +961,7 @@ func getPackage(path string, files []string, fset *token.FileSet) (string, []*as
 		if pkgName == "" {
 			return "", nil, fmt.Errorf("no importable packages found in %s", path)
 		}
+
 		return pkgName, out, nil
 	}
 
@@ -957,6 +988,7 @@ func getPackage(path string, files []string, fset *token.FileSet) (string, []*as
 			p := outPkgs[0]
 			astFiles := make([]*ast.File, 0, len(p.Syntax))
 			astFiles = append(astFiles, p.Syntax...)
+
 			return p.Name, astFiles, nil
 		}
 		if len(outPkgs) > 1 {
@@ -965,6 +997,7 @@ func getPackage(path string, files []string, fset *token.FileSet) (string, []*as
 				names = append(names, n)
 			}
 			sort.Strings(names)
+
 			return "", nil, fmt.Errorf("multiple packages found in %s: %v", path, strings.Join(names, ", "))
 		}
 		// else fall through to manual parsing
@@ -980,7 +1013,7 @@ func getPackage(path string, files []string, fset *token.FileSet) (string, []*as
 		filesInDir = make([]string, 0, len(entries))
 		pkgName    string
 		out        = make([]*ast.File, 0, len(entries))
-		namesSet   = map[string]struct{}{}
+		namesSet   = make(map[string]struct{})
 	)
 	for _, e := range entries {
 		if e.IsDir() {
@@ -1014,8 +1047,10 @@ func getPackage(path string, files []string, fset *token.FileSet) (string, []*as
 			names = append(names, n)
 		}
 		sort.Strings(names)
+
 		return "", nil, fmt.Errorf("multiple packages found in %s: %v", path, strings.Join(names, ", "))
 	}
+
 	return pkgName, out, nil
 }
 
@@ -1045,6 +1080,7 @@ func hasContextParam(ft *ast.FuncType) (bool, error) {
 		// something like foo, bar context.Context
 		return false, errors.New("ETOOMANYCONTEXTS")
 	}
+
 	return true, nil
 }
 
@@ -1064,6 +1100,7 @@ func hasErrorReturn(ft *ast.FuncType) (bool, error) {
 	if fmt.Sprint(ret.Type) == "error" {
 		return true, nil
 	}
+
 	return false, errors.New("EBADRETURNTYPE")
 }
 
@@ -1094,6 +1131,7 @@ func funcType(funcTypeNode *ast.FuncType) (*Function, error) {
 			theFunc.Args = append(theFunc.Args, Arg{Name: name.Name, Type: argType})
 		}
 	}
+
 	return theFunc, nil
 }
 
@@ -1108,6 +1146,7 @@ func sanitizeDocComment(s string) string {
 func oneLineDoc(s string) string {
 	s = strings.ReplaceAll(s, "\n", " ")
 	s = strings.TrimSpace(s)
+
 	return sanitizeDocComment(s)
 }
 
@@ -1124,6 +1163,7 @@ func hasComment(pkgFiles []*ast.File, tag string) bool {
 			}
 		}
 	}
+
 	return false
 }
 
@@ -1158,9 +1198,11 @@ func getWatchAlias(file *ast.File) string {
 			if imp.Name != nil {
 				return imp.Name.Name
 			}
+
 			return "watch"
 		}
 	}
+
 	return ""
 }
 
@@ -1169,6 +1211,7 @@ func getFuncKey(fn *ast.FuncDecl) string {
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {
 		t := fn.Recv.List[0].Type
 		var recvName string
+
 		switch tr := t.(type) {
 		case *ast.Ident:
 			recvName = tr.Name
@@ -1181,6 +1224,7 @@ func getFuncKey(fn *ast.FuncDecl) string {
 			key = recvName + "." + key
 		}
 	}
+
 	return key
 }
 
@@ -1204,7 +1248,9 @@ func hasWatchCall(fn *ast.FuncDecl, watchAlias string) bool {
 			hasWatch = true
 			return false
 		}
+
 		return true
 	})
+
 	return hasWatch
 }

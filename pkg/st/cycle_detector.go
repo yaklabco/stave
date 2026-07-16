@@ -60,6 +60,7 @@ func getPackagePath(thisFunc *runtime.Func) string {
 	if lastDot > lastSlash {
 		pkgPrefix = pkgPrefix[:lastDot] // e.g. "github.com/me/project/mypkg"
 	}
+
 	return pkgPrefix
 }
 
@@ -87,6 +88,7 @@ func checkForCycle(funcs []Fn) error {
 	depsByID[callerID] = depsNode{tpID: callerID, dependencyTPIDs: funcIDs}
 
 	_, err := toposort.Sort(lo.Values(depsByID), true)
+
 	return err
 }
 

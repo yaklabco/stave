@@ -114,6 +114,7 @@ func GoCmd() string {
 	if cmd := os.Getenv(GoCmdEnv); cmd != "" {
 		return cmd
 	}
+
 	return "go"
 }
 
@@ -137,6 +138,7 @@ func CacheDir() string {
 	if d != "" {
 		return d
 	}
+
 	switch runtime.GOOS {
 	case "windows":
 		return filepath.Join(os.Getenv("HOMEDRIVE"), os.Getenv("HOMEPATH"), "stavefile")
@@ -170,6 +172,7 @@ func TargetColor() string {
 			return c
 		}
 	}
+
 	return DefaultTargetAnsiColor
 }
 

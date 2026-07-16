@@ -17,9 +17,7 @@ func TestConcurrentRuns(t *testing.T) {
 	// We want to run two stave runs in the same directory at the same time.
 	// We'll use a temporary directory to avoid messing with the project.
 
-	tmpDir, err := os.MkdirTemp("", "stave-concurrent-test")
-	require.NoError(t, err)
-	defer func() { _ = os.RemoveAll(tmpDir) }()
+	tmpDir := t.TempDir()
 
 	// Copy a simple stavefile to the tmpDir
 	stavefileContent := `//go:build stave
@@ -37,15 +35,13 @@ func Default(runID int) error {
 	return nil
 }
 `
-	err = os.WriteFile(filepath.Join(tmpDir, "stavefile.go"), []byte(stavefileContent), 0644)
-	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "stavefile.go"), []byte(stavefileContent), 0644))
 
 	// We also need a go.mod in that directory so 'go build' works
 	goModContent := `module testconcurrent
 go 1.24
 `
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goModContent), 0644)
-	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goModContent), 0644))
 
 	ctx := t.Context()
 

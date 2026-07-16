@@ -54,6 +54,7 @@ func Parse(content string) (*Changelog, error) {
 		if titlePattern.MatchString(line) {
 			foundTitle = true
 			changelog.Title = ChangelogTitle
+
 			continue
 		}
 

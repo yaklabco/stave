@@ -15,16 +15,10 @@ const testFilePerm = 0o644
 
 func TestPathMissingDest(t *testing.T) {
 	t.Parallel()
-	dir, err := os.MkdirTemp("", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = os.RemoveAll(dir) }()
+
+	dir := t.TempDir()
 	src := filepath.Join(dir, "source")
-	err = os.WriteFile(src, []byte("hi!"), testFilePerm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.WriteFile(src, []byte("hi!"), testFilePerm))
 	dst := filepath.Join(dir, "missing")
 	rebuild, err := Path(dst, src)
 	if err != nil {
@@ -37,18 +31,11 @@ func TestPathMissingDest(t *testing.T) {
 
 func TestPathMissingSource(t *testing.T) {
 	t.Parallel()
-	dir, err := os.MkdirTemp("", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = os.RemoveAll(dir) }()
+	dir := t.TempDir()
 	dst := filepath.Join(dir, "dst")
-	err = os.WriteFile(dst, []byte("hi!"), testFilePerm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.WriteFile(dst, []byte("hi!"), testFilePerm))
 	src := filepath.Join(dir, "missing")
-	_, err = Path(dst, src)
+	_, err := Path(dst, src)
 	if !os.IsNotExist(err) {
 		t.Fatal("Expected os.IsNotExist(err), but got", err)
 	}
@@ -56,18 +43,11 @@ func TestPathMissingSource(t *testing.T) {
 
 func TestGlobEmptyGlob(t *testing.T) {
 	t.Parallel()
-	dir, err := os.MkdirTemp("", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = os.RemoveAll(dir) }()
+	dir := t.TempDir()
 	dst := filepath.Join(dir, "dst")
-	err = os.WriteFile(dst, []byte("hi!"), testFilePerm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.WriteFile(dst, []byte("hi!"), testFilePerm))
 	src := filepath.Join(dir, "src*")
-	_, err = Glob(dst, src)
+	_, err := Glob(dst, src)
 	if err == nil {
 		t.Fatal("Expected error, but got nil")
 	}
@@ -75,18 +55,11 @@ func TestGlobEmptyGlob(t *testing.T) {
 
 func TestDirMissingSrc(t *testing.T) {
 	t.Parallel()
-	dir, err := os.MkdirTemp("", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = os.RemoveAll(dir) }()
+	dir := t.TempDir()
 	dst := filepath.Join(dir, "dst")
-	err = os.WriteFile(dst, []byte("hi!"), testFilePerm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.WriteFile(dst, []byte("hi!"), testFilePerm))
 	src := filepath.Join(dir, "missing")
-	_, err = Dir(dst, src)
+	_, err := Dir(dst, src)
 	if !os.IsNotExist(err) {
 		t.Fatal("Expected os.IsNotExist(err), but got", err)
 	}
@@ -94,21 +67,14 @@ func TestDirMissingSrc(t *testing.T) {
 
 func TestDirMissingDest(t *testing.T) {
 	t.Parallel()
-	dir, err := os.MkdirTemp("", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = os.RemoveAll(dir) }()
+
+	dir := t.TempDir()
 	src := filepath.Join(dir, "source")
-	err = os.Mkdir(src, 0755)
-	if err != nil {
+	if err := os.Mkdir(src, 0755); err != nil {
 		t.Fatal(err)
 	}
 
-	err = os.WriteFile(filepath.Join(src, "somefile"), []byte("hi!"), testFilePerm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.WriteFile(filepath.Join(src, "somefile"), []byte("hi!"), testFilePerm))
 	dst := filepath.Join(dir, "missing")
 	rebuild, err := Dir(dst, src)
 	if err != nil {
@@ -120,16 +86,11 @@ func TestDirMissingDest(t *testing.T) {
 }
 
 func TestGlob(t *testing.T) {
-	dir, err := os.MkdirTemp("", "")
-	if err != nil {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, filepath.Join("dir", "dir2")), 0777); err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = os.RemoveAll(dir) }()
 
-	err = os.MkdirAll(filepath.Join(dir, filepath.Join("dir", "dir2")), 0777)
-	if err != nil {
-		t.Fatal(err)
-	}
 	// files are created in order so we know how to expect
 	files := []string{
 		"old_executable",
@@ -215,16 +176,11 @@ func TestGlob(t *testing.T) {
 }
 
 func TestPath(t *testing.T) {
-	dir, err := os.MkdirTemp("", "")
-	if err != nil {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, filepath.Join("dir", "dir2")), 0777); err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = os.RemoveAll(dir) }()
 
-	err = os.MkdirAll(filepath.Join(dir, filepath.Join("dir", "dir2")), 0777)
-	if err != nil {
-		t.Fatal(err)
-	}
 	// files are created in order so we know how to expect
 	files := []string{
 		"file_one",
@@ -322,16 +278,11 @@ func TestPath(t *testing.T) {
 }
 
 func TestDir(t *testing.T) {
-	dir, err := os.MkdirTemp("", "")
-	if err != nil {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, filepath.Join("dir", "dir2")), 0777); err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = os.RemoveAll(dir) }()
 
-	err = os.MkdirAll(filepath.Join(dir, filepath.Join("dir", "dir2")), 0777)
-	if err != nil {
-		t.Fatal(err)
-	}
 	// files are created in order so we know which one is newer
 	files := []string{
 		"file_one",

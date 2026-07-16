@@ -23,9 +23,12 @@ func CallerTargetName() string {
 			if !more {
 				break
 			}
+
 			continue
 		}
+
 		return wctx.DisplayName(name)
 	}
+
 	return ""
 }

@@ -10,14 +10,11 @@ import (
 )
 
 func TestTruePath(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "stave-fsutils-test-*")
-	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	tempDir := t.TempDir()
 
 	// Create a real file
 	realFile := filepath.Join(tempDir, "realfile")
-	err = os.WriteFile(realFile, []byte("hello"), 0644)
-	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(realFile, []byte("hello"), 0644))
 
 	// Get absolute path of real file
 	absRealFile, err := filepath.Abs(realFile)
@@ -34,8 +31,7 @@ func TestTruePath(t *testing.T) {
 
 	// Create a symlink
 	symlink := filepath.Join(tempDir, "symlink")
-	err = os.Symlink(realFile, symlink)
-	require.NoError(t, err)
+	require.NoError(t, os.Symlink(realFile, symlink))
 
 	// Test with symlink
 	path, err = TruePath(symlink)
@@ -44,8 +40,7 @@ func TestTruePath(t *testing.T) {
 
 	// Create a nested symlink
 	nestedSymlink := filepath.Join(tempDir, "nested-symlink")
-	err = os.Symlink(symlink, nestedSymlink)
-	require.NoError(t, err)
+	require.NoError(t, os.Symlink(symlink, nestedSymlink))
 
 	// Test with nested symlink
 	path, err = TruePath(nestedSymlink)
@@ -60,14 +55,12 @@ func TestTruePath_NonExistent(t *testing.T) {
 }
 
 func TestMustRead(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "stave-fsutils-mustread-test-*")
-	require.NoError(t, err)
+	tempDir := t.TempDir()
 	defer os.RemoveAll(tempDir)
 
 	file := filepath.Join(tempDir, "file")
 	content := []byte("test content")
-	err = os.WriteFile(file, content, 0644)
-	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(file, content, 0644))
 
 	assert.NotPanics(t, func() {
 		data := MustRead(file)

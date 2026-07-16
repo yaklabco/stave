@@ -6,8 +6,9 @@ import (
 )
 
 type fatalError struct {
-	code int
 	error
+
+	code int
 }
 
 func (f fatalError) ExitStatus() int {
@@ -51,5 +52,6 @@ func ExitStatus(err error) int {
 	if errors.As(err, &exit) {
 		return exit.ExitStatus()
 	}
+
 	return 1
 }

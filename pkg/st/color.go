@@ -80,6 +80,7 @@ var noColorTERMs = lo.Keyify([]string{
 func getAnsiColor(name string) (string, bool) {
 	nameLower := strings.ToLower(name)
 	value, ok := ansiColorByLowerString[nameLower]
+
 	return value, ok
 }
 
@@ -88,6 +89,7 @@ func getAnsiColor(name string) (string, bool) {
 func NoColorTERMs() []string {
 	terms := slices.Collect(maps.Keys(noColorTERMs))
 	slices.Sort(terms)
+
 	return terms
 }
 
@@ -99,6 +101,7 @@ func TerminalSupportsColor(term string) bool {
 		return true
 	}
 	_, blacklisted := noColorTERMs[term]
+
 	return !blacklisted
 }
 

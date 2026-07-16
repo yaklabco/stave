@@ -73,6 +73,7 @@ func resolveStartDir(dir string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("resolving absolute path: %w", err)
 	}
+
 	return absDir, nil
 }
 
@@ -130,6 +131,7 @@ func getCustomHooksPath(ctx context.Context, absDir string) string {
 	if err != nil {
 		return ""
 	}
+
 	return customHooksPath
 }
 
@@ -196,6 +198,7 @@ func (r *GitRepo) EnsureHooksDir() error {
 	hooksPath := r.HooksPath()
 	slog.Debug("ensuring hooks directory exists",
 		slog.String("path", hooksPath))
+
 	return os.MkdirAll(hooksPath, dirPerm)
 }
 

@@ -9,7 +9,7 @@ import (
 
 var onces = &onceMap{
 	mu: &sync.Mutex{},
-	m:  map[onceKey]*onceFun{},
+	m:  make(map[onceKey]*onceFun),
 }
 
 // ResetOnces clears the global map of once-run dependencies.

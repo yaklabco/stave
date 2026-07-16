@@ -45,6 +45,7 @@ func handleFileChange(path string) error {
 			for _, cancel := range theState.CancelFuncs {
 				cancel()
 			}
+
 			theState.CancelFuncs = nil
 			select {
 			case theState.RerunChan <- struct{}{}:

@@ -38,6 +38,7 @@ func RunDebug(ctx context.Context, cmd string, args ...string) error {
 			slog.Any(log.Error, err),
 			slog.String(log.Stderr, errBuf.String()),
 		)
+
 		return err
 	}
 
@@ -72,6 +73,7 @@ func OutputDebug(ctx context.Context, cmd string, args ...string) (string, error
 			slog.Any(log.Error, err),
 			slog.String(log.Stderr, errBuf.String()),
 		)
+
 		return "", fmt.Errorf("error running \"%s %s\": %w\n%s", cmd, strings.Join(args, " "), err, errMsg)
 	}
 

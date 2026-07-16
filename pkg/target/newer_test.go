@@ -15,14 +15,13 @@ const testFilePermission = 0o644
 // setupTestDir creates a temp dir with test files and returns cleanup function.
 func setupTestDir(t *testing.T, files []string) string {
 	t.Helper()
-	dir, err := os.MkdirTemp("", "")
-	require.NoError(t, err, "creating temp dir")
-	t.Cleanup(func() { _ = os.RemoveAll(dir) })
 
+	dir := t.TempDir()
 	for _, name := range files {
 		out := filepath.Join(dir, name)
 		require.NoError(t, os.WriteFile(out, []byte("hi!"), testFilePermission))
 	}
+
 	return dir
 }
 

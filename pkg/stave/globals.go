@@ -38,6 +38,7 @@ var mainfileTemplate = template.Must(template.New("").Funcs(map[string]any{
 		for i, t := range parts {
 			parts[i] = lowerFirstWord(t)
 		}
+
 		return strings.Join(parts, ":")
 	},
 }).Parse(staveMainfileTplString))
@@ -63,5 +64,6 @@ func mainFilePathFromExePath(dir, exePath string) string {
 	if len(hash) > hashLengthLimit {
 		hash = hash[:hashLengthLimit]
 	}
+
 	return filepath.Join(dir, fmt.Sprintf("%s_%s_%d.go", mainFileBase, hash, os.Getpid()))
 }

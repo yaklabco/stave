@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 
@@ -37,6 +38,7 @@ func addIgnorePatternWithDomain(pattern string, domain []string) error {
 	// gitignore.ParsePattern takes the pattern and a domain (for anchoring).
 	ignorePatterns = append(ignorePatterns, gi.ParsePattern(pattern, domain))
 	ignoreMatcher = gi.NewMatcher(ignorePatterns)
+
 	return nil
 }
 
@@ -61,6 +63,7 @@ func LoadIgnoreReader(r io.Reader) error {
 			return err
 		}
 	}
+
 	return scanner.Err()
 }
 
@@ -113,8 +116,7 @@ func LoadGitIgnore() error {
 	}
 
 	// Reverse the list so we add patterns from top to bottom.
-	for i := len(gitignoreFiles) - 1; i >= 0; i-- {
-		path := gitignoreFiles[i]
+	for _, path := range slices.Backward(gitignoreFiles) {
 		// Determine the domain (relative path from root to the directory of this .gitignore)
 		dir := filepath.Dir(path)
 		rel, err := filepath.Rel(start, dir)
@@ -147,6 +149,7 @@ func loadIgnoreFileWithDomain(path string, domain []string) error {
 			return err
 		}
 	}
+
 	return scanner.Err()
 }
 
@@ -166,6 +169,7 @@ func IgnoreList() []string {
 	if len(ignoreStrings) == 0 {
 		return nil
 	}
+
 	return append([]string(nil), ignoreStrings...)
 }
 

@@ -59,9 +59,9 @@ func startWatcher() {
 		if info.IsDir() {
 			return watcher.Add(path)
 		}
+
 		return nil
 	})
-
 	if walkErr != nil {
 		fatalErr := st.Fatalf(1, "failed to start watcher: %v", walkErr)
 		if fatalErr != nil {

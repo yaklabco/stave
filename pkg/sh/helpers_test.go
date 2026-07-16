@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
 	"github.com/yaklabco/stave/pkg/sh"
 )
 
@@ -43,14 +44,12 @@ func compareFiles(file1 string, file2 string) error {
 	if !bytes.Equal(f1bytes, f2bytes) {
 		return fmt.Errorf("files %s and %s have different contents", file1, file2)
 	}
+
 	return nil
 }
 
 func TestHelpers(t *testing.T) {
-	mytmpdir, err := os.MkdirTemp("", "stave")
-	if err != nil {
-		t.Fatalf("can't create test directory: %v", err)
-	}
+	mytmpdir := t.TempDir()
 	defer func() {
 		derr := os.RemoveAll(mytmpdir)
 		if derr != nil {
@@ -59,10 +58,7 @@ func TestHelpers(t *testing.T) {
 	}()
 	srcname := filepath.Join(mytmpdir, "test1.txt")
 	//#nosec G306 -- test file does not require restricted permissions.
-	err = os.WriteFile(srcname, []byte("All work and no play makes Jack a dull boy."), 0o644)
-	if err != nil {
-		t.Fatalf("can't create test file %s: %v", srcname, err)
-	}
+	require.NoError(t, os.WriteFile(srcname, []byte("All work and no play makes Jack a dull boy."), 0o644))
 	destname := filepath.Join(mytmpdir, "test2.txt")
 
 	t.Run("sh/copy", func(t *testing.T) {

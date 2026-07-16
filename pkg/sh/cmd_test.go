@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 
@@ -68,9 +69,7 @@ func TestNotRun(t *testing.T) {
 }
 
 func TestAutoExpand(t *testing.T) {
-	if err := os.Setenv("STAVE_FOOBAR", "baz"); err != nil {
-		t.Fatal(err)
-	}
+	t.Setenv("STAVE_FOOBAR", "baz")
 	s, err := Output("echo", "$STAVE_FOOBAR")
 	if err != nil {
 		t.Fatal(err)
@@ -293,13 +292,7 @@ func TestPrepCmdWith(t *testing.T) {
 	assert.Equal(t, theStderr, cmd.Stderr)
 
 	// Check env
-	found := false
-	for _, e := range cmd.Env {
-		if e == "FOO=bar" {
-			found = true
-			break
-		}
-	}
+	found := slices.Contains(cmd.Env, "FOO=bar")
 	assert.True(t, found, "FOO=bar not found in cmd.Env")
 
 	assert.Contains(t, cmd.Args, "bar")
@@ -318,13 +311,7 @@ func TestPrepCmdWithV(t *testing.T) {
 	assert.Equal(t, theStderr, cmd.Stderr)
 
 	// Check env
-	found := false
-	for _, e := range cmd.Env {
-		if e == "FOO=bar" {
-			found = true
-			break
-		}
-	}
+	found := slices.Contains(cmd.Env, "FOO=bar")
 	assert.True(t, found, "FOO=bar not found in cmd.Env")
 
 	assert.Contains(t, cmd.Args, "bar")

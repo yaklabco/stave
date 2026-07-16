@@ -62,6 +62,7 @@ func GetActive() context.Context {
 			break
 		}
 	}
+
 	return context.Background()
 }
 
@@ -75,6 +76,7 @@ func GetCurrent(ctx context.Context) string {
 	if name, ok := ctx.Value(currentTargetKey).(string); ok {
 		return name
 	}
+
 	return ""
 }
 

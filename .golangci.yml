@@ -4,90 +4,18 @@ run:
   build-tags:
     - stave
 linters:
-  default: none
-  enable:
-    - asasalint
-    - asciicheck
-    - bidichk
-    - bodyclose
-    - canonicalheader
-    - contextcheck
-    - copyloopvar
-    - cyclop
-    - decorder
-    - dupl
-    - dupword
-    - durationcheck
-    - errcheck
-    - errchkjson
-    - errname
-    - errorlint
-    - fatcontext
-    - forbidigo
-    - forcetypeassert
-    - funlen
-    - ginkgolinter
-    - gocheckcompilerdirectives
-    - gochecknoglobals
-    - gochecknoinits
-    - gochecksumtype
-    - gocognit
-    - goconst
-    - gocritic
-    - gocyclo
-    - godot
-    - goheader
-    - gomodguard_v2
-    - goprintffuncname
-    - gosec
-    - govet
-    - grouper
-    - inamedparam
-    - ineffassign
-    - interfacebloat
-    - intrange
-    #    - ireturn # Go internals for parsing Go code often return interfaces.
-    - lll
-    - loggercheck
-    - maintidx
-    - makezero
-    - mirror
-    - misspell
-    - mnd
-    - musttag
-    - nakedret
-    - nestif
-    - nilerr
-    - nilnil
-    - noctx
-    - nolintlint
-    - nonamedreturns
-    - nosprintfhostport
-    - perfsprint
-    - prealloc
-    - predeclared
-    - promlinter
-    - protogetter
-    - reassign
-    - revive
-    - rowserrcheck
-    - sloglint
-    - spancheck
-    - sqlclosecheck
-    - staticcheck
-    - testableexamples
-    - testifylint
-    - thelper
-    - tparallel
-    - unconvert
-    - unparam
-    - unused
-    - usestdlibvars
-    - varnamelen
-    - wastedassign
-    - whitespace
-    #    - wrapcheck # Stave outputs error messages directly to the user, so wrapping is actually not what we want in this project.
-    - zerologlint
+  default: all
+  disable:
+    - containedctx
+    - depguard
+    - err113
+    - exhaustruct
+    - gomodguard
+    - nlreturn
+    - noinlineerr
+    - testpackage
+    - wsl
+    - wrapcheck
   settings:
     cyclop:
       max-complexity: 50
@@ -161,6 +89,9 @@ linters:
         - funlen
         - gocognit
         - lll
+    paralleltest:
+      ignore-missing: true
+      ignore-missing-subtests: true
     revive:
       rules:
         - name: add-constant
@@ -201,7 +132,7 @@ linters:
             - otherpragma
           disabled: true
         - name: confusing-naming
-          disabled: true
+          disabled: false
         - name: confusing-results
           disabled: true
         - name: constant-logical-expr
@@ -240,7 +171,7 @@ linters:
         - name: enforce-map-style
           arguments:
             - make
-          disabled: true
+          disabled: false
         - name: error-naming
           disabled: false
         - name: error-return
@@ -250,7 +181,7 @@ linters:
         - name: errorf
           disabled: false
         - name: file-header
-          disabled: true
+          disabled: false
         - name: flag-parameter
           disabled: true
         - name: function-result-limit
@@ -389,17 +320,27 @@ linters:
     rowserrcheck:
       packages:
         - github.com/jmoiron/sqlx
+    tagliatelle:
+      case:
+        rules:
+          json: snake
     varnamelen:
       min-name-length: 2
       check-type-param: false
       check-receiver: false
       ignore-decls:
         - g *goldie.Goldie
-    wsl:
-      allow-assign-and-anything: true
-      allow-multiline-assign: true
-      allow-cuddle-declarations: true
-      force-err-cuddling: true
+    wsl_v5:
+      disable:
+        - append
+        - assign
+        - decl
+        - defer
+        - expr
+        - for
+        - if
+        - leading-whitespace
+        - range
   exclusions:
     generated: lax
     presets:

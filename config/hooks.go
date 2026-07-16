@@ -102,6 +102,7 @@ func ValidateHooks(hooks HooksConfig) ValidationResults {
 				Field:   "hooks",
 				Message: "hook name cannot be empty",
 			})
+
 			continue
 		}
 
@@ -133,6 +134,7 @@ func (h HooksConfig) Get(hookName string) []HookTarget {
 	if h == nil {
 		return nil
 	}
+
 	return h[hookName]
 }
 
@@ -146,6 +148,7 @@ func (h HooksConfig) HookNames() []string {
 		names = append(names, name)
 	}
 	sort.Strings(names)
+
 	return names
 }
 
@@ -156,5 +159,6 @@ func KnownGitHookNames() []string {
 		names = append(names, name)
 	}
 	sort.Strings(names)
+
 	return names
 }

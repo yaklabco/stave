@@ -47,6 +47,7 @@ func RunConfigCommandContext(_ context.Context, stdout, stderr io.Writer, args [
 			return exitCodeOK
 		}
 		_, _ = fmt.Fprintf(stderr, "Error: %v\n", err)
+
 		return exitCodeUsageError
 	}
 
@@ -67,6 +68,7 @@ func RunConfigCommandContext(_ context.Context, stdout, stderr io.Writer, args [
 	default:
 		_, _ = fmt.Fprintf(stderr, "Error: unknown config subcommand %q\n", subArgs[0])
 		configUsage(stderr)
+
 		return exitCodeUsageError
 	}
 }
@@ -79,6 +81,7 @@ func runConfigInit(stdout, stderr io.Writer) int {
 		return 1
 	}
 	_, _ = fmt.Fprintf(stdout, "Created config file: %s\n", path)
+
 	return 0
 }
 

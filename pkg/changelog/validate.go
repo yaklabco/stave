@@ -48,6 +48,7 @@ func (r ValidationResult) Error() error {
 			msgs = append(msgs, e.Message)
 		}
 	}
+
 	return errors.New(strings.Join(msgs, "; "))
 }
 

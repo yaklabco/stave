@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"charm.land/lipgloss/v2"
+
 	"github.com/yaklabco/stave/pkg/ui"
 )
 
@@ -86,6 +87,7 @@ func EffectiveCommit(_ context.Context) string {
 			}
 		}
 	}
+
 	return ""
 }
 
@@ -97,6 +99,7 @@ func EffectiveBuildTime() string {
 	if t, ok := EffectiveBuildTimeParsed(); ok {
 		return t.UTC().Format(time.RFC3339)
 	}
+
 	return ""
 }
 
@@ -119,6 +122,7 @@ func EffectiveBuildTimeParsed() (time.Time, bool) {
 			}
 		}
 	}
+
 	return time.Time{}, false
 }
 
@@ -130,6 +134,7 @@ func parseRFC3339MaybeNano(v string) (time.Time, bool) {
 	if t, err := time.Parse(time.RFC3339Nano, v); err == nil {
 		return t, true
 	}
+
 	return time.Time{}, false
 }
 
@@ -147,7 +152,7 @@ func OverallVersionString(ctx context.Context) string {
 
 	// Build time
 	if t, ok := EffectiveBuildTimeParsed(); ok {
-		local := t.In(time.Local)
+		local := t.In(time.Local) //nolint:gosmopolitan // This is strictly for user-facing display purposes.
 		parts = append(parts, local.Format(time.RFC3339))
 	} else if raw := EffectiveBuildTime(); raw != "" {
 		parts = append(parts, raw)
@@ -179,7 +184,7 @@ func OverallVersionStringColorized(ctx context.Context) string {
 
 	// Build time
 	if t, ok := EffectiveBuildTimeParsed(); ok {
-		local := t.In(time.Local)
+		local := t.In(time.Local) //nolint:gosmopolitan // This is strictly for user-facing display purposes.
 		parts = append(parts, timeStyle.Render(local.Format(time.RFC3339)))
 	} else if raw := EffectiveBuildTime(); raw != "" {
 		parts = append(parts, timeStyle.Render(raw))

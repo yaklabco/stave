@@ -75,6 +75,7 @@ func (r ValidationResults) ErrorMessage() string {
 	for _, e := range r.Errors {
 		msgs = append(msgs, e.Error())
 	}
+
 	return strings.Join(msgs, "; ")
 }
 
@@ -119,5 +120,6 @@ func validColorList() string {
 		"BrightBlack", "BrightRed", "BrightGreen", "BrightYellow",
 		"BrightBlue", "BrightMagenta", "BrightCyan", "BrightWhite",
 	}
+
 	return strings.Join(colors, ", ")
 }
