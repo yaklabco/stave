@@ -121,6 +121,7 @@ func TestParse(t *testing.T) {
 					break
 				}
 				t.Errorf("expected:\n%#v\n\nto equal:\n%#v", expectedFunc, *infoFn)
+
 				break
 			}
 			t.Logf("%#v", infoFn)

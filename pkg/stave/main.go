@@ -21,6 +21,7 @@ import (
 
 	cblog "github.com/charmbracelet/log"
 	"github.com/samber/lo"
+
 	"github.com/yaklabco/stave/cmd/stave/version"
 	"github.com/yaklabco/stave/internal"
 	"github.com/yaklabco/stave/internal/dryrun"
@@ -200,6 +201,7 @@ func runConfigMode(ctx context.Context, params RunParams) error {
 	if exitCode != 0 {
 		return st.Fatal(exitCode, "config command failed")
 	}
+
 	return nil
 }
 
@@ -384,7 +386,6 @@ func preprocessRunParams(params *RunParams) {
 	originalDir := params.Dir
 	params.Dir = stavefilesDir // preemptive assignment
 
-	// TODO: Remove this fallback when the bw compatibility is removed.
 	files, err := Stavefiles(originalDir, params.GOOS, params.GOARCH, false)
 	if err != nil || len(files) == 0 {
 		return
@@ -601,6 +602,7 @@ func GenerateMainFile(binaryName, path string, info *parse.PkgInfo) error {
 		if errors.Is(err, os.ErrExist) {
 			return nil
 		}
+
 		return fmt.Errorf("error creating generated mainfile: %w", err)
 	}
 	defer func() { _ = outputFile.Close() }()
@@ -619,6 +621,7 @@ func GenerateMainFile(binaryName, path string, info *parse.PkgInfo) error {
 	if err := os.Chtimes(path, longAgo, longAgo); err != nil {
 		return fmt.Errorf("error setting old modtime on generated mainfile: %w", err)
 	}
+
 	return nil
 }
 
@@ -696,6 +699,7 @@ func ExeName(ctx context.Context, goCmd, cacheDir string, files []string) (strin
 	if runtime.GOOS == "windows" {
 		out += ".exe"
 	}
+
 	return out, nil
 }
 
@@ -710,6 +714,7 @@ func hashFile(filename string) (string, error) {
 	if _, err := io.Copy(hasher, inputFile); err != nil {
 		return "", fmt.Errorf("can't write data to hash: %w", err)
 	}
+
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
@@ -776,6 +781,7 @@ func RunCompiled(ctx context.Context, params RunParams, exePath string) error {
 	if !sh.CmdRan(err) {
 		slog.Error("failed to run compiled stavefile", slog.Any(log.Error, err))
 	}
+
 	return err
 }
 
@@ -826,6 +832,7 @@ func removeContents(dir string) error {
 		if os.IsNotExist(err) {
 			return nil
 		}
+
 		return err
 	}
 	for _, entry := range entries {

@@ -26,12 +26,12 @@ var (
 // DirNewer respects the global ignorelist populated by AddIgnorePattern and
 // LoadIgnoreFile.
 func DirNewer(target time.Time, sources ...string) (bool, error) {
-	newer, _, _, err := dirNewer(target, sources...)
+	newer, _, _, err := dirNewerInner(target, sources...)
 
 	return newer, err
 }
 
-func dirNewer(target time.Time, sources ...string) (bool, string, time.Time, error) {
+func dirNewerInner(target time.Time, sources ...string) (bool, string, time.Time, error) {
 	var newestSoFar time.Time
 	var newestPath string
 
@@ -56,6 +56,7 @@ func dirNewer(target time.Time, sources ...string) (bool, string, time.Time, err
 				if info.IsDir() {
 					return filepath.SkipDir
 				}
+
 				return nil
 			}
 
@@ -71,12 +72,14 @@ func dirNewer(target time.Time, sources ...string) (bool, string, time.Time, err
 			if modTime.After(target) {
 				newestSoFar = modTime
 				newestPath = path
+
 				return errNewer
 			}
 			if modTime.After(newestSoFar) {
 				newestSoFar = modTime
 				newestPath = path
 			}
+
 			return nil
 		}
 		err = filepath.WalkDir(source, walkFn)
@@ -86,6 +89,7 @@ func dirNewer(target time.Time, sources ...string) (bool, string, time.Time, err
 		if errors.Is(err, errNewer) {
 			return true, newestPath, newestSoFar, nil
 		}
+
 		return false, "", time.Time{}, err
 	}
 
@@ -96,12 +100,12 @@ func dirNewer(target time.Time, sources ...string) (bool, string, time.Time, err
 // PathNewer for inspection. It returns the first time PathNewer encounters a
 // newer file.
 func GlobNewer(target time.Time, sources ...string) (bool, error) {
-	newer, _, _, err := globNewer(target, sources...)
+	newer, _, _, err := globNewerInner(target, sources...)
 
 	return newer, err
 }
 
-func globNewer(target time.Time, sources ...string) (bool, string, time.Time, error) {
+func globNewerInner(target time.Time, sources ...string) (bool, string, time.Time, error) {
 	var newestSoFar time.Time
 	var newestPath string
 
@@ -113,7 +117,7 @@ func globNewer(target time.Time, sources ...string) (bool, string, time.Time, er
 		if len(files) == 0 {
 			return false, "", time.Time{}, fmt.Errorf("glob didn't match any files: %s", globPattern)
 		}
-		newer, path, modTime, err := pathNewer(target, files...)
+		newer, path, modTime, err := pathNewerInner(target, files...)
 		if err != nil {
 			return false, "", time.Time{}, err
 		}
@@ -136,12 +140,12 @@ func globNewer(target time.Time, sources ...string) (bool, string, time.Time, er
 // PathNewer respects the global ignorelist populated by AddIgnorePattern and
 // LoadIgnoreFile.
 func PathNewer(target time.Time, sources ...string) (bool, error) {
-	newer, _, _, err := pathNewer(target, sources...)
+	newer, _, _, err := pathNewerInner(target, sources...)
 
 	return newer, err
 }
 
-func pathNewer(target time.Time, sources ...string) (bool, string, time.Time, error) {
+func pathNewerInner(target time.Time, sources ...string) (bool, string, time.Time, error) {
 	var newestSoFar time.Time
 	var newestPath string
 
@@ -194,6 +198,7 @@ func OldestModTime(targets ...string) (time.Time, error) {
 				if info.IsDir() {
 					return filepath.SkipDir
 				}
+
 				return nil
 			}
 
@@ -209,6 +214,7 @@ func OldestModTime(targets ...string) (time.Time, error) {
 			if mTime.Before(oldestTime) {
 				oldestTime = mTime
 			}
+
 			return nil
 		}
 		if err := filepath.WalkDir(target, walkFn); err != nil {
@@ -246,6 +252,7 @@ func NewestModTime(targets ...string) (time.Time, error) {
 				if info.IsDir() {
 					return filepath.SkipDir
 				}
+
 				return nil
 			}
 
@@ -261,6 +268,7 @@ func NewestModTime(targets ...string) (time.Time, error) {
 			if mTime.After(newestTime) {
 				newestTime = mTime
 			}
+
 			return nil
 		}
 		if err := filepath.WalkDir(target, walkFn); err != nil {

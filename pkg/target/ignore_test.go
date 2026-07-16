@@ -12,9 +12,7 @@ import (
 func TestIgnore(t *testing.T) {
 	// Don't use t.Parallel() because it uses global state
 
-	dir, err := os.MkdirTemp("", "stave-ignore-test")
-	require.NoError(t, err)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	// Create a file to ignore
 	ignoredFile := filepath.Join(dir, "ignored.txt")
@@ -150,9 +148,7 @@ func TestGitignoreSyntax(t *testing.T) {
 }
 
 func TestLoadIgnoreFile(t *testing.T) {
-	dir, err := os.MkdirTemp("", "stave-ignore-file-test")
-	require.NoError(t, err)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	ignoreFilePath := filepath.Join(dir, ".staveignore")
 	content := `
@@ -164,8 +160,7 @@ temp/
 	require.NoError(t, os.WriteFile(ignoreFilePath, []byte(content), 0644))
 
 	ClearIgnoreList()
-	err = LoadIgnoreFile(ignoreFilePath)
-	require.NoError(t, err)
+	require.NoError(t, LoadIgnoreFile(ignoreFilePath))
 
 	require.True(t, isIgnored("test.log", false))
 	require.True(t, isIgnored("temp/foo.txt", false))
@@ -177,7 +172,7 @@ temp/
 }
 
 func TestLoadGitIgnore(t *testing.T) {
-	// Setup a nested structure:
+	// Set up a nested structure:
 	// root/
 	//   .git/ (dummy)
 	//   .gitignore (Pattern: *.log)
@@ -186,9 +181,7 @@ func TestLoadGitIgnore(t *testing.T) {
 	//     important.log
 	//     other.log
 
-	tmpDir, err := os.MkdirTemp("", "stave-loadgitignore-test")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	root := filepath.Join(tmpDir, "root")
 	require.NoError(t, os.Mkdir(root, 0755))
@@ -200,18 +193,10 @@ func TestLoadGitIgnore(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(subdir, ".gitignore"), []byte("!important.log\n"), 0644))
 
 	// Change working directory to subdir
-	oldCwd, err := os.Getwd()
-	require.NoError(t, err)
-	require.NoError(t, os.Chdir(subdir))
-	defer func() {
-		if err := os.Chdir(oldCwd); err != nil {
-			t.Errorf("failed to restore working directory: %v", err)
-		}
-	}()
+	t.Chdir(subdir)
 
 	ClearIgnoreList()
-	err = LoadGitIgnore()
-	require.NoError(t, err)
+	require.NoError(t, LoadGitIgnore())
 
 	// In subdir/
 	// other.log should be ignored (from root/.gitignore)

@@ -71,6 +71,7 @@ func LinkifyContent(content string) (string, error) {
 		if matches := repoURLPattern.FindStringSubmatch(l.URL); len(matches) > 3 {
 			baseURL = matches[1]
 			tagPrefix = matches[3]
+
 			break
 		}
 	}
@@ -142,6 +143,7 @@ func LinkifyContent(content string) (string, error) {
 				result = append(result, fmt.Sprintf("[%s]: %s", name, link))
 			}
 		}
+
 		return strings.Join(result, "\n") + "\n", nil
 	}
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/gobwas/glob"
@@ -29,6 +30,7 @@ func GetTargetState(name string) *wtarget.Target {
 		DepIDs:    make(map[string]struct{}),
 	}
 	targets[name] = theState
+
 	return theState
 }
 
@@ -57,13 +59,7 @@ func Watch(patterns ...string) {
 	theState.Mu.Lock()
 	defer theState.Mu.Unlock()
 
-	foundWatcher := false
-	for _, w := range theState.Watchers {
-		if w == target {
-			foundWatcher = true
-			break
-		}
-	}
+	foundWatcher := slices.Contains(theState.Watchers, target)
 	if !foundWatcher {
 		theState.Watchers = append(theState.Watchers, target)
 	}
@@ -79,13 +75,7 @@ func Watch(patterns ...string) {
 		}
 
 		// Prevent duplicate patterns
-		found := false
-		for _, existing := range theState.Patterns {
-			if existing == absP {
-				found = true
-				break
-			}
-		}
+		found := slices.Contains(theState.Patterns, absP)
 		if found {
 			continue
 		}
@@ -153,13 +143,7 @@ func Deps(fns ...any) {
 	theState.Mu.Lock()
 	defer theState.Mu.Unlock()
 
-	foundWatcher := false
-	for _, w := range theState.Watchers {
-		if w == target {
-			foundWatcher = true
-			break
-		}
-	}
+	foundWatcher := slices.Contains(theState.Watchers, target)
 	if !foundWatcher {
 		theState.Watchers = append(theState.Watchers, target)
 	}

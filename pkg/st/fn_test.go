@@ -145,6 +145,7 @@ func TestF(t *testing.T) {
 		sOut = ss
 		bOut = bb
 		dOut = dd
+
 		return nil
 	}
 

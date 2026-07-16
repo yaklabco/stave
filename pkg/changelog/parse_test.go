@@ -142,6 +142,7 @@ All notable changes to this project will be documented in this file.
 				if !errors.Is(err, testCase.wantErr) {
 					t.Errorf("Parse() error = %v, want %v", err, testCase.wantErr)
 				}
+
 				return
 			}
 			if err != nil {

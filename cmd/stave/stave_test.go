@@ -64,6 +64,7 @@ func TestParse(t *testing.T) {
 		assert.Equal(t, "dir", params.Dir)
 		assert.Equal(t, "foo", params.GoCmd)
 		assert.Equal(t, []string{"build", "deploy"}, params.Args)
+
 		return nil
 	}
 	rootCmd := NewRootCmd(ctx, withRunFunc(runFunc))
@@ -146,6 +147,7 @@ func TestHooksFlag(t *testing.T) {
 	runFunc := func(params stave.RunParams) error {
 		assert.True(t, params.Hooks)
 		assert.Equal(t, []string{"install"}, params.Args)
+
 		return nil
 	}
 	rootCmd := NewRootCmd(ctx, withRunFunc(runFunc))
@@ -159,6 +161,7 @@ func TestHooksFlagWithVerbose(t *testing.T) {
 		assert.True(t, params.Hooks)
 		assert.True(t, params.Verbose)
 		assert.Equal(t, []string{"list"}, params.Args)
+
 		return nil
 	}
 	rootCmd := NewRootCmd(ctx, withRunFunc(runFunc))
@@ -171,6 +174,7 @@ func TestConfigFlag(t *testing.T) {
 	runFunc := func(params stave.RunParams) error {
 		assert.True(t, params.Config)
 		assert.Equal(t, []string{"show"}, params.Args)
+
 		return nil
 	}
 	rootCmd := NewRootCmd(ctx, withRunFunc(runFunc))
@@ -183,6 +187,7 @@ func TestConfigFlagNoSubcommand(t *testing.T) {
 	runFunc := func(params stave.RunParams) error {
 		assert.True(t, params.Config)
 		assert.Empty(t, params.Args)
+
 		return nil
 	}
 	rootCmd := NewRootCmd(ctx, withRunFunc(runFunc))

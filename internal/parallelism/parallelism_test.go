@@ -60,7 +60,7 @@ func revertEnvVar(t *testing.T, origVal string, origValOK bool) {
 	t.Helper()
 
 	if origValOK {
-		setenvErr := os.Setenv(StaveNumProcessorsEnvVar, origVal)
+		setenvErr := os.Setenv(StaveNumProcessorsEnvVar, origVal) //nolint:usetesting // This is part of a more attenuated env-var management pattern for these particular tests.
 		if setenvErr != nil {
 			t.Errorf("Failed to revert env var %q: %v", StaveNumProcessorsEnvVar, setenvErr)
 		}

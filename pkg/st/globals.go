@@ -13,8 +13,8 @@ var (
 	errType   = reflect.TypeOf(func() error { return nil }).Out(0)
 	emptyType = reflect.TypeOf(struct{}{})
 
-	intType    = reflect.TypeOf(int(0))
-	stringType = reflect.TypeOf(string(""))
+	intType    = reflect.TypeFor[int]()
+	stringType = reflect.TypeFor[string]()
 	boolType   = reflect.TypeOf(bool(false))
 	durType    = reflect.TypeOf(time.Second)
 

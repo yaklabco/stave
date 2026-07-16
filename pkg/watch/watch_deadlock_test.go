@@ -35,6 +35,7 @@ func TestDeadlock(t *testing.T) {
 		for range 1000 {
 			Watch("file.txt")
 		}
+
 		done1 <- true
 	}()
 
@@ -46,6 +47,7 @@ func TestDeadlock(t *testing.T) {
 				t.Error(hfcErr)
 			}
 		}
+
 		done2 <- true
 	}()
 

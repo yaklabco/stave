@@ -26,6 +26,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"github.com/yaklabco/stave/internal"
 	"github.com/yaklabco/stave/pkg/fsutils"
 	"github.com/yaklabco/stave/pkg/st"
@@ -379,7 +380,7 @@ func TestCompileDiffGoosGoarch(t *testing.T) {
 
 	ctx := t.Context()
 
-	target, err := os.MkdirTemp(testDataDir, "")
+	target, err := os.MkdirTemp(testDataDir, "") //nolint:usetesting // We want a subdir of `dir` here.
 	require.NoError(t, err)
 	defer func() {
 		assert.NoError(t, os.RemoveAll(target))
@@ -900,8 +901,8 @@ func TestHelpNoTarget(t *testing.T) {
 		Args:    []string{},
 		Info:    true,
 	}
-	err := Run(runParams)
 
+	err := Run(runParams)
 	if err == nil {
 		t.Fatalf("expected an error, but gone none\nstdout: %s\nstderr: %s", stdout, stderr)
 	}
@@ -972,7 +973,6 @@ func TestHelpMatchesCompiledBinary(t *testing.T) {
 	}
 
 	err := Run(runParams)
-
 	if err != nil {
 		t.Fatalf("compile failed with error %v: %s", err, stderr)
 	}
@@ -1769,7 +1769,7 @@ func TestCompiledFlags(t *testing.T) {
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	dir := testDataCompiled
-	compileDir, err := os.MkdirTemp(dir, "")
+	compileDir, err := os.MkdirTemp(dir, "") //nolint:usetesting // We want a subdir of `dir` here.
 	require.NoError(t, err)
 	name := filepath.Join(compileDir, "stave_test_out")
 	if runtime.GOOS == windows {
@@ -1806,6 +1806,7 @@ func TestCompiledFlags(t *testing.T) {
 			return fmt.Errorf("running '%s %s' failed with: %w\nstdout: %s\nstderr: %s",
 				filename, strings.Join(args, " "), err, stdout, stderr)
 		}
+
 		return nil
 	}
 
@@ -1841,7 +1842,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 	stdout := &bytes.Buffer{}
 
 	dir := testDataCompiled
-	compileDir, err := os.MkdirTemp(dir, "")
+	compileDir, err := os.MkdirTemp(dir, "") //nolint:usetesting // We want a subdir of `dir` here.
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 
 	name := filepath.Join(compileDir, "stave_test_out")
@@ -1879,6 +1880,7 @@ func TestCompiledEnvironmentVars(t *testing.T) {
 			return fmt.Errorf("running '%s %s' failed with: %w\nstdout: %s\nstderr: %s",
 				filename, strings.Join(args, " "), err, stdout, stderr)
 		}
+
 		return nil
 	}
 
@@ -1922,7 +1924,7 @@ func TestCompiledVerboseFlag(t *testing.T) {
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	dir := testDataCompiled
-	compileDir, err := os.MkdirTemp(dir, "")
+	compileDir, err := os.MkdirTemp(dir, "") //nolint:usetesting // We want a subdir of `dir` here.
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 	filename := filepath.Join(compileDir, "stave_test_out")
 	if runtime.GOOS == windows {
@@ -1987,7 +1989,7 @@ func TestSignals(t *testing.T) {
 	stderr := &bytes.Buffer{}
 	stdout := &bytes.Buffer{}
 	dir := filepath.Join(testDataDir, "signals")
-	compileDir, err := os.MkdirTemp(dir, "")
+	compileDir, err := os.MkdirTemp(dir, "") //nolint:usetesting // We want a subdir of `dir` here.
 	require.NoError(t, err, "stderr was: %s", stderr.String())
 	name := filepath.Join(compileDir, "stave_test_out")
 
@@ -2024,6 +2026,7 @@ func TestSignals(t *testing.T) {
 		}
 
 		pid := cmd.Process.Pid
+
 		go func() {
 			// Wait longer for process to start and set up signal handlers,
 			// especially important when running in parallel with other tests.
@@ -2077,7 +2080,7 @@ func TestSignals(t *testing.T) {
 
 func TestCompiledDeterministic(t *testing.T) {
 	dir := testDataCompiled
-	compileDir, err := os.MkdirTemp(dir, "")
+	compileDir, err := os.MkdirTemp(dir, "") //nolint:usetesting // We want a subdir of `dir` here.
 	require.NoError(t, err)
 
 	var exp string
@@ -2148,7 +2151,7 @@ func TestGoCmd(t *testing.T) {
 	t.Setenv(testExeEnv, textOutput)
 
 	// fake out the compiled file, since the code checks for it.
-	tempFile, err := os.CreateTemp("", "")
+	tempFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 	name := tempFile.Name()
 	dir := filepath.Dir(name)
@@ -2181,21 +2184,16 @@ func TestGoModules(t *testing.T) {
 	ctx := t.Context()
 
 	require.NoError(t, resetTerm())
-	dir, err := os.MkdirTemp("", "")
-	require.NoError(t, err)
-	defer func() {
-		assert.NoError(t, os.RemoveAll(dir))
-	}()
+	dir := t.TempDir()
 
-	err = os.WriteFile(filepath.Join(dir, "stavefile.go"), []byte(`//go:build stave
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "stavefile.go"), []byte(`//go:build stave
 
 package main
 
 func Test() {
 	print("nothing is imported here for >1.17 compatibility")
 }
-`), 0600)
-	require.NoError(t, err)
+`), 0600))
 
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
@@ -2219,12 +2217,11 @@ func Test() {
 
 	stderr.Reset()
 	stdout.Reset()
-	err = Run(RunParams{
+	require.Error(t, Run(RunParams{
 		Dir:    dir,
 		Stderr: stderr,
 		Stdout: stdout,
-	})
-	require.Error(t, err)
+	}))
 	assert.Regexp(t, `(?m)no targets specified and no .*Default.* defined`, stderr.String())
 }
 
@@ -2402,6 +2399,7 @@ func fileData(file string) (exeType, archSize, error) {
 		if peFile.Machine == pe.IMAGE_FILE_MACHINE_AMD64 {
 			return winExe, arch64, nil
 		}
+
 		return winExe, arch32, nil
 	}
 
@@ -2414,7 +2412,9 @@ func fileData(file string) (exeType, archSize, error) {
 		if machoFile.Cpu&0x01000000 != 0 {
 			return macExe, arch64, nil
 		}
+
 		return macExe, arch32, nil
 	}
+
 	return -1, -1, errors.New("unrecognized executable format")
 }

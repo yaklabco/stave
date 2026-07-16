@@ -82,6 +82,7 @@ func (o *onceMap) LoadOrStore(theFunc Fn) *onceFun {
 		displayName: DisplayName(theFunc.Name()),
 	}
 	o.m[key] = one
+
 	return one
 }
 
@@ -136,6 +137,7 @@ func runDeps(ctx context.Context, fns []Fn) {
 	for _, depFn := range fns {
 		depFunc := onces.LoadOrStore(depFn)
 		waitGroup.Add(1)
+
 		go func() {
 			defer func() {
 				if panicValue := recover(); panicValue != nil {
@@ -265,6 +267,7 @@ func (o *onceFun) run(ctx context.Context) error {
 	if o.panicVal != nil {
 		panic(o.panicVal)
 	}
+
 	return o.err
 }
 
@@ -280,5 +283,6 @@ func RunFn(ctx context.Context, theFunc any) error {
 	ctx = ContextWithTarget(ctx, displayName)
 	wctx.Register(displayName, ctx)
 	defer wctx.Unregister(displayName)
+
 	return fn.Run(ctx)
 }

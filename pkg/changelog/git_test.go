@@ -21,6 +21,7 @@ func (m *mockGitOps) ChangedFiles(_, _ string) ([]string, error) {
 	if m.changedErr != nil {
 		return nil, m.changedErr
 	}
+
 	return m.changedFiles, nil
 }
 
@@ -28,6 +29,7 @@ func (m *mockGitOps) MergeBase(_, _ string) (string, error) {
 	if m.mergeBaseErr != nil {
 		return "", m.mergeBaseErr
 	}
+
 	return m.mergeBase, nil
 }
 
@@ -35,6 +37,7 @@ func (m *mockGitOps) RefExists(ref string) bool {
 	if m.refExists == nil {
 		return false
 	}
+
 	return lo.HasKey(m.refExists, ref)
 }
 
@@ -42,6 +45,7 @@ func (m *mockGitOps) CurrentBranch() (string, error) {
 	if m.branchErr != nil {
 		return "", m.branchErr
 	}
+
 	return m.currentBranch, nil
 }
 

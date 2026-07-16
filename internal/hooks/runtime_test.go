@@ -14,12 +14,14 @@ import (
 // in order for each invocation.
 func mockRunner(exitCodes ...int) TargetRunnerFunc {
 	idx := 0
+
 	return func(_ context.Context, _, _ string, _ []string, _ io.Reader, _, _ io.Writer) (int, error) {
 		if idx >= len(exitCodes) {
 			return 0, nil
 		}
 		code := exitCodes[idx]
 		idx++
+
 		return code, nil
 	}
 }

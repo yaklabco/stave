@@ -79,6 +79,7 @@ func resolveConfigHome() string {
 		if appData := os.Getenv("APPDATA"); appData != "" {
 			return appData
 		}
+
 		return filepath.Join(home, "AppData", "Roaming")
 	default:
 		// Linux and other Unix: ~/.config
@@ -104,6 +105,7 @@ func resolveCacheHome() string {
 		if localAppData := os.Getenv("LOCALAPPDATA"); localAppData != "" {
 			return filepath.Join(localAppData, "cache")
 		}
+
 		return filepath.Join(home, "AppData", "Local", "cache")
 	default:
 		// Linux and other Unix: ~/.cache
@@ -129,6 +131,7 @@ func resolveDataHome() string {
 		if localAppData := os.Getenv("LOCALAPPDATA"); localAppData != "" {
 			return localAppData
 		}
+
 		return filepath.Join(home, "AppData", "Local")
 	default:
 		// Linux and other Unix: ~/.local/share
@@ -151,5 +154,6 @@ func userHomeDir() string {
 			return filepath.Join(drive, path)
 		}
 	}
+
 	return ""
 }

@@ -54,6 +54,7 @@ func isQuietMode() bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -132,6 +133,16 @@ func (r RunResult) Success() bool {
 	return r.ExitCode == 0
 }
 
+// NewRuntime creates a new Runtime with the given configuration.
+func NewRuntime(cfg *config.Config) *Runtime {
+	return &Runtime{
+		Config: cfg,
+		Stdin:  os.Stdin,
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	}
+}
+
 // Run executes all configured targets for the given hook.
 // It returns a RunResult with details about the execution.
 //
@@ -196,6 +207,7 @@ func (r *Runtime) handleDisabledHooks(
 	if r.Stderr != nil {
 		_, _ = fmt.Fprintf(r.Stderr, "stave: hooks disabled (STAVE_HOOKS=0)\n")
 	}
+
 	return result, nil
 }
 
@@ -211,6 +223,7 @@ func (r *Runtime) getTargetsForHook(hookName string) []config.HookTarget {
 		slog.Debug("no targets for hook", slog.String("hook", hookName))
 		return nil
 	}
+
 	return targets
 }
 
@@ -219,6 +232,7 @@ func (r *Runtime) getRunner() TargetRunnerFunc {
 	if r.TargetRunner != nil {
 		return r.TargetRunner
 	}
+
 	return defaultTargetRunner
 }
 
@@ -247,6 +261,7 @@ func (r *Runtime) executeTargets(
 				_, _ = fmt.Fprintf(r.Stderr, "stave: hook %s failed at target %s (exit %d)\n",
 					hookName, target.Target, result.ExitCode)
 			}
+
 			return
 		}
 	}
@@ -308,14 +323,4 @@ func IsDebugMode() bool {
 // Production code should always inject a real runner via Runtime.TargetRunner.
 func defaultTargetRunner(_ context.Context, _, _ string, _ []string, _ io.Reader, _, _ io.Writer) (int, error) {
 	return 0, nil
-}
-
-// NewRuntime creates a new Runtime with the given configuration.
-func NewRuntime(cfg *config.Config) *Runtime {
-	return &Runtime{
-		Config: cfg,
-		Stdin:  os.Stdin,
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
-	}
 }

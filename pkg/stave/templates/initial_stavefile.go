@@ -31,6 +31,7 @@ func Build() error {
 	st.Deps(InstallDeps)
 	_, _ = fmt.Fprintln(os.Stdout, "Building...")
 	cmd := exec.Command("go", "build", "-o", "MyApp", ".")
+
 	return cmd.Run()
 }
 
@@ -38,6 +39,7 @@ func Build() error {
 func Install() error {
 	st.Deps(Build)
 	_, _ = fmt.Fprintln(os.Stdout, "Installing...")
+
 	return os.Rename("./MyApp", "/usr/bin/MyApp")
 }
 
@@ -45,6 +47,7 @@ func Install() error {
 func InstallDeps() error {
 	_, _ = fmt.Fprintln(os.Stdout, "Installing Deps...")
 	cmd := exec.Command("go", "get", "github.com/stretchr/piglatin")
+
 	return cmd.Run()
 }
 

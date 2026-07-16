@@ -79,6 +79,7 @@ func Global() *Config {
 	if globalConfigLoaded {
 		cfg := globalConfig
 		globalConfigMu.RUnlock()
+
 		return cfg
 	}
 	globalConfigMu.RUnlock()
@@ -102,6 +103,7 @@ func Global() *Config {
 	}
 	globalConfig = cfg
 	globalConfigLoaded = true
+
 	return globalConfig
 }
 
@@ -179,6 +181,7 @@ func normalizeLoadOptions(opts *LoadOptions) *LoadOptions {
 	if opts.Stderr == nil {
 		opts.Stderr = os.Stderr
 	}
+
 	return opts
 }
 
@@ -221,8 +224,10 @@ func loadUserConfig(viperInstance *viper.Viper) (string, error) {
 		if !errors.As(err, &configFileNotFoundError) {
 			return "", fmt.Errorf("failed to read user config file: %w", err)
 		}
+
 		return "", nil
 	}
+
 	return viperInstance.ConfigFileUsed(), nil
 }
 
@@ -246,6 +251,7 @@ func loadProjectConfig(viperInstance *viper.Viper, projectDir string) (string, e
 	if err := viperInstance.MergeInConfig(); err != nil {
 		return "", fmt.Errorf("failed to read project config file: %w", err)
 	}
+
 	return projectConfigPath, nil
 }
 
@@ -265,6 +271,7 @@ func unmarshalConfig(
 	}
 
 	cfg.configFile = configFileUsed
+
 	return &cfg, nil
 }
 

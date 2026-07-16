@@ -27,6 +27,7 @@ func assertCyclePanic(t *testing.T, name string, fn func()) {
 	go func() {
 		defer func() {
 			panicVal = recover()
+
 			done <- true
 		}()
 		fn()

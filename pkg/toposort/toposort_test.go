@@ -87,5 +87,6 @@ func ids[T interface{ TopoSortable }](items []T) []string {
 	for i, it := range items {
 		out[i] = it.TPID()
 	}
+
 	return out
 }

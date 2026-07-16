@@ -25,6 +25,7 @@ func SetOverallWatchMode(b bool) {
 func IsOverallWatchMode() bool {
 	watchModeMu.Lock()
 	defer watchModeMu.Unlock()
+
 	return overallWatchMode
 }
 
@@ -62,5 +63,6 @@ func IsRequestedTarget(name string) bool {
 func GetOutermostTarget() string {
 	watchModeMu.Lock()
 	defer watchModeMu.Unlock()
+
 	return primaryTarget
 }

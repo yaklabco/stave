@@ -217,6 +217,7 @@ func TestValidationResult_Error(t *testing.T) {
 				if err != nil {
 					t.Errorf("Error() = %v, want nil", err)
 				}
+
 				return
 			}
 			if err == nil {

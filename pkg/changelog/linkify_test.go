@@ -129,7 +129,7 @@ All notable changes to this project will be documented in this file.
 
 func TestLinkify_PreservesPermissions(t *testing.T) {
 	// Create a temporary file with specific permissions
-	tmpFile, err := os.CreateTemp("", "CHANGELOG_test_*.md")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "CHANGELOG_test_*.md")
 	if err != nil {
 		t.Fatal(err)
 	}

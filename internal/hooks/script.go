@@ -55,6 +55,7 @@ func GenerateScript(params ScriptParams) string {
 		// Template is compile-time constant; failure indicates a bug.
 		panic("hooks: template execution failed: " + err.Error())
 	}
+
 	return buf.String()
 }
 
@@ -69,8 +70,10 @@ func IsStaveManaged(path string) (bool, error) {
 		if os.IsNotExist(err) {
 			slog.Debug("hook file does not exist",
 				slog.String("path", path))
+
 			return false, nil
 		}
+
 		return false, err
 	}
 	defer file.Close()
@@ -83,8 +86,10 @@ func IsStaveManaged(path string) (bool, error) {
 		if strings.Contains(line, "Installed by Stave") {
 			slog.Debug("stave marker found",
 				slog.String("path", path))
+
 			return true, nil
 		}
+
 		lineCount++
 	}
 
@@ -94,6 +99,7 @@ func IsStaveManaged(path string) (bool, error) {
 
 	slog.Debug("stave marker not found",
 		slog.String("path", path))
+
 	return false, nil
 }
 
@@ -123,6 +129,7 @@ func RemoveHookScript(path string) (bool, error) {
 	if !managed {
 		slog.Debug("skipping removal of non-stave hook",
 			slog.String("path", path))
+
 		return false, nil
 	}
 
@@ -132,5 +139,6 @@ func RemoveHookScript(path string) (bool, error) {
 	if err := os.Remove(path); err != nil {
 		return false, err
 	}
+
 	return true, nil
 }

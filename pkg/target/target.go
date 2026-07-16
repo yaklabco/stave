@@ -26,7 +26,7 @@ func Path(dst string, sources ...string) (bool, error) {
 		return false, err
 	}
 	destTime := stat.ModTime()
-	newer, srcPath, srcTime, err := pathNewer(destTime, sources...)
+	newer, srcPath, srcTime, err := pathNewerInner(destTime, sources...)
 	if err != nil {
 		return false, err
 	}
@@ -37,6 +37,7 @@ func Path(dst string, sources ...string) (bool, error) {
 		"src_time", srcTime,
 		"verdict", newer,
 	)
+
 	return newer, nil
 }
 
@@ -57,7 +58,7 @@ func Glob(dst string, globs ...string) (bool, error) {
 		return false, err
 	}
 	destTime := stat.ModTime()
-	newer, srcPath, srcTime, err := globNewer(destTime, globs...)
+	newer, srcPath, srcTime, err := globNewerInner(destTime, globs...)
 	if err != nil {
 		return false, err
 	}
@@ -68,6 +69,7 @@ func Glob(dst string, globs ...string) (bool, error) {
 		"src_time", srcTime,
 		"verdict", newer,
 	)
+
 	return newer, nil
 }
 
@@ -99,7 +101,7 @@ func Dir(dst string, sources ...string) (bool, error) {
 			return false, err
 		}
 	}
-	newer, srcPath, srcTime, err := dirNewer(destTime, sources...)
+	newer, srcPath, srcTime, err := dirNewerInner(destTime, sources...)
 	if err != nil {
 		return false, err
 	}
@@ -110,5 +112,6 @@ func Dir(dst string, sources ...string) (bool, error) {
 		"src_time", srcTime,
 		"verdict", newer,
 	)
+
 	return newer, nil
 }

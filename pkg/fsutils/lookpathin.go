@@ -15,6 +15,7 @@ func LookPathIn(file, pathList string) (string, error) {
 		if err != nil {
 			return "", err
 		}
+
 		return file, nil
 	}
 

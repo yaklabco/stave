@@ -23,8 +23,8 @@ import (
 func Exec(ctx context.Context, theEnv map[string]string, wd string, stdin io.Reader, stdout, stderr io.Writer, cmdStr string, args ...string) (bool, error) {
 	cmdStr, theCmd := PrepCmd(ctx, theEnv, wd, stdin, stdout, stderr, cmdStr, args)
 	runErr := theCmd.Run()
-	ran, code, err := CmdRan(runErr), ExitStatus(runErr), runErr
 
+	ran, code, err := CmdRan(runErr), ExitStatus(runErr), runErr
 	if err == nil {
 		return true, nil
 	}
@@ -43,6 +43,7 @@ func PrepCmd(ctx context.Context, theEnv map[string]string, wd string, stdin io.
 				return s2
 			}
 		}
+
 		return os.Getenv(varName)
 	}
 
@@ -88,6 +89,7 @@ func CmdRan(err error) bool {
 	if ok {
 		return ee.Exited()
 	}
+
 	return false
 }
 
@@ -107,6 +109,7 @@ func ExitStatus(err error) int {
 			return ex.ExitStatus()
 		}
 	}
+
 	return 1
 }
 
@@ -121,6 +124,7 @@ func Rm(path string) error {
 	if err == nil || os.IsNotExist(err) {
 		return nil
 	}
+
 	return fmt.Errorf(`failed to remove %s: %w`, path, err)
 }
 
@@ -170,6 +174,7 @@ func Run(ctx context.Context, theEnv map[string]string, wd, cmd string, args ...
 		output = os.Stdout
 	}
 	_, err := Exec(ctx, theEnv, wd, os.Stdin, output, os.Stderr, cmd, args...)
+
 	return err
 }
 
@@ -181,6 +186,7 @@ func RunV(ctx context.Context, theEnv map[string]string, wd, cmd string, args ..
 func Output(ctx context.Context, theEnv map[string]string, wd, cmd string, args ...string) (string, error) {
 	buf := &bytes.Buffer{}
 	_, err := Exec(ctx, theEnv, wd, os.Stdin, buf, os.Stderr, cmd, args...)
+
 	return strings.TrimSuffix(buf.String(), "\n"), err
 }
 

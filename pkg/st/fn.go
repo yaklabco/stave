@@ -34,11 +34,12 @@ type Fn interface {
 // are declared by the function. Note that you do not need to and should not pass a context.Context
 // to F, even if the target takes a context. Compatible args are int, bool, string, and
 // time.Duration.
-func F(target any, args ...any) Fn {
+func F(target any, args ...any) Fn { //nolint:ireturn // This is a special case, since stave is doing some pretty nuanced things here.
 	if f, ok := target.(Fn); ok {
 		if len(args) > 0 {
 			panic(fmt.Errorf("cannot pass arguments to an already wrapped st.Fn: %T", target))
 		}
+
 		return f
 	}
 	hasContext, isNamespace, err := checkF(target, args)
@@ -49,6 +50,7 @@ func F(target any, args ...any) Fn {
 	if err != nil {
 		panic(fmt.Errorf("can't convert args into a stave-compatible id for st.Deps: %w", err))
 	}
+
 	return fn{
 		name:       funcName(target),
 		id:         string(argsID),
@@ -87,6 +89,7 @@ func buildCallArgs(ctx context.Context, args []any, hasContext, isNamespace bool
 	for idx := range args {
 		vargs[argIndex+idx] = reflect.ValueOf(args[idx])
 	}
+
 	return vargs
 }
 
@@ -104,6 +107,7 @@ func callAndHandleResult(theValue reflect.Value, vargs []reflect.Value) error {
 	if !ok {
 		return fmt.Errorf("expected function to return an error, but got %T instead", ret[0].Interface())
 	}
+
 	return retErr
 }
 
@@ -143,6 +147,7 @@ func checkF(target any, args []any) (bool, bool, error) {
 		if len(args) > 0 {
 			return false, false, fmt.Errorf("cannot pass arguments to an already wrapped st.Fn: %T", target)
 		}
+
 		return false, false, nil
 	}
 	if err := validateReturnType(theType); err != nil {
@@ -154,6 +159,7 @@ func checkF(target any, args []any) (bool, bool, error) {
 	if theType.NumIn() == 0 {
 		return false, false, nil
 	}
+
 	return validateArgs(theType, args)
 }
 
@@ -172,6 +178,7 @@ func validateTargetType(theType reflect.Type, target any) error {
 			target,
 		)
 	}
+
 	return nil
 }
 
@@ -183,6 +190,7 @@ func validateReturnType(theType reflect.Type) error {
 	if theType.NumOut() == 1 && theType.Out(0) != errType {
 		return errors.New("target's return value is not an error")
 	}
+
 	return nil
 }
 
@@ -191,6 +199,7 @@ func validateArgCount(theType reflect.Type, args []any) error {
 	if len(args) > theType.NumIn() && !theType.IsVariadic() {
 		return fmt.Errorf("too many arguments for target, got %d", len(args))
 	}
+
 	return nil
 }
 
@@ -237,6 +246,7 @@ func checkArgCountForVariadic(theType reflect.Type, args []any, inputs int) erro
 	} else if len(args) != inputs {
 		return fmt.Errorf("wrong number of arguments for target, got %d", len(args))
 	}
+
 	return nil
 }
 
@@ -259,5 +269,6 @@ func checkArgTypes(theType reflect.Type, args []any, startIndex int) error {
 			argIndex++
 		}
 	}
+
 	return nil
 }

@@ -35,6 +35,7 @@ func (c *Changelog) HasVersion(version string) bool {
 	parts := strings.Split(version, "/")
 	lastPart := parts[len(parts)-1]
 	lastPartNoV := strings.TrimPrefix(lastPart, "v")
+
 	return slices.ContainsFunc(c.Headings, func(h Heading) bool {
 		return strings.EqualFold(h.Name, version) || strings.EqualFold(h.Name, lastPart) || strings.EqualFold(h.Name, lastPartNoV)
 	})
@@ -46,6 +47,7 @@ func (c *Changelog) HasLinkForVersion(version string) bool {
 	parts := strings.Split(version, "/")
 	lastPart := parts[len(parts)-1]
 	lastPartNoV := strings.TrimPrefix(lastPart, "v")
+
 	return slices.ContainsFunc(c.Links, func(l Link) bool {
 		return strings.EqualFold(l.Name, version) || strings.EqualFold(l.Name, lastPart) || strings.EqualFold(l.Name, lastPartNoV)
 	})

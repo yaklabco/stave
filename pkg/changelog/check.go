@@ -37,6 +37,7 @@ func (r *CheckResult) Error() error {
 	if !r.HasErrors() {
 		return nil
 	}
+
 	return errors.New(strings.Join(r.Errors, "; "))
 }
 
@@ -69,6 +70,7 @@ func PrePushCheck(opts PrePushCheckOptions) (*CheckResult, error) {
 	if os.Getenv("BYPASS_CHANGELOG_CHECK") == "1" {
 		result.Skipped = true
 		result.SkipReason = "BYPASS_CHANGELOG_CHECK=1"
+
 		return result, nil
 	}
 
@@ -79,6 +81,7 @@ func PrePushCheck(opts PrePushCheckOptions) (*CheckResult, error) {
 		if errors.Is(err, errParseFailure) {
 			return result, nil // Parse error already recorded
 		}
+
 		return nil, err
 	}
 
@@ -90,6 +93,7 @@ func PrePushCheck(opts PrePushCheckOptions) (*CheckResult, error) {
 		result.Skipped = true
 		result.SkipReason = "next-version check skipped (release/tag-only/opt-out)"
 		result.NextVersionPresent = true
+
 		return result, nil
 	}
 
@@ -129,6 +133,7 @@ func resolveChangelogPath(path string) string {
 	if path == "" {
 		return ChangelogFile
 	}
+
 	return path
 }
 
@@ -148,6 +153,7 @@ func readAndParseChangelog(path string, result *CheckResult) (*Changelog, error)
 		result.Errors = append(result.Errors, fmt.Sprintf("parsing %s: %s", path, err))
 		return nil, errParseFailure
 	}
+
 	return changelog, nil
 }
 
@@ -196,6 +202,7 @@ func checkRefChanges(opts PrePushCheckOptions, result *CheckResult) bool {
 	}
 
 	result.ChangelogUpdated = !missingChangelog
+
 	return sawBranchPush
 }
 
@@ -221,6 +228,7 @@ func checkRefForChangelog(opts PrePushCheckOptions, ref PushRef, result *CheckRe
 		result.Errors = append(
 			result.Errors,
 			fmt.Sprintf("missing %s update for push to %s", ChangelogFile, ref.RemoteRef))
+
 		return false
 	}
 
@@ -234,6 +242,7 @@ func checkRefForChangelog(opts PrePushCheckOptions, ref PushRef, result *CheckRe
 		result.Errors = append(
 			result.Errors,
 			fmt.Sprintf("missing %s update for push to %s", ChangelogFile, ref.RemoteRef))
+
 		return false
 	}
 
@@ -256,6 +265,7 @@ func verifyNextVersionInChangelog(changelog *Changelog, path string, result *Che
 		result.Errors = append(
 			result.Errors,
 			fmt.Sprintf("failed to get next version: %s", err))
+
 		return
 	}
 
@@ -287,6 +297,7 @@ func FindDefaultBase(gitOps GitOps, remoteName, localSHA string) string {
 			}
 		}
 	}
+
 	return ""
 }
 

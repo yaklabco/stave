@@ -43,6 +43,7 @@ func ExtractSection(inputFile, outputFile, section string) error {
 		if section == "" {
 			return errors.New("no numbered section found in changelog")
 		}
+
 		return fmt.Errorf("section %q not found in changelog", section)
 	}
 

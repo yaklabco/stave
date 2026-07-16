@@ -38,5 +38,6 @@ func GetBlockStyles() (lipgloss.Style, lipgloss.Style) {
 		Foreground(colorScheme.Base).
 		MarginLeft(defaultMargin).
 		Padding(1, defaultPadding)
+
 	return titleStyle, blockStyle
 }

@@ -11,5 +11,6 @@ func FilterGitEnv(env []string) []string {
 		}
 		filtered = append(filtered, e)
 	}
+
 	return filtered
 }

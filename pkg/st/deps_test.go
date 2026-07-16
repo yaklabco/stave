@@ -11,16 +11,19 @@ import (
 
 func TestDepsRunOnce(t *testing.T) {
 	done := make(chan struct{})
+
 	f := func() {
 		done <- struct{}{}
 	}
 	go Deps(f, f)
+
 	select {
 	case <-done:
 		// cool
 	case <-time.After(time.Millisecond * 100):
 		t.Fatal("func not run in a reasonable amount of time.")
 	}
+
 	select {
 	case <-done:
 		t.Fatal("func run twice!")
@@ -37,10 +40,12 @@ func TestDepsOfDeps(t *testing.T) {
 	}
 	funcG := func() {
 		Deps(funcH)
+
 		resultChan <- "g"
 	}
 	funcF := func() {
 		Deps(funcG)
+
 		resultChan <- "f"
 	}
 	Deps(funcF)
@@ -63,6 +68,7 @@ func TestSerialDeps(t *testing.T) {
 	}
 	funcF := func() {
 		SerialDeps(funcG, funcH)
+
 		resultChan <- "f"
 	}
 	Deps(funcF)
@@ -75,7 +81,6 @@ func TestSerialDeps(t *testing.T) {
 }
 
 func TestDepError(t *testing.T) {
-	// TODO: this test is ugly and relies on implementation details. It should
 	// be recreated as a full-stack test.
 
 	theFunc := func() error {
@@ -271,6 +276,7 @@ func TestSerialCtxDeps(t *testing.T) {
 		if ctx.Value(ctxKey("key")) != "value" {
 			panic("missing context value")
 		}
+
 		ch <- "f"
 	}
 	funcG := func(_ context.Context) {
