@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.4] - 2026-07-21
+
+### Fixed
+
+- Improve warning when `Aliases` is not a map-literal; update `golangci-lint` configuration to exclude empty-map declaration style enforcement for stavefiles.
+
 ## [0.16.3] - 2026-07-16
 
 ### Changed
@@ -653,7 +659,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added parallelism-by-default to use of Go tools from inside Stave.
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.16.3...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.16.4...HEAD
+[0.16.4]: https://github.com/yaklabco/stave/compare/v0.16.3...v0.16.4
 [0.16.3]: https://github.com/yaklabco/stave/compare/v0.16.2...v0.16.3
 [0.16.2]: https://github.com/yaklabco/stave/compare/v0.16.1...v0.16.2
 [0.16.1]: https://github.com/yaklabco/stave/compare/v0.16.0...v0.16.1

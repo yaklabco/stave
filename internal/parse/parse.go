@@ -770,7 +770,7 @@ func setAliases(pkgInfo *PkgInfo) {
 
 	comp, isCompLit := spec.Values[0].(*ast.CompositeLit)
 	if !isCompLit {
-		slog.Warn("aliases declaration is not a map")
+		slog.Warn("aliases declaration should be a map-literal")
 		return
 	}
 

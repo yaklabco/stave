@@ -385,6 +385,10 @@ linters:
           - unused
           - wrapcheck
         path: stavefile\.go$
+      - linters:
+          - revive
+        text: "enforce-map-style"
+        path: stavefile\.go$
     paths:
       - third_party$
       - builtin$
