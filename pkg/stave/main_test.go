@@ -1369,11 +1369,7 @@ func TestHashTemplate(t *testing.T) {
 
 // Test if the -keep flag does keep the mainfile around after running.
 func TestKeepFlag(t *testing.T) {
-	t.Parallel()
 	dataDirForThisTest := testDataKeepFlagDir
-	mu := mutexByDir(dataDirForThisTest)
-	mu.Lock()
-	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
@@ -1417,11 +1413,7 @@ func (t tLogWriter) Write(b []byte) (int, error) {
 // TestNoSelfDependencies checks that the generated mainfile code
 // does not have dependencies on Stave itself.
 func TestNoSelfDependencies(t *testing.T) {
-	t.Parallel()
 	dataDirForThisTest := filepath.Join(testDataDir, "onlyStdLib")
-	mu := mutexByDir(dataDirForThisTest)
-	mu.Lock()
-	t.Cleanup(mu.Unlock)
 
 	ctx := t.Context()
 
