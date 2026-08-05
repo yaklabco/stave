@@ -79,7 +79,7 @@ jobs:
       - name: Install Homebrew tools (only if cache miss)
         if: steps.brew_install.outputs.cache-hit != 'true'
         run: |
-          brew upgrade go || brew install go
+          brew upgrade go >& /dev/null || brew install go
           brew bundle --file=Brewfile
 
       - name: Self-install
