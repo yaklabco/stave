@@ -450,51 +450,55 @@ func (Check) PreCommit() error {
 }
 
 // PrePush runs pre-push validations including changelog checks
-func (Check) PrePush(remoteName, _remoteURL string) error {
-	st.Deps(Prep.LinkifyChangelog)
-	st.Deps(Test.All, Build)
-	st.Deps(Check.GitStateClean)
+func (Check) PrePush(ctx context.Context, remoteName, remoteURL string) error {
+	// st.Deps(Prep.LinkifyChangelog)
+	st.Deps(Test.All, Build)     //nolint:contextcheck // False positive.
+	st.Deps(Check.GitStateClean) //nolint:contextcheck // False positive.
 
-	pushRefs, err := changelog.ReadPushRefs(os.Stdin)
-	if err != nil {
-		return fmt.Errorf("failed to read push refs: %w", err)
-	}
+	pipeR1, pipeW1 := io.Pipe()
 
-	err = secretsHookWorker(pushRefs)
-	if err != nil {
-		return err
-	}
+	group, ctx := errgroup.WithContext(ctx)
 
-	if len(pushRefs) == 0 {
-		slog.Warn("no refs pushed, skipping changelog pre-push check")
-		return nil
-	}
+	group.Go(func() error {
+		slog.Debug("fanning out stdin for pre-push hooks...")
+		if _, err := io.Copy(io.MultiWriter(pipeW1), os.Stdin); err != nil {
+			return err
+		}
+		slog.Debug("fan-out done, closing write-pipes...")
+		var closeErr error
+		for _, p := range []io.Closer{pipeW1} {
+			closeErr = errors.Join(closeErr, p.Close())
+		}
 
-	slog.Info("about to run changelog pre-push check", slog.String("remote_name", remoteName), slog.Any("push_refs", pushRefs))
-	result, err := changelog.PrePushCheck(changelog.PrePushCheckOptions{
-		RemoteName:    remoteName,
-		ChangelogPath: changelogFilename,
-		Refs:          pushRefs,
+		return closeErr
 	})
-	if err != nil {
-		return fmt.Errorf("changelog pre-push check failed: %w", err)
-	}
 
-	if result.HasErrors() {
-		return fmt.Errorf("changelog pre-push check failed: %s", result.Errors)
-	}
+	group.Go(func() error {
+		slog.Debug("reading in push-refs for changelog/secrets/commitlint check...")
+		pushRefs, err := changelog.ReadPushRefs(pipeR1)
+		if err != nil {
+			return fmt.Errorf("failed to read push refs: %w", err)
+		}
+		slog.Debug("push-refs read", slog.Any("refs", pushRefs))
 
-	if !result.ChangelogValid {
-		return errors.New("changelog pre-push check failed: changelog is not valid")
-	}
+		subGroup, _ := errgroup.WithContext(ctx)
 
-	if !result.ChangelogUpdated {
-		return errors.New("changelog pre-push check failed: changelog has not been updated")
-	}
+		subGroup.Go(func() error {
+			return commitlintHookWorker(pushRefs)
+		})
 
-	slog.Info("changelog next-version verification passed")
+		subGroup.Go(func() error {
+			return secretsHookWorker(pushRefs)
+		})
 
-	return nil
+		subGroup.Go(func() error {
+			return changelogHookWorker(pushRefs, remoteName, remoteURL)
+		})
+
+		return subGroup.Wait()
+	})
+
+	return group.Wait()
 }
 
 // *
@@ -606,7 +610,7 @@ func (Test) Go(ctx context.Context) error {
 		"",
 		"go", "tool", "gotestsum", "-f", "pkgname-and-test-fails",
 		"--",
-		"-v", "-p", nProcsStr, "-parallel", nProcsStr, "./...", "-count", "1",
+		"-v", "-p", nProcsStr, "-parallel", nProcsStr, "./...",
 		"-coverprofile="+coverageOutFilename, "-covermode=atomic",
 	); err != nil {
 		return err
@@ -880,6 +884,77 @@ func tagAndPush(nextTag string) error {
 // It checks the environment variable "STAVE_NUM_PROCESSORS" or defaults to "1".
 func numProcsAsString() string {
 	return cmp.Or(os.Getenv("STAVE_NUM_PROCESSORS"), "1")
+}
+
+func changelogHookWorker(pushRefs []changelog.PushRef, remoteName, _remoteURL string) error {
+	if len(pushRefs) == 0 {
+		slog.Warn("no refs pushed, skipping changelog pre-push check")
+		return nil
+	}
+
+	slog.Info("about to run changelog pre-push check", slog.String("remote_name", remoteName), slog.Any("push_refs", pushRefs))
+	result, err := changelog.PrePushCheck(changelog.PrePushCheckOptions{
+		RemoteName:    remoteName,
+		ChangelogPath: changelogFilename,
+		Refs:          pushRefs,
+	})
+	if err != nil {
+		return fmt.Errorf("changelog pre-push check failed: %w", err)
+	}
+
+	if result.HasErrors() {
+		return fmt.Errorf("changelog pre-push check failed: %s", result.Errors)
+	}
+
+	if !result.ChangelogValid {
+		return errors.New("changelog pre-push check failed: changelog is not valid")
+	}
+
+	if !result.ChangelogUpdated {
+		return errors.New("changelog pre-push check failed: changelog has not been updated")
+	}
+
+	slog.Info("changelog next-version verification passed")
+
+	return nil
+}
+
+func commitlintHookWorker(pushRefs []changelog.PushRef) error {
+	if len(pushRefs) == 0 {
+		slog.Warn("no refs pushed, skipping commitlint hook")
+		return nil
+	}
+
+	slog.Info("linting commit messages using commitlint...")
+	for _, ref := range pushRefs {
+		// Skip deleted refs - nothing to scan.
+		if ref.LocalSHA == changelog.ZeroSHA {
+			continue
+		}
+
+		remoteSHA := ref.RemoteSHA
+		if remoteSHA == changelog.ZeroSHA {
+			out, err := sh.Output("git", "merge-base", "--fork-point", "origin/main", ref.LocalSHA)
+			if err != nil {
+				return fmt.Errorf("while trying to establish fork-point: %w", err)
+			}
+			remoteSHA = strings.TrimSpace(out)
+		}
+
+		out, err := sh.Output("commitlint", "--from", remoteSHA, "--to", ref.LocalSHA)
+		if err != nil {
+			titleStyle, blockStyle := ui.GetBlockStyles()
+			outputln(titleStyle.Render("commitlint output"))
+			outputln(blockStyle.Render(out))
+			outputln("")
+
+			return err
+		}
+	}
+
+	slog.Info("commitlint done.")
+
+	return nil
 }
 
 func runTrufflehog(coreArgs []string, extraFlags ...string) error {
