@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.10] - 2026-08-08
+
+### Fixed
+
+- Handle single-commit condition in commitlint.yml workflow.
+
 ## [0.16.9] - 2026-08-08
 
 ### Changed
@@ -694,7 +700,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added parallelism-by-default to use of Go tools from inside Stave.
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.16.9...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.16.10...HEAD
+[0.16.10]: https://github.com/yaklabco/stave/compare/v0.16.9...v0.16.10
 [0.16.9]: https://github.com/yaklabco/stave/compare/v0.16.8...v0.16.9
 [0.16.8]: https://github.com/yaklabco/stave/compare/v0.16.7...v0.16.8
 [0.16.7]: https://github.com/yaklabco/stave/compare/v0.16.6...v0.16.7
