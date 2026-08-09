@@ -610,7 +610,7 @@ func (Test) Go(ctx context.Context) error {
 		"",
 		"go", "tool", "gotestsum", "-f", "pkgname-and-test-fails",
 		"--",
-		"-v", "-p", nProcsStr, "-parallel", nProcsStr, "./...", "-count", "1",
+		"-v", "-p", nProcsStr, "-parallel", nProcsStr, "./...",
 		"-coverprofile="+coverageOutFilename, "-covermode=atomic",
 	); err != nil {
 		return err
