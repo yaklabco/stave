@@ -24,4 +24,8 @@ jobs:
             FROM="${{ github.event.before }}"
             TO="${{ github.sha }}"
           fi
-          npx commitlint --from "$FROM" --to "$TO"
+          if [ "$FROM" = "$TO" ]; then
+            npx commitlint --last
+          else
+            npx commitlint --from "$FROM" --to "$TO"
+          fi
