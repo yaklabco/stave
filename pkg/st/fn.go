@@ -103,7 +103,7 @@ func callAndHandleResult(theValue reflect.Value, vargs []reflect.Value) error {
 	if ret[0].IsNil() {
 		return nil
 	}
-	retErr, ok := ret[0].Interface().(error)
+	retErr, ok := reflect.TypeAssert[error](ret[0])
 	if !ok {
 		return fmt.Errorf("expected function to return an error, but got %T instead", ret[0].Interface())
 	}
