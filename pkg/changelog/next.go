@@ -67,14 +67,14 @@ func NextTag() (string, error) {
 		return "", fmt.Errorf("svu.Next call returned more than two results: %v", results)
 	}
 
-	out, ok := results[0].Interface().(string)
+	out, ok := reflect.TypeAssert[string](results[0])
 	if !ok {
 		return "", fmt.Errorf("svu.Next call returned non-string result: %v", results)
 	}
 
 	err = nil
 	if !results[1].IsNil() {
-		err, ok = results[1].Interface().(error)
+		err, ok = reflect.TypeAssert[error](results[1])
 		if !ok {
 			return "", fmt.Errorf("svu.Next call returned non-error result: %v", results)
 		}
