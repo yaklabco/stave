@@ -20,6 +20,11 @@ type ExitStatuser interface {
 	ExitStatus() int
 }
 
+type ExitStatusError interface {
+	error
+	ExitStatuser
+}
+
 // exitStatus is kept as an alias for internal use.
 type exitStatus = ExitStatuser
 
@@ -48,8 +53,7 @@ func ExitStatus(err error) int {
 	if err == nil {
 		return 0
 	}
-	var exit exitStatus
-	if errors.As(err, &exit) {
+	if exit, ok := errors.AsType[ExitStatusError](err); ok {
 		return exit.ExitStatus()
 	}
 

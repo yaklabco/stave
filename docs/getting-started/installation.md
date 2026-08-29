@@ -2,7 +2,7 @@
 
 [Home](../index.md) > Getting Started > Installation
 
-Stave requires Go 1.24 or later.
+Stave requires Go 1.26 or later.
 
 ## Using go install
 

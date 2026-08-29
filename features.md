@@ -224,7 +224,7 @@ All features listed below are introduced in commits after that fork in `yaklabco
 
 The following changes are important for maintainability and UX but are **not** counted as “new functionality” in the sense of capabilities that Mage did not have:
 
-- Modernized Go patterns (Go 1.21+):
+- Modernized Go patterns (Go 1.26+):
   - Effect: adoption of modern stdlib features and idioms; improves maintainability and performance without introducing new end-user capabilities relative to Mage.
 
 - Enhanced CLI experience / Cobra-style CLI surface:

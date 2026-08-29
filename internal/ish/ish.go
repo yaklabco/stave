@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 
 	"github.com/samber/lo"
 	"github.com/yaklabco/stave/internal/dryrun"
@@ -99,14 +100,15 @@ func ExitStatus(err error) int {
 	if err == nil {
 		return 0
 	}
-	var exit st.ExitStatuser
-	if errors.As(err, &exit) {
+	if exit, ok := errors.AsType[st.ExitStatusError](err); ok {
 		return exit.ExitStatus()
 	}
-	var e *exec.ExitError
-	if errors.As(err, &e) {
-		if ex, ok := e.Sys().(st.ExitStatuser); ok {
+	if e, ok := errors.AsType[*exec.ExitError](err); ok {
+		eSys := e.Sys()
+		if ex, ok := eSys.(st.ExitStatuser); ok {
 			return ex.ExitStatus()
+		} else if ws, ok := eSys.(syscall.WaitStatus); ok {
+			return ws.ExitStatus()
 		}
 	}
 

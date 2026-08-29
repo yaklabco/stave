@@ -6,7 +6,7 @@ This guide covers setting up a development environment for contributing to Stave
 
 ## Prerequisites
 
-- Go 1.25.4 or later
+- Go 1.26.7 or later
 - macOS: Homebrew (for tool installation)
 
 ## Clone Repository
