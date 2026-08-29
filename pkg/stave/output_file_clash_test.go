@@ -39,7 +39,7 @@ func Default(runID int) error {
 
 	// We also need a go.mod in that directory so 'go build' works
 	goModContent := `module testconcurrent
-go 1.24
+go 1.26
 `
 	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goModContent), 0644))
 

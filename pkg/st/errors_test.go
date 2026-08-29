@@ -59,11 +59,11 @@ func TestFatalfErrorMessage(t *testing.T) {
 
 func TestFatalImplementsExitStatus(t *testing.T) {
 	err := Fatal(7, "test")
-	var es exitStatus
-	if !errors.As(err, &es) {
+	if _, ok := errors.AsType[ExitStatusError](err); !ok { //nolint:errcheck // False positive.
 		// Fatal error implements exitStatus directly via type assertion, not via errors.As,
 		// since fatalError doesn't support unwrap. Verify it implements the interface.
-		fe, ok := err.(exitStatus)
+		var fe exitStatus
+		ok := errors.As(err, &fe)
 		if !ok {
 			t.Fatal("Fatal error should implement exitStatus interface")
 		}

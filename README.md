@@ -107,7 +107,7 @@ Stave was forked from [mage](https://magefile.org/), with the following goals (c
 
 For more details on any of these features, please see the [stave documentation](./docs/index.md).
 
-- [x] Modernized Go patterns (Go 1.24+)
+- [x] Modernized Go patterns (Go 1.26+)
 - [x] Additional shell helpers (`sh.Piper`, `sh.PiperWith`)
 - [x] Watch-mode, to re-run one or more build targets when watched files change
 - [x] Dry-run support (print the command lines that would be executed, but don't run them)

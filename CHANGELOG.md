@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.14] - 2026-08-29
+
+### Changed
+
+- Bump Go version to `1.26.7` (and update dependencies).
+- Update syntax to Go 1.26 idiom where applicable.
+- Pinned `github.com/gobwas/glob` to `v0.2.3` until further notice, to avoid transitive-dependency compilation failures.
+
 ## [0.16.13] - 2026-08-19
 
 ### Changed
@@ -718,7 +726,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added parallelism-by-default to use of Go tools from inside Stave.
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.16.13...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.16.14...HEAD
+[0.16.14]: https://github.com/yaklabco/stave/compare/v0.16.13...v0.16.14
 [0.16.13]: https://github.com/yaklabco/stave/compare/v0.16.12...v0.16.13
 [0.16.12]: https://github.com/yaklabco/stave/compare/v0.16.11...v0.16.12
 [0.16.11]: https://github.com/yaklabco/stave/compare/v0.16.10...v0.16.11

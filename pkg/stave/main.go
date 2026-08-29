@@ -446,14 +446,12 @@ func listGoFiles(stavePath, tag string, theEnv map[string]string) ([]string, err
 
 	pkg, err := bctx.Import(".", stavePath, 0)
 	if err != nil {
-		var noGoError *build.NoGoError
-		if errors.As(err, &noGoError) {
+		if _, ok := errors.AsType[*build.NoGoError](err); ok { //nolint:errcheck // False positive.
 			return []string{}, nil
 		}
 
 		// Allow multiple packages in the same directory
-		var multiplePackageError *build.MultiplePackageError
-		if !errors.As(err, &multiplePackageError) {
+		if _, ok := errors.AsType[*build.MultiplePackageError](err); !ok { //nolint:errcheck // False positive.
 			return nil, fmt.Errorf("failed to parse go source files: %w", err)
 		}
 	}

@@ -10,6 +10,7 @@ linters:
     - depguard
     - err113
     - exhaustruct
+    - exhaustruct_v5
     - gomodguard
     - nlreturn
     - noinlineerr
@@ -355,6 +356,9 @@ linters:
       - linters:
           - godot
         source: (noinspection|TODO)
+      - linters:
+          - gomoddirectives
+        text: 'replacement(s?) are not allowed'
       - linters:
           - govet
         text: 'shadow: declaration of "(err|ctx)" shadows declaration at'
