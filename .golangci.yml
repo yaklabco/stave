@@ -357,9 +357,6 @@ linters:
           - godot
         source: (noinspection|TODO)
       - linters:
-          - gomoddirectives
-        text: 'replacement(s?) are not allowed'
-      - linters:
           - govet
         text: 'shadow: declaration of "(err|ctx)" shadows declaration at'
       - linters:
