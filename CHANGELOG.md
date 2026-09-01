@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.17] - 2026-09-01
+
 ### Fixed
 
 - `stave --clean` and direct target runs now resolve the cache directory through configuration, matching what `--config show` reports (`cache_dir` setting, `STAVEFILE_CACHE`, or the XDG cache directory). Previously they always used the legacy `~/.stavefile` location, so `--clean` wiped `~/.stavefile` while hook-invoked runs compiled into the configured directory, leaving stale binaries behind.
@@ -744,7 +746,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added parallelism-by-default to use of Go tools from inside Stave.
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.16.16...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.16.17...HEAD
+[0.16.17]: https://github.com/yaklabco/stave/compare/v0.16.16...v0.16.17
 [0.16.16]: https://github.com/yaklabco/stave/compare/v0.16.15...v0.16.16
 [0.16.15]: https://github.com/yaklabco/stave/compare/v0.16.14...v0.16.15
 [0.16.14]: https://github.com/yaklabco/stave/compare/v0.16.13...v0.16.14
