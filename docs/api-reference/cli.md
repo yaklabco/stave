@@ -26,7 +26,7 @@ stave [flags] [target] [arguments...]
 | `--gocmd`     |       | `go`            | Go command for compilation                    |
 | `--keep`      |       | `false`         | Keep generated mainfile after compilation     |
 | `--dryrun`    |       | `false`         | Print commands instead of executing           |
-| `--clean`     |       | `false`         | Remove cached compiled binaries, including any in the legacy `~/.stavefile` directory |
+| `--clean`     |       | `false`         | Remove cached binaries (and legacy cache dir) |
 | `--init`      |       | `false`         | Create a starter stavefile                    |
 | `--direnv`    |       | `false`         | Delegate to direnv for environment management |
 
@@ -207,7 +207,7 @@ Flags can also be set via environment variables:
 | `STAVEFILE_VERBOSE`    | `--verbose`       |
 | `STAVEFILE_DEBUG`      | `--debug`         |
 | `STAVEFILE_GOCMD`      | `--gocmd`         |
-| `STAVEFILE_CACHE`      | `cache_dir` config option |
+| `STAVEFILE_CACHE`      | Sets `cache_dir`  |
 | `STAVEFILE_DRYRUN`     | `--dryrun`        |
 | `STAVEFILE_MULTILINE`  | `--multiline`     |
 | `STAVE_NUM_PROCESSORS` | Parallelism limit |
