@@ -177,7 +177,16 @@ func TestRunConfigCommand_Help(t *testing.T) {
 	}
 }
 
-func TestRunConfigCommandContext_ProjectDirHonored(t *testing.T) {
+func TestRunConfigCommandContext_CompatibilityWrapper(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	exitCode := RunConfigCommandContext(t.Context(), &stdout, &stderr, []string{"show"})
+
+	if exitCode != 0 {
+		t.Fatalf("Expected exit code 0, got %d. stderr: %s", exitCode, stderr.String())
+	}
+}
+
+func TestRunConfigCommandContextInDir_ProjectDirHonored(t *testing.T) {
 	// Not parallel: uses t.Setenv via hermeticCacheEnv.
 	hermeticCacheEnv(t)
 
@@ -186,7 +195,7 @@ func TestRunConfigCommandContext_ProjectDirHonored(t *testing.T) {
 	writeProjectConfig(t, projectDir, projectCache)
 
 	var stdout, stderr bytes.Buffer
-	exitCode := RunConfigCommandContext(t.Context(), projectDir, &stdout, &stderr, []string{"show"})
+	exitCode := RunConfigCommandContextInDir(t.Context(), projectDir, &stdout, &stderr, []string{"show"})
 
 	if exitCode != 0 {
 		t.Fatalf("Expected exit code 0, got %d. stderr: %s", exitCode, stderr.String())

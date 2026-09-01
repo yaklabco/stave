@@ -135,7 +135,8 @@ func IgnoreDefault() bool {
 // Stave itself resolves the effective cache directory through the config
 // package, which also honors the cache_dir config setting and defaults to
 // the XDG cache directory; this location is kept for backwards
-// compatibility, and `stave --clean` still sweeps it.
+// compatibility. `stave --clean` sweeps both the effective configured cache
+// and the historical default independently.
 func CacheDir() string {
 	d := os.Getenv(CacheEnv)
 	if d != "" {

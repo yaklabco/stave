@@ -2,6 +2,7 @@ package stave
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"os"
@@ -26,7 +27,7 @@ func hermeticCacheEnv(t *testing.T) (string, string) {
 
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == goosWindows {
 		// st.CacheDir derives the legacy location from HOMEDRIVE/HOMEPATH on
 		// Windows; everything else in the resolution chain reads HOME or the
 		// XDG variables pinned below.
@@ -47,6 +48,10 @@ func writeCacheFile(t *testing.T, dir, name string) string {
 	t.Helper()
 
 	require.NoError(t, os.MkdirAll(dir, 0o700))
+	name = fmt.Sprintf("%x", sha256.Sum256([]byte(name)))
+	if runtime.GOOS == goosWindows {
+		name += ".exe"
+	}
 	path := filepath.Join(dir, name)
 	require.NoError(t, os.WriteFile(path, []byte("stale binary"), 0o700))
 
@@ -89,6 +94,59 @@ func TestCleanRemovesConfiguredCacheDirContents(t *testing.T) {
 	assert.FileExists(t, kept, "clean must not descend into subdirectories")
 }
 
+func TestCleanPreservesUnrelatedFiles(t *testing.T) {
+	configured, _ := hermeticCacheEnv(t)
+
+	stale := writeCacheFile(t, configured, "compiled-binary")
+	unrelated := filepath.Join(configured, "notes.txt")
+	require.NoError(t, os.WriteFile(unrelated, []byte("keep me"), 0o600))
+
+	require.NoError(t, Run(cleanRunParams(t)))
+
+	assert.NoFileExists(t, stale)
+	assert.FileExists(t, unrelated)
+}
+
+func TestCleanPreservesHashNamedSymlink(t *testing.T) {
+	configured, _ := hermeticCacheEnv(t)
+
+	stale := writeCacheFile(t, configured, "compiled-binary")
+	target := filepath.Join(configured, "unrelated-target")
+	require.NoError(t, os.WriteFile(target, []byte("keep me"), 0o600))
+	linkName := fmt.Sprintf("%x", sha256.Sum256([]byte("symlink")))
+	if runtime.GOOS == goosWindows {
+		linkName += ".exe"
+	}
+	link := filepath.Join(configured, linkName)
+	if err := os.Symlink(target, link); err != nil {
+		t.Skipf("creating symlink: %v", err)
+	}
+
+	require.NoError(t, Run(cleanRunParams(t)))
+
+	assert.NoFileExists(t, stale)
+	assert.FileExists(t, link)
+	assert.FileExists(t, target)
+}
+
+func TestIsCacheBinary(t *testing.T) {
+	hash := strings.Repeat("a", sha256.Size*2)
+	valid := hash
+	if runtime.GOOS == goosWindows {
+		valid += ".exe"
+	}
+
+	assert.True(t, isCacheBinary(valid))
+	assert.False(t, isCacheBinary("notes.txt"))
+	assert.False(t, isCacheBinary(strings.ToUpper(valid)))
+	assert.False(t, isCacheBinary(hash+".exe.exe"))
+	if runtime.GOOS == goosWindows {
+		assert.False(t, isCacheBinary(hash), "Windows cache binaries require the .exe suffix")
+	} else {
+		assert.False(t, isCacheBinary(hash+".exe"), "non-Windows cache binaries have no suffix")
+	}
+}
+
 func TestCleanSweepsLegacyCacheDir(t *testing.T) {
 	configured, legacy := hermeticCacheEnv(t)
 
@@ -100,6 +158,20 @@ func TestCleanSweepsLegacyCacheDir(t *testing.T) {
 	assert.NoFileExists(t, staleConfigured)
 	assert.NoFileExists(t, staleLegacy,
 		"clean must also sweep the legacy cache dir left behind by older versions")
+}
+
+func TestCleanWithCacheEnvStillSweepsHistoricalLegacyDir(t *testing.T) {
+	_, legacy := hermeticCacheEnv(t)
+	envCache := t.TempDir()
+	t.Setenv(st.CacheEnv, envCache)
+
+	staleConfigured := writeCacheFile(t, envCache, "configured-binary")
+	staleLegacy := writeCacheFile(t, legacy, "legacy-binary")
+
+	require.NoError(t, Run(cleanRunParams(t)))
+
+	assert.NoFileExists(t, staleConfigured)
+	assert.NoFileExists(t, staleLegacy)
 }
 
 func TestCleanIgnoresLegacyPathThatIsNotADirectory(t *testing.T) {
@@ -127,6 +199,74 @@ func TestCleanHonorsProjectConfigCacheDir(t *testing.T) {
 	require.NoError(t, Run(params))
 
 	assert.NoFileExists(t, stale, "clean must honor cache_dir from project config")
+}
+
+func TestCleanRejectsUnsafeCacheDirs(t *testing.T) {
+	_, _ = hermeticCacheEnv(t)
+
+	projectDir := t.TempDir()
+	home, err := os.UserHomeDir()
+	require.NoError(t, err)
+	root := filepath.VolumeName(projectDir) + string(os.PathSeparator)
+
+	tests := []struct {
+		name     string
+		cacheDir string
+	}{
+		{name: "relative", cacheDir: "."},
+		{name: "project root", cacheDir: projectDir},
+		{name: "filesystem root", cacheDir: root},
+		{name: "user home", cacheDir: home},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			marker := filepath.Join(projectDir, "valuable.txt")
+			require.NoError(t, os.WriteFile(marker, []byte("keep"), 0o600))
+
+			params := cleanRunParams(t)
+			params.Dir = projectDir
+			params.CacheDir = tt.cacheDir
+			err := Run(params)
+
+			require.ErrorContains(t, err, "refusing to clean")
+			assert.FileExists(t, marker)
+		})
+	}
+}
+
+func TestCleanRejectsSymlinkAliasesOfProtectedRoots(t *testing.T) {
+	_, _ = hermeticCacheEnv(t)
+
+	projectDir := t.TempDir()
+	home, err := os.UserHomeDir()
+	require.NoError(t, err)
+	root := filepath.VolumeName(projectDir) + string(os.PathSeparator)
+	marker := filepath.Join(projectDir, "valuable.txt")
+	require.NoError(t, os.WriteFile(marker, []byte("keep"), 0o600))
+
+	tests := []struct {
+		name   string
+		target string
+		want   string
+	}{
+		{name: "project root", target: projectDir, want: "project root"},
+		{name: "user home", target: home, want: "user home"},
+		{name: "filesystem root", target: root, want: "filesystem root"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			alias := filepath.Join(t.TempDir(), "cache-alias")
+			require.NoError(t, os.Symlink(tt.target, alias))
+
+			params := cleanRunParams(t)
+			params.Dir = projectDir
+			params.CacheDir = alias
+			err := Run(params)
+
+			require.ErrorContains(t, err, "resolves to "+tt.want)
+			assert.FileExists(t, marker)
+		})
+	}
 }
 
 func TestCleanHonorsProjectConfigWithStavefilesLayout(t *testing.T) {

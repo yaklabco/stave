@@ -248,7 +248,7 @@ Clean the cache:
 stave --clean
 ```
 
-If the legacy `~/.stavefile` directory from older stave versions still exists, `stave --clean` removes its contents as well.
+If the legacy `~/.stavefile` directory from older Stave versions still exists, `stave --clean` removes generated binaries from it as well. Other files are preserved, and unsafe cache paths such as the project root or home directory are rejected.
 
 ---
 

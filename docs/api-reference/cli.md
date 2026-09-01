@@ -186,7 +186,7 @@ stave --init
 stave --clean
 ```
 
-Removes compiled binaries from the configured cache directory. If the legacy `~/.stavefile` directory still exists, its contents are removed as well.
+Removes Stave-generated compiled binaries from the configured cache directory. If the legacy `~/.stavefile` directory still exists, its generated binaries are removed as well. Unrelated files are preserved, and Stave refuses to clean unsafe paths such as the project root or home directory.
 
 ## Exit Codes
 

@@ -30,13 +30,25 @@ const (
 // RunConfigCommand handles the `stave --config` subcommand.
 // It returns the exit code.
 func RunConfigCommand(stdout, stderr io.Writer, args []string) int {
-	return RunConfigCommandContext(context.Background(), "", stdout, stderr, args)
+	return RunConfigCommandContext(context.Background(), stdout, stderr, args)
 }
 
 // RunConfigCommandContext handles the `stave --config` subcommand with context.
-// projectDir is the directory to search for project-level config; empty means
-// the current working directory. It returns the exit code.
-func RunConfigCommandContext(_ context.Context, projectDir string, stdout, stderr io.Writer, args []string) int {
+// It searches for project-level configuration in the current working directory
+// and returns the exit code.
+func RunConfigCommandContext(ctx context.Context, stdout, stderr io.Writer, args []string) int {
+	return RunConfigCommandContextInDir(ctx, "", stdout, stderr, args)
+}
+
+// RunConfigCommandContextInDir handles the `stave --config` subcommand with
+// context. projectDir is the directory to search for project-level config;
+// empty means the current working directory. It returns the exit code.
+func RunConfigCommandContextInDir(
+	_ context.Context,
+	projectDir string,
+	stdout, stderr io.Writer,
+	args []string,
+) int {
 	flagSet := flag.NewFlagSet("config", flag.ContinueOnError)
 	flagSet.SetOutput(stdout)
 	flagSet.Usage = func() {

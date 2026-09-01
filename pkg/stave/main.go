@@ -127,7 +127,7 @@ func Run(params RunParams) error {
 			return err
 		}
 
-		return cleanCache(cacheDir, st.CacheDir())
+		return cleanCache(cacheDir, legacyCacheDir(), projectDirFor(params))
 	}
 
 	if params.Config {
@@ -202,7 +202,7 @@ func runHooksMode(ctx context.Context, params RunParams) error {
 }
 
 func runConfigMode(ctx context.Context, params RunParams) error {
-	exitCode := RunConfigCommandContext(ctx, projectDirFor(params), params.Stdout, params.Stderr, params.Args)
+	exitCode := RunConfigCommandContextInDir(ctx, projectDirFor(params), params.Stdout, params.Stderr, params.Args)
 	if exitCode != 0 {
 		return st.Fatal(exitCode, "config command failed")
 	}
@@ -740,7 +740,7 @@ func ExeName(ctx context.Context, goCmd, cacheDir string, files []string) (strin
 	filename := hex.EncodeToString(hash[:])
 
 	out := filepath.Join(cacheDir, filename)
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == goosWindows {
 		out += ".exe"
 	}
 
@@ -873,7 +873,7 @@ func setupEnv(params RunParams) (map[string]string, error) {
 //
 // The legacy sweep is transitional: drop it once the ~/.stavefile location
 // has been out of use for a few releases.
-func cleanCache(cacheDir, legacyDir string) error {
+func cleanCache(cacheDir, legacyDir, projectDir string) error {
 	dirs := []string{cacheDir}
 	// Only sweep a legacy dir that is clearly stave's own: an absolute path
 	// (a relative one means HOME was unset) naming an existing directory.
@@ -885,8 +885,12 @@ func cleanCache(cacheDir, legacyDir string) error {
 
 	var errs []error
 	for _, dir := range dirs {
+		if err := validateCacheDir(dir, projectDir); err != nil {
+			errs = append(errs, err)
+			continue
+		}
 		slog.Info("cleaning cache dir", slog.String(log.Path, dir))
-		if err := removeContents(dir); err != nil {
+		if err := removeCacheBinaries(dir); err != nil {
 			errs = append(errs, fmt.Errorf("cleaning cache dir %q: %w", dir, err))
 			continue
 		}
@@ -896,27 +900,115 @@ func cleanCache(cacheDir, legacyDir string) error {
 	return errors.Join(errs...)
 }
 
-// removeContents removes all files but not any subdirectories in the given
-// directory.
-func removeContents(dir string) error {
-	slog.Debug("removing all files in given directory", slog.String(log.Dir, dir))
+// legacyCacheDir returns the pre-XDG cache location without consulting
+// STAVEFILE_CACHE. The environment variable controls the effective cache, not
+// the historical location that --clean also sweeps.
+func legacyCacheDir() string {
+	if runtime.GOOS == goosWindows {
+		return filepath.Join(os.Getenv("HOMEDRIVE"), os.Getenv("HOMEPATH"), "stavefile")
+	}
+
+	return filepath.Join(os.Getenv("HOME"), ".stavefile")
+}
+
+func validateCacheDir(dir, projectDir string) error {
+	if dir == "" || !filepath.IsAbs(dir) {
+		return fmt.Errorf("refusing to clean non-absolute cache dir %q", dir)
+	}
+
+	root := filepath.VolumeName(dir) + string(os.PathSeparator)
+	protected := []struct {
+		name string
+		path string
+	}{
+		{name: "filesystem root", path: root},
+		{name: "project root", path: projectDir},
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		protected = append(protected, struct {
+			name string
+			path string
+		}{name: "user home", path: home})
+	}
+
+	for _, candidate := range protected {
+		if candidate.path != "" && pathsReferToSameFile(dir, candidate.path) {
+			return fmt.Errorf("refusing to clean cache dir %q: resolves to %s", dir, candidate.name)
+		}
+	}
+
+	return nil
+}
+
+func pathsReferToSameFile(left, right string) bool {
+	if absolute, err := filepath.Abs(left); err == nil {
+		left = absolute
+	}
+	if absolute, err := filepath.Abs(right); err == nil {
+		right = absolute
+	}
+	left = filepath.Clean(left)
+	right = filepath.Clean(right)
+	if left == right {
+		return true
+	}
+
+	resolvedLeft, leftErr := filepath.EvalSymlinks(left)
+	resolvedRight, rightErr := filepath.EvalSymlinks(right)
+
+	return leftErr == nil && rightErr == nil && filepath.Clean(resolvedLeft) == filepath.Clean(resolvedRight)
+}
+
+// removeCacheBinaries removes Stave-generated cache binaries, but not unrelated
+// files or subdirectories, from the given directory.
+func removeCacheBinaries(dir string) error {
+	slog.Debug("removing cached binaries from directory", slog.String(log.Dir, dir))
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
 		}
 
-		return err
+		return fmt.Errorf("reading cache directory %q: %w", dir, err)
 	}
 	for _, entry := range entries {
-		if entry.IsDir() {
+		if entry.IsDir() || !isCacheBinary(entry.Name()) {
 			continue
 		}
-		err = os.Remove(filepath.Join(dir, entry.Name()))
+		info, err := entry.Info()
 		if err != nil {
-			return err
+			return fmt.Errorf("reading metadata for cache entry %q: %w", filepath.Join(dir, entry.Name()), err)
+		}
+		if !info.Mode().IsRegular() {
+			continue
+		}
+		binaryPath := filepath.Join(dir, entry.Name())
+		err = os.Remove(binaryPath)
+		if err != nil {
+			return fmt.Errorf("removing cached binary %q: %w", binaryPath, err)
 		}
 	}
 
 	return nil
+}
+
+func isCacheBinary(name string) bool {
+	if runtime.GOOS == goosWindows {
+		if !strings.HasSuffix(name, ".exe") {
+			return false
+		}
+		name = strings.TrimSuffix(name, ".exe")
+	}
+	if len(name) != sha256.Size*2 {
+		return false
+	}
+	for _, char := range name {
+		if char < '0' || char > '9' {
+			if char < 'a' || char > 'f' {
+				return false
+			}
+		}
+	}
+
+	return true
 }
