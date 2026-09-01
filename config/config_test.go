@@ -264,3 +264,29 @@ func TestValidationResults_WriteWarnings(t *testing.T) {
 		t.Error("WriteWarnings should produce output")
 	}
 }
+
+func TestLoad_SkipValidation(t *testing.T) {
+	// Reset global state
+	ResetGlobal()
+
+	dir := t.TempDir()
+	configYAML := "target_color: purple\n"
+	if err := os.WriteFile(filepath.Join(dir, ProjectConfigFileName+".yaml"), []byte(configYAML), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := Load(&LoadOptions{ProjectDir: dir, SkipUserConfig: true, SkipEnv: true}); err == nil {
+		t.Fatal("Load() without SkipValidation should reject an invalid target_color")
+	}
+
+	cfg, err := Load(&LoadOptions{ProjectDir: dir, SkipUserConfig: true, SkipEnv: true, SkipValidation: true})
+	if err != nil {
+		t.Fatalf("Load() with SkipValidation error = %v", err)
+	}
+	if cfg.TargetColor != "purple" {
+		t.Errorf("TargetColor = %q, want %q", cfg.TargetColor, "purple")
+	}
+	if cfg.CacheDir == "" {
+		t.Error("CacheDir default should still be applied when validation is skipped")
+	}
+}

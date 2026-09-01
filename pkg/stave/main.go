@@ -23,6 +23,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/yaklabco/stave/cmd/stave/version"
+	"github.com/yaklabco/stave/config"
 	"github.com/yaklabco/stave/internal"
 	"github.com/yaklabco/stave/internal/dryrun"
 	"github.com/yaklabco/stave/internal/log"
@@ -93,6 +94,10 @@ func (i RunParams) UsesStavefiles() bool {
 // Run is the entrypoint for running stave.  It exists external to stave's main
 // function to allow it to be used from other programs, specifically so you can
 // go run a simple file that run's stave's Run.
+//
+// When params.CacheDir is empty, cleaning and target runs resolve the cache
+// directory by loading the effective configuration (user config, project
+// stave.yaml, and STAVEFILE_* environment variables).
 func Run(params RunParams) error {
 	if params.WriterForLogger == nil {
 		params.WriterForLogger = params.Stderr
@@ -117,12 +122,12 @@ func Run(params RunParams) error {
 	}
 
 	if params.Clean {
-		if err := removeContents(params.CacheDir); err != nil {
+		cacheDir, err := resolveCacheDir(params)
+		if err != nil {
 			return err
 		}
-		slog.Info("cleaned cache dir", slog.String(log.Path, params.CacheDir))
 
-		return nil
+		return cleanCache(cacheDir, st.CacheDir())
 	}
 
 	if params.Config {
@@ -197,7 +202,7 @@ func runHooksMode(ctx context.Context, params RunParams) error {
 }
 
 func runConfigMode(ctx context.Context, params RunParams) error {
-	exitCode := RunConfigCommandContext(ctx, params.Stdout, params.Stderr, params.Args)
+	exitCode := RunConfigCommandContext(ctx, projectDirFor(params), params.Stdout, params.Stderr, params.Args)
 	if exitCode != 0 {
 		return st.Fatal(exitCode, "config command failed")
 	}
@@ -206,6 +211,12 @@ func runConfigMode(ctx context.Context, params RunParams) error {
 }
 
 func stave(ctx context.Context, params RunParams) error {
+	cacheDir, err := resolveCacheDir(params)
+	if err != nil {
+		return err
+	}
+	params.CacheDir = cacheDir
+
 	files, err := Stavefiles(params.Dir, params.GOOS, params.GOARCH, params.UsesStavefiles())
 	if err != nil {
 		return fmt.Errorf("determining list of stavefiles: %w", err)
@@ -373,8 +384,6 @@ func preprocessRunParams(params *RunParams) {
 
 	params.WorkDir = cmp.Or(params.WorkDir, params.Dir)
 
-	params.CacheDir = cmp.Or(params.CacheDir, st.CacheDir())
-
 	// . will be default unless we find a stave folder.
 	stavefilesDir := filepath.Join(params.Dir, StavefilesDirName)
 
@@ -396,6 +405,43 @@ func preprocessRunParams(params *RunParams) {
 			"current directory, in future versions the files will be ignored in favor of the directory",
 	)
 	params.Dir = originalDir
+}
+
+// projectDirFor returns the directory whose stave.yaml governs this run.
+// preprocessRunParams may have redirected params.Dir into the stavefiles/
+// subdirectory; project config lives beside that directory, not inside it.
+// A user-supplied path ending in stavefiles/ resolves the same way, so -C
+// with or without the redirect reads the same project config. Clean strips
+// any trailing separator, which filepath.Dir would otherwise preserve.
+func projectDirFor(params RunParams) string {
+	if params.UsesStavefiles() {
+		return filepath.Dir(filepath.Clean(params.Dir))
+	}
+
+	return params.Dir
+}
+
+// resolveCacheDir returns params.CacheDir when the caller set it, and
+// otherwise the cache directory from the effective configuration. Routing the
+// default through config.Load keeps the directory that runs compile into,
+// that --clean cleans, and that --config show reports agreeing on a single
+// location. Validation is skipped so an unrelated config mistake (say, an
+// invalid target_color) cannot block builds or cleaning.
+func resolveCacheDir(params RunParams) (string, error) {
+	if params.CacheDir != "" {
+		return params.CacheDir, nil
+	}
+
+	cfg, err := config.Load(&config.LoadOptions{
+		ProjectDir:     projectDirFor(params),
+		Stderr:         params.Stderr,
+		SkipValidation: true,
+	})
+	if err != nil {
+		return "", fmt.Errorf("loading configuration: %w", err)
+	}
+
+	return cfg.CacheDir, nil
 }
 
 func applyBasicRunParams(params RunParams) error {
@@ -819,6 +865,35 @@ func setupEnv(params RunParams) (map[string]string, error) {
 	}
 
 	return theEnv, nil
+}
+
+// cleanCache removes cached binaries from cacheDir and, when it differs,
+// from legacyDir: the pre-XDG location that older versions of stave compiled
+// into, so stale binaries there don't outlive a --clean.
+//
+// The legacy sweep is transitional: drop it once the ~/.stavefile location
+// has been out of use for a few releases.
+func cleanCache(cacheDir, legacyDir string) error {
+	dirs := []string{cacheDir}
+	// Only sweep a legacy dir that is clearly stave's own: an absolute path
+	// (a relative one means HOME was unset) naming an existing directory.
+	if legacyDir != cacheDir && filepath.IsAbs(legacyDir) {
+		if info, err := os.Stat(legacyDir); err == nil && info.IsDir() {
+			dirs = append(dirs, legacyDir)
+		}
+	}
+
+	var errs []error
+	for _, dir := range dirs {
+		slog.Info("cleaning cache dir", slog.String(log.Path, dir))
+		if err := removeContents(dir); err != nil {
+			errs = append(errs, fmt.Errorf("cleaning cache dir %q: %w", dir, err))
+			continue
+		}
+		slog.Info("cleaned cache dir", slog.String(log.Path, dir))
+	}
+
+	return errors.Join(errs...)
 }
 
 // removeContents removes all files but not any subdirectories in the given

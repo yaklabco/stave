@@ -176,3 +176,22 @@ func TestRunConfigCommand_Help(t *testing.T) {
 		t.Errorf("Expected help output, got: %s", output)
 	}
 }
+
+func TestRunConfigCommandContext_ProjectDirHonored(t *testing.T) {
+	// Not parallel: uses t.Setenv via hermeticCacheEnv.
+	hermeticCacheEnv(t)
+
+	projectDir := t.TempDir()
+	projectCache := filepath.Join(projectDir, "project-cache")
+	writeProjectConfig(t, projectDir, projectCache)
+
+	var stdout, stderr bytes.Buffer
+	exitCode := RunConfigCommandContext(t.Context(), projectDir, &stdout, &stderr, []string{"show"})
+
+	if exitCode != 0 {
+		t.Fatalf("Expected exit code 0, got %d. stderr: %s", exitCode, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "cache_dir: "+projectCache) {
+		t.Errorf("Expected cache_dir %q from project config, got: %s", projectCache, stdout.String())
+	}
+}

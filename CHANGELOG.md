@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Breaking (Go API): `stave.RunConfigCommandContext` now takes a `projectDir` argument so config commands can resolve project configuration relative to `--dir`. `stave.RunConfigCommand` is unchanged.
+
+### Fixed
+
+- `stave --clean` and direct target runs now resolve the cache directory through configuration, matching what `--config show` reports (`cache_dir` setting, `STAVEFILE_CACHE`, or the XDG cache directory). Previously they always used the legacy `~/.stavefile` location, so `--clean` wiped `~/.stavefile` while hook-invoked runs compiled into the configured directory, leaving stale binaries behind.
+- `stave --clean` also sweeps the legacy `~/.stavefile` directory when it still exists, so binaries compiled by older versions do not linger after cleaning.
+- `stave --config show` and `--config path` now resolve project configuration relative to `--dir`, matching cleaning and target runs.
+
 ## [0.16.16] - 2026-08-29
 
 ### Removed

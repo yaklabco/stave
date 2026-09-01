@@ -130,9 +130,12 @@ func IgnoreDefault() bool {
 	return env.FailsafeParseBoolEnv(IgnoreDefaultEnv, false)
 }
 
-// CacheDir returns the directory where stave caches compiled binaries.  It
-// defaults to $HOME/.stavefile, but may be overridden by the STAVEFILE_CACHE
-// environment variable.
+// CacheDir returns the legacy cache directory for compiled binaries: the
+// STAVEFILE_CACHE environment variable if set, otherwise $HOME/.stavefile.
+// Stave itself resolves the effective cache directory through the config
+// package, which also honors the cache_dir config setting and defaults to
+// the XDG cache directory; this location is kept for backwards
+// compatibility, and `stave --clean` still sweeps it.
 func CacheDir() string {
 	d := os.Getenv(CacheEnv)
 	if d != "" {

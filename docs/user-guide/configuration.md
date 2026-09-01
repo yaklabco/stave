@@ -248,6 +248,8 @@ Clean the cache:
 stave --clean
 ```
 
+If the legacy `~/.stavefile` directory from older stave versions still exists, `stave --clean` removes its contents as well.
+
 ---
 
 ## See Also
