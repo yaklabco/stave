@@ -371,7 +371,7 @@ func TestResolveCacheDir(t *testing.T) {
 		projectCache := filepath.Join(projectDir, "project-cache")
 		require.NoError(t, os.WriteFile(
 			filepath.Join(projectDir, "stave.yaml"),
-			fmt.Appendf(nil, "cache_dir: '%s'\ntarget_color: purple\n", projectCache),
+			fmt.Appendf(nil, "cache_dir: '%s'\ntarget_color: purpura\n", projectCache),
 			0o600,
 		))
 

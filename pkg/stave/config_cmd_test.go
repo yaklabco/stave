@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/yaklabco/stave/config"
 )
 
@@ -181,9 +183,7 @@ func TestRunConfigCommandContext_CompatibilityWrapper(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	exitCode := RunConfigCommandContext(t.Context(), &stdout, &stderr, []string{"show"})
 
-	if exitCode != 0 {
-		t.Fatalf("Expected exit code 0, got %d. stderr: %s", exitCode, stderr.String())
-	}
+	require.Zero(t, exitCode, "stderr: %s", stderr.String())
 }
 
 func TestRunConfigCommandContextInDir_ProjectDirHonored(t *testing.T) {
@@ -197,10 +197,6 @@ func TestRunConfigCommandContextInDir_ProjectDirHonored(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	exitCode := RunConfigCommandContextInDir(t.Context(), projectDir, &stdout, &stderr, []string{"show"})
 
-	if exitCode != 0 {
-		t.Fatalf("Expected exit code 0, got %d. stderr: %s", exitCode, stderr.String())
-	}
-	if !strings.Contains(stdout.String(), "cache_dir: "+projectCache) {
-		t.Errorf("Expected cache_dir %q from project config, got: %s", projectCache, stdout.String())
-	}
+	require.Zero(t, exitCode, "stderr: %s", stderr.String())
+	assert.Contains(t, stdout.String(), "cache_dir: "+projectCache)
 }
