@@ -143,8 +143,8 @@ github.com/subosito/gotenv v1.6.0 h1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8
 github.com/subosito/gotenv v1.6.0/go.mod h1:Dk4QP5c2W3ibzajGcXpNraDfq2IrhjMIvMSWPKKo0FU=
 github.com/xo/terminfo v1.0.0 h1:2ZpYzqWzyyytjk3TP6aJVDhkMAkc99/1xKQdA3TDTBY=
 github.com/xo/terminfo v1.0.0/go.mod h1:RbqR21r5mrJuqunuUZ/Dhy/avygyECGrLceyNeo4LiM=
-github.com/yaklabco/direnv/v2 v2.37.2-0.20260819152646-402e0d00c3dc h1:H4J1XsuRHNMwgeft2zPRBKuuxuNW5Q4oDzJ8s8LsjsU=
-github.com/yaklabco/direnv/v2 v2.37.2-0.20260819152646-402e0d00c3dc/go.mod h1:SOtC3UOoPk//nTIdBDPFMgo7CCF81ea/2EnNQDhjmcM=
+github.com/yaklabco/direnv/v2 v2.37.2-0.20260901211456-f768a31df494 h1:aHj3GkRWx6ZtvXvoG01RbYALp2mykEr9Mmjw9uek3JM=
+github.com/yaklabco/direnv/v2 v2.37.2-0.20260901211456-f768a31df494/go.mod h1:S0s5bVjPCKnJzVk1UPwIy5erSt703g7IoIy8n3JN7sY=
 go.yaml.in/yaml/v3 v3.0.4/go.mod h1:DhzuOOF2ATzADvBadXxruRBLzYTpT36CKvDb3+aBEFg=
 go.yaml.in/yaml/v3 v3.0.5 h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=
 go.yaml.in/yaml/v3 v3.0.5/go.mod h1:HVTZu1O7/Vkt2N+BFy8Zza+lnLsABggaTM2ZpNIGuKg=
