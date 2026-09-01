@@ -10,7 +10,7 @@ import (
 type Target struct {
 	Name        string
 	Patterns    []string
-	Globs       []glob.Glob
+	Globs       []*glob.Pattern
 	Deps        []any
 	Watchers    []string
 	DepIDs      map[string]struct{}
