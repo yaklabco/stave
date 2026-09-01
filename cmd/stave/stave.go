@@ -100,7 +100,8 @@ func NewRootCmd(ctx context.Context, opts ...Option) *cobra.Command {
 	rootCmd.PersistentFlags().StringVarP(&runParams.WorkDir, "workdir", "w", "", "working directory where stavefiles will run")
 
 	// Flags that are actually commands ("pseudo-flags").
-	rootCmd.PersistentFlags().BoolVar(&runParams.Clean, "clean", false, "clean out old generated binaries from CACHE_DIR")
+	rootCmd.PersistentFlags().BoolVar(&runParams.Clean, "clean", false,
+		"remove cached compiled binaries from the cache directory and the legacy ~/.stavefile directory")
 	rootCmd.PersistentFlags().StringVar(&runParams.CompileOut, "compile", "", "output a static binary to the given path")
 	rootCmd.PersistentFlags().BoolVar(&runParams.Config, "config", false, "manage stave configuration")
 	rootCmd.PersistentFlags().BoolVar(&runParams.DirEnv, "direnv", false, "delegate to direnv for managing environment variables")

@@ -143,6 +143,12 @@ type LoadOptions struct {
 
 	// SkipEnv skips reading environment variables.
 	SkipEnv bool
+
+	// SkipValidation skips validation of the loaded values (defaults and
+	// path expansion still apply). Intended for callers that only need one
+	// setting and must not fail on problems with unrelated ones, such as
+	// cache-dir resolution during a build.
+	SkipValidation bool
 }
 
 // Load reads configuration from all sources and returns a Config struct.
@@ -283,6 +289,10 @@ func validateAndFinalize(cfg *Config, opts *LoadOptions) (*Config, error) {
 	if strings.HasPrefix(cfg.CacheDir, "~/") {
 		home := userHomeDir()
 		cfg.CacheDir = filepath.Join(home, cfg.CacheDir[2:])
+	}
+
+	if opts.SkipValidation {
+		return cfg, nil
 	}
 
 	result := cfg.Validate()

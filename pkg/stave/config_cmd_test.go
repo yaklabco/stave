@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/yaklabco/stave/config"
 )
 
@@ -175,4 +177,26 @@ func TestRunConfigCommand_Help(t *testing.T) {
 	if !strings.Contains(output, "stave --config") {
 		t.Errorf("Expected help output, got: %s", output)
 	}
+}
+
+func TestRunConfigCommandContext_CompatibilityWrapper(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	exitCode := RunConfigCommandContext(t.Context(), &stdout, &stderr, []string{"show"})
+
+	require.Zero(t, exitCode, "stderr: %s", stderr.String())
+}
+
+func TestRunConfigCommandContextInDir_ProjectDirHonored(t *testing.T) {
+	// Not parallel: uses t.Setenv via hermeticCacheEnv.
+	hermeticCacheEnv(t)
+
+	projectDir := t.TempDir()
+	projectCache := filepath.Join(projectDir, "project-cache")
+	writeProjectConfig(t, projectDir, projectCache)
+
+	var stdout, stderr bytes.Buffer
+	exitCode := RunConfigCommandContextInDir(t.Context(), projectDir, &stdout, &stderr, []string{"show"})
+
+	require.Zero(t, exitCode, "stderr: %s", stderr.String())
+	assert.Contains(t, stdout.String(), "cache_dir: "+projectCache)
 }

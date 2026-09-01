@@ -34,8 +34,21 @@ func RunConfigCommand(stdout, stderr io.Writer, args []string) int {
 }
 
 // RunConfigCommandContext handles the `stave --config` subcommand with context.
-// It returns the exit code.
-func RunConfigCommandContext(_ context.Context, stdout, stderr io.Writer, args []string) int {
+// It searches for project-level configuration in the current working directory
+// and returns the exit code.
+func RunConfigCommandContext(ctx context.Context, stdout, stderr io.Writer, args []string) int {
+	return RunConfigCommandContextInDir(ctx, "", stdout, stderr, args)
+}
+
+// RunConfigCommandContextInDir handles the `stave --config` subcommand with
+// context. projectDir is the directory to search for project-level config;
+// empty means the current working directory. It returns the exit code.
+func RunConfigCommandContextInDir(
+	_ context.Context,
+	projectDir string,
+	stdout, stderr io.Writer,
+	args []string,
+) int {
 	flagSet := flag.NewFlagSet("config", flag.ContinueOnError)
 	flagSet.SetOutput(stdout)
 	flagSet.Usage = func() {
@@ -54,7 +67,7 @@ func RunConfigCommandContext(_ context.Context, stdout, stderr io.Writer, args [
 	subArgs := flagSet.Args()
 	if len(subArgs) == 0 {
 		// No subcommand, show effective config
-		return runConfigShow(stdout, stderr)
+		return runConfigShow(projectDir, stdout, stderr)
 	}
 
 	subcmd := ConfigSubcommand(strings.ToLower(subArgs[0]))
@@ -62,9 +75,9 @@ func RunConfigCommandContext(_ context.Context, stdout, stderr io.Writer, args [
 	case ConfigInit:
 		return runConfigInit(stdout, stderr)
 	case ConfigShow:
-		return runConfigShow(stdout, stderr)
+		return runConfigShow(projectDir, stdout, stderr)
 	case ConfigPath:
-		return runConfigPath(stdout, stderr)
+		return runConfigPath(projectDir, stdout, stderr)
 	default:
 		_, _ = fmt.Fprintf(stderr, "Error: unknown config subcommand %q\n", subArgs[0])
 		configUsage(stderr)
@@ -86,8 +99,8 @@ func runConfigInit(stdout, stderr io.Writer) int {
 }
 
 // runConfigShow displays the effective configuration.
-func runConfigShow(stdout, stderr io.Writer) int {
-	cfg, err := config.Load(nil)
+func runConfigShow(projectDir string, stdout, stderr io.Writer) int {
+	cfg, err := config.Load(&config.LoadOptions{ProjectDir: projectDir})
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "Error loading config: %v\n", err)
 		return 1
@@ -113,7 +126,7 @@ func runConfigShow(stdout, stderr io.Writer) int {
 }
 
 // runConfigPath displays the configuration file paths.
-func runConfigPath(stdout, _ io.Writer) int {
+func runConfigPath(projectDir string, stdout, _ io.Writer) int {
 	paths := config.ResolveXDGPaths()
 
 	_, _ = fmt.Fprintln(stdout, "Configuration Paths:")
@@ -123,7 +136,7 @@ func runConfigPath(stdout, _ io.Writer) int {
 	_, _ = fmt.Fprintf(stdout, "  Data dir:       %s\n", paths.DataDir())
 
 	// Check if user config exists
-	cfg, err := config.Load(nil)
+	cfg, err := config.Load(&config.LoadOptions{ProjectDir: projectDir})
 	if err == nil && cfg.ConfigFile() != "" {
 		_, _ = fmt.Fprintf(stdout, "\nActive config file: %s\n", cfg.ConfigFile())
 	} else {

@@ -109,6 +109,12 @@ func actualTestMain(m *testing.M) int {
 		slog.Error(err.Error())
 		return 1
 	}
+	// Pin user config to an empty temp location so tests never load the
+	// developer's real ~/.config/stave/config.yaml.
+	if err := os.Setenv("XDG_CONFIG_HOME", filepath.Join(dir, "xdg-config")); err != nil {
+		slog.Error(err.Error())
+		return 1
+	}
 	if err := os.Unsetenv(st.VerboseEnv); err != nil {
 		slog.Error(err.Error())
 		return 1
@@ -181,7 +187,9 @@ func mutexByDir(dir string) *sync.Mutex {
 
 func resetTerm() error {
 	if term, exists := os.LookupEnv("TERM"); exists {
-		slog.Info("terminal", slog.Any("term", term))
+		// Debug level: the global logger may be pointed at another test's
+		// stderr buffer, and an Info line there fails empty-stderr asserts.
+		slog.Debug("terminal", slog.Any("term", term))
 		// unset TERM env var in order to disable color output to make the tests simpler
 		// there is a specific test for colorized output, so all the other tests can use non-colorized one
 		if err := os.Unsetenv("TERM"); err != nil {

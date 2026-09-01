@@ -179,7 +179,7 @@ Returns the Go command to use. Default is `"go"`, overridden by `STAVEFILE_GOCMD
 func CacheDir() string
 ```
 
-Returns the cache directory for compiled binaries.
+Returns the compatibility cache directory: the `STAVEFILE_CACHE` environment variable if set, otherwise `$HOME/.stavefile`. Stave itself resolves the effective cache directory through configuration (`cache_dir` setting, `STAVEFILE_CACHE`, or the XDG cache default). `stave --clean` sweeps generated binaries from both the effective cache and the historical default independently.
 
 ### HashFast
 

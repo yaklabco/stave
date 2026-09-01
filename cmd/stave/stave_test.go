@@ -2,6 +2,7 @@ package stave
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,6 +12,37 @@ import (
 	"github.com/yaklabco/stave/pkg/st"
 	"github.com/yaklabco/stave/pkg/stave"
 )
+
+// TestMain pins the stave cache and user config to temp dirs so tests that
+// compile stavefiles never write into (or clean out) the developer's real
+// cache, and never load the developer's real config.
+func TestMain(m *testing.M) {
+	os.Exit(runMain(m))
+}
+
+func runMain(m *testing.M) int {
+	dir, err := os.MkdirTemp("", "stave-cmd-test")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	defer func() {
+		if removeErr := os.RemoveAll(dir); removeErr != nil {
+			fmt.Fprintln(os.Stderr, "error removing temp dir:", removeErr)
+		}
+	}()
+
+	if err := os.Setenv(st.CacheEnv, filepath.Join(dir, "cache")); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	if err := os.Setenv("XDG_CONFIG_HOME", filepath.Join(dir, "config")); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+
+	return m.Run()
+}
 
 func TestVerboseEnv(t *testing.T) {
 	ctx := t.Context()
@@ -74,6 +106,12 @@ func TestParse(t *testing.T) {
 
 func TestClean(t *testing.T) {
 	ctx := t.Context()
+
+	// Pin this test's cache to its own temp dir, isolated from the cache
+	// artifacts other tests create under TestMain's shared dir, since this
+	// test wipes the dir and asserts on its contents. The env var also keeps
+	// st.CacheDir and the config-resolved cache dir pointing at one place.
+	t.Setenv(st.CacheEnv, t.TempDir())
 
 	require.NoError(t, os.RemoveAll(st.CacheDir()))
 

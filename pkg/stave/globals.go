@@ -15,6 +15,7 @@ import (
 
 const (
 	hashLengthLimit = 16
+	goosWindows     = "windows"
 )
 
 func lowerFirstWord(str string) string {
@@ -56,7 +57,7 @@ const (
 // and the current process ID.
 func mainFilePathFromExePath(dir, exePath string) string {
 	base := filepath.Base(exePath)
-	if runtime.GOOS == "windows" && strings.HasSuffix(base, ".exe") {
+	if runtime.GOOS == goosWindows && strings.HasSuffix(base, ".exe") {
 		base = strings.TrimSuffix(base, ".exe")
 	}
 	// keep it reasonably short while still unique enough

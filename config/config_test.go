@@ -5,6 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestResolveXDGPaths(t *testing.T) {
@@ -263,4 +266,21 @@ func TestValidationResults_WriteWarnings(t *testing.T) {
 	if output == "" {
 		t.Error("WriteWarnings should produce output")
 	}
+}
+
+func TestLoad_SkipValidation(t *testing.T) {
+	// Reset global state
+	ResetGlobal()
+
+	dir := t.TempDir()
+	configYAML := "target_color: purpura\n"
+	require.NoError(t, os.WriteFile(filepath.Join(dir, ProjectConfigFileName+".yaml"), []byte(configYAML), 0o600))
+
+	_, err := Load(&LoadOptions{ProjectDir: dir, SkipUserConfig: true, SkipEnv: true})
+	require.Error(t, err, "Load() without SkipValidation should reject an invalid target_color")
+
+	cfg, err := Load(&LoadOptions{ProjectDir: dir, SkipUserConfig: true, SkipEnv: true, SkipValidation: true})
+	require.NoError(t, err)
+	assert.Equal(t, "purpura", cfg.TargetColor)
+	assert.NotEmpty(t, cfg.CacheDir, "CacheDir default should still be applied when validation is skipped")
 }
