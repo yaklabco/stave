@@ -18,7 +18,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
-	github.com/yaklabco/direnv/v2 v2.37.2-0.20260819152646-402e0d00c3dc
+	github.com/yaklabco/direnv/v2 v2.37.2-0.20260901211456-f768a31df494
 	golang.org/x/sync v0.22.0
 	golang.org/x/tools v0.49.0
 )
