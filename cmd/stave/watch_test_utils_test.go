@@ -136,8 +136,6 @@ go 1.26
 
 require github.com/yaklabco/stave v0.0.0
 replace github.com/yaklabco/stave => %s
-
-replace github.com/gobwas/glob => github.com/gobwas/glob v0.2.3
 `, absRoot)
 	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(gomod), 0644))
 

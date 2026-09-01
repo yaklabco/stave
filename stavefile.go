@@ -341,7 +341,7 @@ func (Lint) Markdown() error {
 func (Lint) Go() error {
 	st.Deps(Init)
 
-	out, err := sh.Output("go", "tool", "golangci-lint", "run", "--allow-parallel-runners", "--build-tags='!ignore'", "--fix")
+	out, err := sh.Output("golangci-lint", "run", "--allow-parallel-runners", "--build-tags='!ignore'", "--fix")
 	if err != nil {
 		titleStyle, blockStyle := ui.GetBlockStyles()
 		outputln(titleStyle.Render("golangci-lint output"))
