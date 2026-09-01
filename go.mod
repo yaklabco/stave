@@ -1,6 +1,6 @@
 module github.com/yaklabco/stave
 
-go 1.26.7
+go 1.26.8
 
 require (
 	charm.land/lipgloss/v2 v2.0.6
