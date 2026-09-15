@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-09-15
+
+### Added
+
+- Added `linkify.SetRepoURLPattern` function, to set a custom regexp for CHANGELOG linkifcation.
+
+### Changed
+
+- Bump all updatable Go dependencies to their latest versions as of this date.
+
 ## [0.16.20] - 2026-09-01
 
 ### Changed
@@ -765,7 +775,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added parallelism-by-default to use of Go tools from inside Stave.
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.16.20...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/yaklabco/stave/compare/v0.16.20...v0.17.0
 [0.16.20]: https://github.com/yaklabco/stave/compare/v0.16.19...v0.16.20
 [0.16.19]: https://github.com/yaklabco/stave/compare/v0.16.18...v0.16.19
 [0.16.18]: https://github.com/yaklabco/stave/compare/v0.16.17...v0.16.18
