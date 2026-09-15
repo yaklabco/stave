@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added `linkify.SetRepoURLPattern` function, to set a custom regexp for CHANGELOG linkifcation.
+- Added `changelog.SetRepoURLPattern` function, to set a custom regexp for CHANGELOG linkifcation.
 
 ### Changed
 
