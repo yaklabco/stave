@@ -14,7 +14,12 @@ const (
 	unreleasedMarkerString = "unreleased"
 )
 
-var repoURLPattern = regexp.MustCompile(`(https://github\.com/[^/]+(/[^/]+)+)/compare/(([^/]+/)*)v[0-9]+\.[0-9]+\.[0-9]+`)
+var repoURLPattern = regexp.MustCompile(`(https://(github\.com)/[^/]+(/[^/]+)+)/compare/(([^/]+/)*)v[0-9]+\.[0-9]+\.[0-9]+`)
+
+// SetRepoURLPattern updates the repository URL pattern with the given regex.
+func SetRepoURLPattern(pattern *regexp.Regexp) {
+	repoURLPattern = pattern
+}
 
 // Linkify reads the content of the changelog file, runs LinkifyContent on it,
 // and saves the result back to the file.
@@ -70,7 +75,7 @@ func LinkifyContent(content string) (string, error) {
 	for _, l := range cl.Links {
 		if matches := repoURLPattern.FindStringSubmatch(l.URL); len(matches) > 3 {
 			baseURL = matches[1]
-			tagPrefix = matches[3]
+			tagPrefix = matches[4]
 
 			break
 		}
