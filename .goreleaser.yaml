@@ -110,3 +110,5 @@ release:
   github:
     owner: yaklabco
     name: stave
+
+force_token: github
