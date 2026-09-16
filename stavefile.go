@@ -621,7 +621,12 @@ func (Test) Go(ctx context.Context) error {
 	group, _ := errgroup.WithContext(ctx)
 
 	group.Go(func() error {
-		defer pipeW.Close()
+		defer func(pipeW *io.PipeWriter) {
+			err := pipeW.Close()
+			if err != nil {
+				slog.Error("error closing pipe writer", "err", err)
+			}
+		}(pipeW)
 		slog.Debug("converting coverage output to JSON...")
 		if err := sh.Piper(nil, pipeW, os.Stderr, "go", "tool", "gocov", "convert", coverageOutFilename); err != nil {
 			return fmt.Errorf("error converting %q to JSON: %w", coverageOutFilename, err)
