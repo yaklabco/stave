@@ -945,6 +945,9 @@ func commitlintHookWorker(pushRefs []changelog.PushRef) error {
 			}
 			remoteSHA = strings.TrimSpace(out)
 		}
+		if remoteSHA == ref.LocalSHA {
+			remoteSHA += "^"
+		}
 
 		out, err := sh.Output("commitlint", "--from", remoteSHA, "--to", ref.LocalSHA)
 		if err != nil {
