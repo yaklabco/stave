@@ -406,7 +406,7 @@ func (Check) GitStateClean() error {
 }
 
 // SecretsHook scans for secrets using trufflehog, but only scans the changes being pushed.
-// It expects the push refs to provided via stdin, in the standard git hook format.
+// It expects the push refs to be provided via stdin, in the standard git hook format.
 func (Check) SecretsHook() error {
 	st.Deps(Prereq.Brew)
 
