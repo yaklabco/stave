@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
 	"github.com/yaklabco/stave/pkg/watch/wtarget"
 )
 
@@ -39,7 +40,7 @@ func TestDisplayName(t *testing.T) {
 }
 
 func TestGetActive(t *testing.T) {
-	ctx := context.WithValue(t.Context(), "key", "value") //nolint:revive,staticcheck // String-as-context-key, but fine for the purposes of this test.
+	ctx := context.WithValue(t.Context(), "key", "value") //nolint:staticcheck // String-as-context-key, but fine for the purposes of this test.
 	name := "github.com/yaklabco/stave/pkg/watch/wctx.TestGetActive"
 	// DisplayName will convert it
 	displayName := DisplayName(name)
