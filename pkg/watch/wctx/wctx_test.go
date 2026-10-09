@@ -40,7 +40,8 @@ func TestDisplayName(t *testing.T) {
 }
 
 func TestGetActive(t *testing.T) {
-	ctx := context.WithValue(t.Context(), "key", "value") //nolint:staticcheck // String-as-context-key, but fine for the purposes of this test.
+	ctxKey := struct{}{}
+	ctx := context.WithValue(t.Context(), ctxKey, "value") //nolint:staticcheck // String-as-context-key, but fine for the purposes of this test.
 	name := "github.com/yaklabco/stave/pkg/watch/wctx.TestGetActive"
 	// DisplayName will convert it
 	displayName := DisplayName(name)
@@ -49,5 +50,5 @@ func TestGetActive(t *testing.T) {
 
 	activeCtx := GetActive()
 	assert.Equal(t, ctx, activeCtx)
-	assert.Equal(t, "value", activeCtx.Value("key"))
+	assert.Equal(t, "value", activeCtx.Value(ctxKey))
 }
