@@ -8,6 +8,8 @@ import (
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
+
+	"github.com/yaklabco/stave/internal/log"
 	"github.com/yaklabco/stave/pkg/st"
 	"github.com/yaklabco/stave/pkg/watch/wtarget"
 )
@@ -43,9 +45,12 @@ func startWatcher() {
 						panic(fmt.Errorf("failed to handle file change %q: %w", event.Name, hfcErr))
 					}
 				}
-			case _, ok := <-watcher.Errors:
+			case err, ok := <-watcher.Errors:
 				if !ok {
 					return
+				}
+				if err != nil {
+					slog.Error("received error from watcher", slog.Any(log.Error, err))
 				}
 			}
 		}

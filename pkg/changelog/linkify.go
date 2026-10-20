@@ -49,27 +49,14 @@ func LinkifyContent(content string) (string, error) {
 		return "", err
 	}
 
-	// 1. Identify headings that need links (missing or update required)
-	toLinkify := make(map[string]struct{})
-	for _, h := range cl.Headings {
-		if !cl.HasLinkForVersion(h.Name) {
-			toLinkify[h.Name] = struct{}{}
-		}
-	}
-
-	// If the newly-linkified heading is the topmost one under "Unreleased",
-	// then the "Unreleased" Link Reference Definition should be updated.
-	if len(cl.Headings) > 1 && strings.ToLower(cl.Headings[0].Name) == unreleasedMarkerString {
-		if lo.HasKey(toLinkify, cl.Headings[1].Name) {
-			toLinkify[cl.Headings[0].Name] = struct{}{}
-		}
-	}
+	// Identify headings that need links (missing or update required)
+	toLinkify := identifyHeadings(cl)
 
 	if len(toLinkify) == 0 {
 		return content, nil
 	}
 
-	// 2. Determine base URL from existing links
+	// Determine base URL from existing links
 	baseURL := ""
 	tagPrefix := ""
 	for _, l := range cl.Links {
@@ -86,37 +73,15 @@ func LinkifyContent(content string) (string, error) {
 		return "", errors.New("could not determine base URL from existing links")
 	}
 
-	// 3. Generate links
-	newLinks := make(map[string]string)
-	for iHeading, theHeading := range cl.Headings {
-		if !lo.HasKey(toLinkify, theHeading.Name) {
-			continue
-		}
+	// Generate links
+	newLinks := generateLinks(cl, toLinkify, baseURL, tagPrefix)
 
-		var link string
-		if strings.ToLower(theHeading.Name) == unreleasedMarkerString {
-			// Find next heading for comparison
-			if iHeading+1 >= len(cl.Headings) {
-				continue
-			}
-			next := cl.Headings[iHeading+1].Name
-			link = fmt.Sprintf("%s/compare/%sv%s...HEAD", baseURL, tagPrefix, next)
-		} else {
-			// It's a version. Compare to the next version underneath.
-			if iHeading+1 < len(cl.Headings) {
-				next := cl.Headings[iHeading+1].Name
-				link = fmt.Sprintf("%s/compare/%sv%s...%sv%s", baseURL, tagPrefix, next, tagPrefix, theHeading.Name)
-			} else {
-				// Last version. link to the tag.
-				link = fmt.Sprintf("%s/releases/tag/%sv%s", baseURL, tagPrefix, theHeading.Name)
-			}
-		}
-		newLinks[theHeading.Name] = link
-	}
-
-	// 4. Insert links in order
 	lines := strings.Split(strings.TrimSuffix(content, "\n"), "\n")
 
+	return insertLinks(cl, lines, newLinks)
+}
+
+func insertLinks(cl *Changelog, lines []string, newLinks map[string]string) (string, error) {
 	// Find where links start
 	firstLinkLine := -1
 	lastLinkLine := -1
@@ -179,4 +144,54 @@ func LinkifyContent(content string) (string, error) {
 	}
 
 	return strings.Join(result, "\n") + "\n", nil
+}
+
+func generateLinks(cl *Changelog, toLinkify map[string]struct{}, baseURL string, tagPrefix string) map[string]string {
+	newLinks := make(map[string]string)
+	for iHeading, theHeading := range cl.Headings {
+		if !lo.HasKey(toLinkify, theHeading.Name) {
+			continue
+		}
+
+		var link string
+		if strings.ToLower(theHeading.Name) == unreleasedMarkerString {
+			// Find next heading for comparison
+			if iHeading+1 >= len(cl.Headings) {
+				continue
+			}
+			next := cl.Headings[iHeading+1].Name
+			link = fmt.Sprintf("%s/compare/%sv%s...HEAD", baseURL, tagPrefix, next)
+		} else {
+			// It's a version. Compare to the next version underneath.
+			if iHeading+1 < len(cl.Headings) {
+				next := cl.Headings[iHeading+1].Name
+				link = fmt.Sprintf("%s/compare/%sv%s...%sv%s", baseURL, tagPrefix, next, tagPrefix, theHeading.Name)
+			} else {
+				// Last version. link to the tag.
+				link = fmt.Sprintf("%s/releases/tag/%sv%s", baseURL, tagPrefix, theHeading.Name)
+			}
+		}
+		newLinks[theHeading.Name] = link
+	}
+
+	return newLinks
+}
+
+func identifyHeadings(cl *Changelog) map[string]struct{} {
+	theHeadings := make(map[string]struct{})
+	for _, h := range cl.Headings {
+		if !cl.HasLinkForVersion(h.Name) {
+			theHeadings[h.Name] = struct{}{}
+		}
+	}
+
+	// If the newly-linkified heading is the topmost one under "Unreleased",
+	// then the "Unreleased" Link Reference Definition should be updated.
+	if len(cl.Headings) > 1 && strings.ToLower(cl.Headings[0].Name) == unreleasedMarkerString {
+		if lo.HasKey(theHeadings, cl.Headings[1].Name) {
+			theHeadings[cl.Headings[0].Name] = struct{}{}
+		}
+	}
+
+	return theHeadings
 }
