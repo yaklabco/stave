@@ -226,7 +226,7 @@ func loadUserConfig(viperInstance *viper.Viper) (string, error) {
 	viperInstance.AddConfigPath(paths.ConfigDir())
 
 	if err := viperInstance.ReadInConfig(); err != nil {
-		if _, ok := errors.AsType[viper.ConfigFileNotFoundError](err); !ok { //nolint:errcheck // False positive.
+		if _, ok := errors.AsType[viper.ConfigFileNotFoundError](err); !ok {
 			return "", fmt.Errorf("failed to read user config file: %w", err)
 		}
 
