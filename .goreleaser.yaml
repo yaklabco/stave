@@ -91,7 +91,7 @@ homebrew_casks:
         # replace foo with the actual binary name
         install_steps: |
           if OS.mac?
-            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/qwserver"]
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/stave"]
           end
 
     # Informing users to clean up the legacy formula to prevent overlap issues

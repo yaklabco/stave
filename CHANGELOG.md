@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.8] - 2026-11-10
+
+### Fixed
+
+- Correct target binary for Homebrew post-install hook.
+
 ## [0.17.7] - 2026-11-10
 
 ### Changed
@@ -817,7 +823,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added parallelism-by-default to use of Go tools from inside Stave.
 - Parallelized tests where possible, including locking mechanism to prevent parallel tests in same `testdata/(xyz/)` subdir.
 
-[unreleased]: https://github.com/yaklabco/stave/compare/v0.17.7...HEAD
+[unreleased]: https://github.com/yaklabco/stave/compare/v0.17.8...HEAD
+[0.17.8]: https://github.com/yaklabco/stave/compare/v0.17.7...v0.17.8
 [0.17.7]: https://github.com/yaklabco/stave/compare/v0.17.6...v0.17.7
 [0.17.6]: https://github.com/yaklabco/stave/compare/v0.17.5...v0.17.6
 [0.17.5]: https://github.com/yaklabco/stave/compare/v0.17.4...v0.17.5
