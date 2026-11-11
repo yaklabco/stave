@@ -20,7 +20,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/yaklabco/direnv/v2 v2.38.2-0.20261110172539-215a563dcf9d
 	golang.org/x/sync v0.25.0
-	golang.org/x/tools v0.52.1-0.20261106145633-d407941a339a
+	golang.org/x/tools v0.52.1-0.20261111171530-d4453b555d58
 )
 
 require (
