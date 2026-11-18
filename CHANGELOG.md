@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Update `exhaustive` linter option `map` -> `mapliteral`.
+
 ## [0.17.11] - 2026-11-18
 
 ### Changed
